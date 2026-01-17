@@ -343,7 +343,9 @@ async function playRound(
       position = await getHumanMove(rl, roundState, config.humanPlayer);
       if (position === 'quit') return 'quit';
     } else {
-      position = await getBotMove(roundState, bot, botPlayer, config.botThinkingDelay);
+      // Calculate adaptive delay for current board size
+      const adaptiveDelay = 200 + roundState.boardSize * 50;
+      position = await getBotMove(roundState, bot, botPlayer, adaptiveDelay);
     }
     
     // Apply move
@@ -447,8 +449,15 @@ async function playGame(rl: readline.Interface, config: HumanVsBotMode2Config): 
     const nextBoardSize = state.boardSize + 1;
     console.log('\n⏭️  Advancing to next round...');
     console.log(`📈 Board expanding to ${nextBoardSize}×${nextBoardSize}`);
-    console.log('Press Enter to continue...');
-    await askQuestion(rl, '');
+    
+    // Add breathing room for longer games with larger boards
+    if (config.targetScore > 1 && state.boardSize >= 4) {
+      console.log('Press Enter to continue...');
+      await askQuestion(rl, '');
+    } else {
+      // Short pause without blocking
+      await sleep(800);
+    }
     
     // Determine starting player for next round (alternate)
     const nextRoundStarter = getRoundStartingPlayer(state.roundNumber + 1, 'X');
@@ -493,11 +502,11 @@ async function promptConfiguration(rl: readline.Interface): Promise<HumanVsBotMo
   }
   
   // Choose target score
-  let targetScore = 3;
+  let targetScore = 2;
   while (true) {
-    const scoreInput = await askQuestion(rl, 'Target score (rounds to win) [default: 3]: ');
+    const scoreInput = await askQuestion(rl, 'Target score (rounds to win) [default: 2]: ');
     if (scoreInput === '') {
-      targetScore = 3;
+      targetScore = 2;
       break;
     }
     const parsed = parseInt(scoreInput, 10);
@@ -509,11 +518,17 @@ async function promptConfiguration(rl: readline.Interface): Promise<HumanVsBotMo
     }
   }
   
+  // Calculate adaptive bot delay based on board size
+  // Formula: 200 + boardSize * 50
+  // Results: 3×3→350ms, 4×4→400ms, 5×5→450ms, etc.
+  const baseBoardSize = 3; // Starting board size
+  const adaptiveDelay = 200 + baseBoardSize * 50;
+  
   return {
     humanPlayer,
     botType,
     targetScore,
-    botThinkingDelay: 400, // 400ms delay for bot thinking
+    botThinkingDelay: adaptiveDelay,
   };
 }
 
