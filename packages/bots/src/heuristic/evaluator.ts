@@ -10,9 +10,9 @@ import type { Player } from '@infinite-ttt/game-engine';
 type Infinite3x3State = ReturnType<typeof Modes.Infinite3x3.createInitialState>;
 type Board = Infinite3x3State['board'];
 import { getOpponent } from '@infinite-ttt/game-engine';
-import { indexToPosition } from '../core/types';
-import { getCurrentPlayer } from '../core/utils';
-import { HEURISTIC_SCORES, BOARD_POSITIONS } from '../core/constants';
+import { indexToPosition } from '../core/types.js';
+import { getCurrentPlayer } from '../core/utils.js';
+import { HEURISTIC_SCORES, BOARD_POSITIONS } from '../core/constants.js';
 
 const { applyMove } = Modes.Infinite3x3;
 

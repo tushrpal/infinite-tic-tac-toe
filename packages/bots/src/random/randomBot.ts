@@ -2,14 +2,12 @@
  * Random Bot - Easy difficulty
  * 
  * Selects randomly from all valid moves.
+ * Works with any board size (3×3, 4×4, 5×5, etc.)
  * Used for baseline testing and engine stress-testing.
  */
 
-import { Modes } from '@infinite-ttt/game-engine';
-
-type Infinite3x3State = ReturnType<typeof Modes.Infinite3x3.createInitialState>;
-import type { Bot } from '../core/types';
-import { getValidMoves } from '../core/types';
+import type { Bot, GameState } from '../core/types.js';
+import { getValidMoves } from '../core/types.js';
 
 /**
  * Random number generator function type
@@ -40,10 +38,10 @@ export class RandomBot implements Bot {
   /**
    * Get a random valid move
    * 
-   * @param state - Current game state
-   * @returns Board index (0-8) for a randomly selected valid move
+   * @param state - Current game state (any board size)
+   * @returns Board index for a randomly selected valid move
    */
-  getMove(state: Infinite3x3State): number {
+  getMove(state: GameState): number {
     const validMoves = getValidMoves(state);
     
     if (validMoves.length === 0) {
