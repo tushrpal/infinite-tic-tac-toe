@@ -1,0 +1,20 @@
+{
+  "name": "@infinite-ttt/bots",
+  "version": "1.0.0",
+  "description": "AI bots for Infinite Tic-Tac-Toe",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "test:watch": "vitest --watch"
+  },
+  "dependencies": {
+    "@infinite-ttt/game-engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^2.0.0"
+  }
+}
