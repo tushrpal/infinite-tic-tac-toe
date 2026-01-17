@@ -2,6 +2,10 @@
  * Heuristic evaluation logic for Medium difficulty bot
  * 
  * Evaluates board states and moves based on strategic priorities.
+ * 
+ * Fork Detection (Hard mode only):
+ * - Detects when a move allows opponent to create 2+ winning threats
+ * - Prevents classic corner-opposite-corner trap
  */
 
 import { Modes } from '@infinite-ttt/game-engine';
@@ -10,9 +14,11 @@ import type { Player } from '@infinite-ttt/game-engine';
 type Infinite3x3State = ReturnType<typeof Modes.Infinite3x3.createInitialState>;
 type Board = Infinite3x3State['board'];
 import { getOpponent } from '@infinite-ttt/game-engine';
-import { indexToPosition } from '../core/types.js';
+import { indexToPosition, getValidMoves } from '../core/types.js';
 import { getCurrentPlayer } from '../core/utils.js';
 import { HEURISTIC_SCORES, BOARD_POSITIONS } from '../core/constants.js';
+import type { HeuristicConfig } from '../core/types.js';
+import { DEFAULT_CONFIG } from './config.js';
 
 const { applyMove } = Modes.Infinite3x3;
 
@@ -60,6 +66,32 @@ function createsTwoInARowThreat(board: Board, player: Player): boolean {
   return false;
 }
 
+/**
+ * Count how many immediate winning moves a player has in a given state
+ * Used for fork detection in Hard mode
+ * 
+ * @param state - Current game state
+ * @param player - Player to count winning moves for
+ * @returns Number of moves that would result in an immediate win
+ */
+function countImmediateWinningMoves(state: Infinite3x3State, player: Player): number {
+  const validMoves = getValidMoves(state);
+  let winningMoveCount = 0;
+  
+  for (const moveIndex of validMoves) {
+    const position = indexToPosition(moveIndex);
+    // Simulate the opponent's move from the current state
+    const simulatedState = applyMove(state, player, position);
+    
+    // If move was valid and results in a win for that player
+    if (simulatedState !== state && simulatedState.winner === player) {
+      winningMoveCount++;
+    }
+  }
+  
+  return winningMoveCount;
+}
+
 
 /**
  * Evaluate a move by simulating it and scoring the resulting state
@@ -67,12 +99,14 @@ function createsTwoInARowThreat(board: Board, player: Player): boolean {
  * @param state - Current game state
  * @param moveIndex - Board index (0-8) of the move to evaluate
  * @param botPlayer - The player the bot is playing as
+ * @param config - Optional difficulty configuration (for fork detection in Hard mode)
  * @returns Numeric score for this move (higher = better)
  */
 export function evaluateMove(
   state: Infinite3x3State,
   moveIndex: number,
-  botPlayer: Player
+  botPlayer: Player,
+  config: HeuristicConfig = DEFAULT_CONFIG
 ): number {
   // Get the current player (whose turn it is)
   const currentPlayer = getCurrentPlayer(state);
@@ -117,6 +151,19 @@ export function evaluateMove(
     if (!opponentCanWinAfter) {
       // We blocked their winning move!
       score += HEURISTIC_SCORES.BLOCK_OPPONENT_WIN;
+    }
+  }
+  
+  // Priority 2.5: Fork Detection (Hard mode only)
+  // Detect if this move allows opponent to create 2+ winning threats (a fork)
+  // This is critical for preventing corner-opposite-corner traps
+  if (config.randomness <= 0.1) { // Hard mode threshold
+    const opponentForkCount = countImmediateWinningMoves(simulatedState, opponent);
+    
+    if (opponentForkCount >= 2) {
+      // This move allows opponent to fork - heavily penalize it
+      // Penalty is high but lower than blocking an immediate win
+      score -= 8500;
     }
   }
   
