@@ -143,3 +143,19 @@ export async function readBotChoice(): Promise<1 | 2 | null> {
   console.log('❌ Invalid choice. Please enter 1 or 2.\n');
   return null;
 }
+
+/**
+ * Read difficulty choice (1, 2, or 3)
+ */
+export async function readDifficulty(): Promise<1 | 2 | 3 | null> {
+  const input = await readLine();
+  const trimmed = input.trim();
+  
+  if (trimmed === '1') return 1;
+  if (trimmed === '2' || trimmed === '') return 2; // Default to Medium
+  if (trimmed === '3') return 3;
+  
+  console.log('❌ Invalid choice. Please enter 1, 2, or 3.\n');
+  return null;
+}
+

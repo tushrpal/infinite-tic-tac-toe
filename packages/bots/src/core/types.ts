@@ -5,6 +5,47 @@
 import type { Infinite3x3State } from '@infinite-ttt/game-engine';
 
 /**
+ * Difficulty levels for bot behavior
+ */
+export enum Difficulty {
+  Easy = 'easy',
+  Medium = 'medium',
+  Hard = 'hard',
+}
+
+/**
+ * Configuration for heuristic bot behavior
+ * Controls strategic priorities and randomness
+ */
+export interface HeuristicConfig {
+  /** 
+   * Probability of selecting randomly among top N moves (0 = always best, 1 = fully random)
+   * - Easy: N/A (uses Random bot)
+   * - Medium: considers top 3-4 moves
+   * - Hard: considers only top 1-2 moves (more deterministic)
+   */
+  randomness: number;
+  
+  /** 
+   * Multiplier for blocking opponent wins (default: 900)
+   * Higher = more aggressive blocking
+   */
+  blockWeight: number;
+  
+  /** 
+   * Multiplier for extending existing lines (default: 10 per mark)
+   * Higher = more focused on building threats
+   */
+  extendWeight: number;
+  
+  /** 
+   * Multiplier for center proximity (default: 5)
+   * Lower on larger boards and harder difficulties
+   */
+  centerWeight: number;
+}
+
+/**
  * Generic game state interface for bot compatibility
  * Works with any NxN board size
  */

@@ -40,14 +40,28 @@ export function promptBotChoice(): void {
 }
 
 /**
+ * Prompt for difficulty level
+ */
+export function promptDifficulty(): void {
+  console.log('\nSelect difficulty:');
+  console.log('  1 - Easy (Random moves - forgiving, unpredictable)');
+  console.log('  2 - Medium (Balanced play - default, beatable)');
+  console.log('  3 - Hard (Strategic play - punishing but fair)');
+  console.log();
+}
+
+/**
  * Display game setup confirmation
  */
-export function printGameStart(humanSymbol: 'X' | 'O', botType: string): void {
+export function printGameStart(humanSymbol: 'X' | 'O', botType: string, difficulty?: string): void {
   console.log('\n' + '='.repeat(60));
   console.log('  GAME START');
   console.log('='.repeat(60));
   console.log(`  You: ${humanSymbol}`);
   console.log(`  Bot: ${humanSymbol === 'X' ? 'O' : 'X'} (${botType})`);
+  if (difficulty) {
+    console.log(`  Difficulty: ${difficulty}`);
+  }
   console.log('='.repeat(60) + '\n');
 }
 
