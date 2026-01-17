@@ -15,11 +15,14 @@ import { Modes } from '@infinite-ttt/game-engine';
 import type { Infinite3x3State } from '@infinite-ttt/game-engine';
 import { createRandomBot, createHeuristicBot } from '@infinite-ttt/bots';
 import type { Bot } from '@infinite-ttt/bots';
+import type { Move } from '@infinite-ttt/shared';
 import { printBoard, printHeader, printResult, printMove } from './printer.js';
 import { StatsTracker } from './stats.js';
 import { runHumanVsBot } from './humanVsBot.js';
 import { runMode2Game } from './mode2Runner.js';
 import { runHumanVsBotMode2 } from './humanVsBotMode2.js';
+import { buildMode1MatchResult } from './match/matchResultBuilder.js';
+import { emitMatchResult } from './match/emitMatchResult.js';
 
 const { createInitialState, applyMove } = Modes.Infinite3x3;
 
@@ -100,6 +103,9 @@ async function runSingleGame(
   // Initialize game state using engine
   let state: Infinite3x3State = createInitialState();
   
+  // Track moves in frozen format for MatchResult
+  const frozenMoves: Move[] = [];
+  
   if (config.verbose) {
     console.log('\nInitial board:');
     printBoard(state.board);
@@ -148,6 +154,14 @@ async function runSingleGame(
       return { winner: null, turns: state.currentTurn };
     }
     
+    // Track move in frozen format
+    frozenMoves.push({
+      index: moveIndex,
+      player: currentPlayer,
+      turn: previousTurn,
+      timestamp: Date.now(),
+    });
+    
     // Print move and board
     if (config.verbose) {
       printMove(currentPlayer, moveIndex, previousTurn);
@@ -160,6 +174,20 @@ async function runSingleGame(
     }
     
     // Loop continues - engine will set state.winner when game ends
+  }
+  
+  // Game ended - emit MatchResult
+  const matchResult = buildMode1MatchResult({
+    winner: state.winner,
+    moves: frozenMoves,
+    boardSize: 3,
+    difficulty: 'medium', // Default for bot vs bot
+    humanPlayer: undefined, // Bot vs bot
+    isRanked: false,
+  });
+  
+  if (config.verbose) {
+    emitMatchResult(matchResult);
   }
   
   // Game ended - return result

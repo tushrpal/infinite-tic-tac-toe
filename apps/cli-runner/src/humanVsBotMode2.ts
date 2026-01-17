@@ -11,6 +11,9 @@
 import * as readline from 'readline';
 import { Modes, type Player, type Position } from '@infinite-ttt/game-engine';
 import { createHeuristicBot, createRandomBot, type Bot } from '@infinite-ttt/bots';
+import type { Move, GameResult } from '@infinite-ttt/shared';
+import { buildMode2MatchResult } from './match/matchResultBuilder.js';
+import { emitMatchResult } from './match/emitMatchResult.js';
 // Note: Not importing printBoard from printer.js as it's hardcoded for 3×3
 
 const { ExpandingBoard } = Modes;
@@ -409,6 +412,9 @@ async function playGame(rl: readline.Interface, config: HumanVsBotMode2Config): 
   // Initialize game state
   let state = createInitialState({ firstPlayer: 'X' });
   
+  // Track completed game results for MatchResult
+  const gameResults: GameResult[] = [];
+  
   // Play until someone reaches target score
   while (true) {
     const result = await playRound(rl, state, bot, config);
@@ -419,6 +425,22 @@ async function playGame(rl: readline.Interface, config: HumanVsBotMode2Config): 
     }
     
     state = result;
+    
+    // Build GameResult for this completed round
+    const roundWinner = state.roundWinner || (state.roundHistory.length > 0 ? state.roundHistory[state.roundHistory.length - 1].winner : null);
+    const roundMoves: Move[] = state.moveHistory.map((move, index) => ({
+      index: move.position.row * state.boardSize + move.position.col,
+      player: move.player,
+      turn: move.turn,
+      timestamp: Date.now(),
+    }));
+    
+    gameResults.push({
+      winner: roundWinner,
+      totalMoves: roundMoves.length,
+      boardSize: state.boardSize,
+      moves: roundMoves,
+    });
     
     // Check if game is over
     const { scoreX, scoreO } = calculateScores(state);
@@ -441,6 +463,19 @@ async function playGame(rl: readline.Interface, config: HumanVsBotMode2Config): 
       
       console.log(`  Total Moves: ${totalMoves}`);
       console.log('════════════════════════════════════════════════════════════\n');
+      
+      // Emit MatchResult
+      const matchResult = buildMode2MatchResult({
+        games: gameResults,
+        difficulty: config.botType === 'random' ? 'easy' : 'medium',
+        humanPlayer: config.humanPlayer,
+        isRanked: false,
+        scoreX,
+        scoreO,
+        targetScore: config.targetScore,
+      });
+      
+      emitMatchResult(matchResult);
       
       return;
     }

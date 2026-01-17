@@ -9,6 +9,7 @@ import { Modes } from '@infinite-ttt/game-engine';
 import type { Infinite3x3State } from '@infinite-ttt/game-engine';
 import { createRandomBot, createHeuristicBot, Difficulty, getConfig } from '@infinite-ttt/bots';
 import type { Bot } from '@infinite-ttt/bots';
+import type { Player, Move } from '@infinite-ttt/shared';
 import { printBoard } from './printer.js';
 import {
   printWelcome,
@@ -35,6 +36,8 @@ import {
   readBotChoice,
   readDifficulty,
 } from './input.js';
+import { buildMode1MatchResult } from './match/matchResultBuilder.js';
+import { emitMatchResult } from './match/emitMatchResult.js';
 
 const { createInitialState, applyMove } = Modes.Infinite3x3;
 
@@ -120,6 +123,9 @@ async function runGame(
   
   printGameStart(humanSymbol, botType, difficulty);
   
+  // Track moves in frozen format for MatchResult
+  const frozenMoves: Move[] = [];
+  
   // Main game loop
   while (state.winner === null) {
     const currentPlayer = getCurrentPlayer(state);
@@ -187,6 +193,14 @@ async function runGame(
         state = newState;
         validMove = true;
         
+        // Track move in frozen format
+        frozenMoves.push({
+          index: moveIndex,
+          player: currentPlayer,
+          turn: oldState.currentTurn,
+          timestamp: Date.now(),
+        });
+        
         // Reactive detection: check if sliding occurred
         const removedPosition = detectSlidingOccurred(oldState, newState, currentPlayer);
         if (removedPosition) {
@@ -210,6 +224,14 @@ async function runGame(
       
       printBotMove(moveIndex, botSymbol);
       
+      // Track move in frozen format
+      frozenMoves.push({
+        index: moveIndex,
+        player: currentPlayer,
+        turn: oldState.currentTurn,
+        timestamp: Date.now(),
+      });
+      
       // Reactive detection: check if sliding occurred
       const removedPosition = detectSlidingOccurred(oldState, state, currentPlayer);
       if (removedPosition) {
@@ -227,6 +249,19 @@ async function runGame(
   
   const isHumanWinner = state.winner === humanSymbol;
   printWin(state.winner!, isHumanWinner, state.currentTurn);
+  
+  // Emit MatchResult
+  const difficultyEnum = difficulty === 'Easy' ? 'easy' : difficulty === 'Medium' ? 'medium' : 'hard';
+  const matchResult = buildMode1MatchResult({
+    winner: state.winner,
+    moves: frozenMoves,
+    boardSize: 3,
+    difficulty: difficultyEnum as 'easy' | 'medium' | 'hard',
+    humanPlayer: humanSymbol,
+    isRanked: false, // CLI matches are not ranked
+  });
+  
+  emitMatchResult(matchResult);
 }
 
 /**
