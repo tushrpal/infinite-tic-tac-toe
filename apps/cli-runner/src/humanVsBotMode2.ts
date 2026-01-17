@@ -475,7 +475,7 @@ async function playGame(rl: readline.Interface, config: HumanVsBotMode2Config): 
         targetScore: config.targetScore,
       });
       
-      emitMatchResult(matchResult);
+      await emitMatchResult(matchResult);
       
       return;
     }

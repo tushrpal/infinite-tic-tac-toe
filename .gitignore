@@ -8,6 +8,9 @@ build/
 .next/
 out/
 
+# local data storage
+apps/cli-runner/data/
+
 # env files
 .env
 .env.local

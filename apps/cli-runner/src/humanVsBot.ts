@@ -261,7 +261,7 @@ async function runGame(
     isRanked: false, // CLI matches are not ranked
   });
   
-  emitMatchResult(matchResult);
+  await emitMatchResult(matchResult);
 }
 
 /**

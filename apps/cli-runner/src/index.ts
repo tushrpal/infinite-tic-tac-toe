@@ -187,7 +187,7 @@ async function runSingleGame(
   });
   
   if (config.verbose) {
-    emitMatchResult(matchResult);
+    await emitMatchResult(matchResult);
   }
   
   // Game ended - return result
