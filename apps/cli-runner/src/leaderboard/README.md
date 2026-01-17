@@ -41,7 +41,7 @@ Represents a single player's aggregated statistics:
 ```typescript
 interface LeaderboardEntry {
   playerId: string;
-  playerType: 'human' | 'bot';
+  playerType: "human" | "bot";
   gamesPlayed: number;
   wins: number;
   losses: number;
@@ -93,8 +93,8 @@ pnpm dev --leaderboard --summary
 ### Programmatic Usage
 
 ```typescript
-import { showLeaderboard } from './leaderboard/index.js';
-import { createLocalMatchStore } from './storage/index.js';
+import { showLeaderboard } from "./leaderboard/index.js";
+import { createLocalMatchStore } from "./storage/index.js";
 
 const matchStore = createLocalMatchStore();
 
@@ -103,8 +103,8 @@ await showLeaderboard(matchStore);
 
 // With filters
 await showLeaderboard(matchStore, {
-  mode: 'mode1',
-  difficulty: 'hard',
+  mode: "mode1",
+  difficulty: "hard",
 });
 
 // Summary only
@@ -114,14 +114,14 @@ await showLeaderboard(matchStore, undefined, true);
 ### Direct Computation
 
 ```typescript
-import { computeLeaderboard } from './leaderboard/computeLeaderboard.js';
+import { computeLeaderboard } from "./leaderboard/computeLeaderboard.js";
 
 const matches = await matchStore.getAll();
 
 // Compute entries
 const entries = computeLeaderboard(matches, {
-  mode: 'mode1',
-  difficulty: 'medium',
+  mode: "mode1",
+  difficulty: "medium",
 });
 
 // Use the data
@@ -322,6 +322,7 @@ Rank is implicitly derived from array position. Adding explicit rank numbers can
 ### Why Pure Functions?
 
 Pure functions are:
+
 - Testable
 - Predictable
 - Cacheable (future optimization)
@@ -330,6 +331,7 @@ Pure functions are:
 ### Why Separate Files?
 
 Each file has a single responsibility:
+
 - Easy to test in isolation
 - Easy to replace/extend
 - Clear boundaries

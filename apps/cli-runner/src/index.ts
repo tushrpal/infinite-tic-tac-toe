@@ -26,6 +26,7 @@ import { emitMatchResult } from './match/emitMatchResult.js';
 import { showLeaderboard } from './leaderboard/index.js';
 import { createLocalMatchStore } from './storage/index.js';
 import type { GameMode, Difficulty } from '@infinite-ttt/shared';
+import { loadMatch, loadLastMatch, runReplay } from './replay/index.js';
 
 const { createInitialState, applyMove } = Modes.Infinite3x3;
 
@@ -390,6 +391,42 @@ async function main() {
     return;
   }
   
+  // Check for replay command
+  if (args.includes('--replay')) {
+    const replayIndex = args.indexOf('--replay');
+    const replayArg = args[replayIndex + 1];
+    
+    let matchResult;
+    
+    if (!replayArg || replayArg.startsWith('--')) {
+      // No argument, show error
+      console.error('Error: --replay requires an argument (matchId or "last")');
+      console.log('Usage: pnpm dev --replay <matchId>');
+      console.log('       pnpm dev --replay last');
+      process.exit(1);
+    } else if (replayArg === 'last') {
+      // Load last match
+      matchResult = await loadLastMatch(matchStore);
+      
+      if (!matchResult) {
+        console.error('No matches found. Play some games first!');
+        process.exit(1);
+      }
+    } else {
+      // Load specific match by ID
+      matchResult = await loadMatch(matchStore, replayArg);
+      
+      if (!matchResult) {
+        console.error(`Match not found: ${replayArg}`);
+        process.exit(1);
+      }
+    }
+    
+    // Run the replay viewer
+    await runReplay(matchResult);
+    return;
+  }
+  
   // Check for interactive mode with mode selection
   const hasInteractive = args.includes('--interactive') || args.includes('-i') || args.includes('--human');
   const modeIndex = args.indexOf('--mode');
@@ -496,6 +533,8 @@ Modes:
   --interactive, -i, --human  Play interactively against a bot (Human vs Bot)
                               Use with --mode to select game mode
   --leaderboard               Show local leaderboard (derived from stored matches)
+  --replay <matchId|last>     Replay a completed match
+                              Use "last" to replay the most recent match
   (no flags)                  Run bot-vs-bot simulation (default)
 
 Leaderboard Options:
@@ -528,7 +567,11 @@ Examples:
   pnpm dev --leaderboard
   pnpm dev --leaderboard --mode mode1
   pnpm dev --leaderboard --mode mode2 --difficulty hard
-  pnpm dev --leaderboard --summary
+  pnReplay matches
+  pnpm dev --replay last
+  pnpm dev --replay match_1768...
+
+  # pm dev --leaderboard --summary
 
   # Interactive Mode 1 - Play against a bot (Infinite 3x3)
   pnpm dev --interactive
