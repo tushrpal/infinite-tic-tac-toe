@@ -62,7 +62,7 @@ storage/
 ### Basic Usage
 
 ```typescript
-import { createLocalMatchStore } from './storage';
+import { createLocalMatchStore } from "./storage";
 
 const store = createLocalMatchStore();
 
@@ -79,7 +79,7 @@ await store.clear();
 ### Custom Storage Path
 
 ```typescript
-const store = createLocalMatchStore('./custom/path/matches.json');
+const store = createLocalMatchStore("./custom/path/matches.json");
 ```
 
 ## 🧱 Architectural Principles
@@ -123,6 +123,7 @@ node dist/verifyStorage.js
 ```
 
 This will:
+
 - Count stored matches
 - Display match summaries
 - Verify data integrity

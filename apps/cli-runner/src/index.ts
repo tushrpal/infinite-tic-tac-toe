@@ -23,8 +23,14 @@ import { runMode2Game } from './mode2Runner.js';
 import { runHumanVsBotMode2 } from './humanVsBotMode2.js';
 import { buildMode1MatchResult } from './match/matchResultBuilder.js';
 import { emitMatchResult } from './match/emitMatchResult.js';
+import { showLeaderboard } from './leaderboard/index.js';
+import { createLocalMatchStore } from './storage/index.js';
+import type { GameMode, Difficulty } from '@infinite-ttt/shared';
 
 const { createInitialState, applyMove } = Modes.Infinite3x3;
+
+// Create match store instance
+const matchStore = createLocalMatchStore();
 
 /**
  * Configuration for the CLI runner
@@ -371,6 +377,19 @@ async function main() {
     return;
   }
   
+  // Check for leaderboard command
+  if (args.includes('--leaderboard')) {
+    const modeIndex = args.indexOf('--mode');
+    const difficultyIndex = args.indexOf('--difficulty');
+    const summaryOnly = args.includes('--summary');
+    
+    const mode = modeIndex !== -1 ? args[modeIndex + 1] as GameMode : undefined;
+    const difficulty = difficultyIndex !== -1 ? args[difficultyIndex + 1] as Difficulty : undefined;
+    
+    await showLeaderboard(matchStore, { mode, difficulty }, summaryOnly);
+    return;
+  }
+  
   // Check for interactive mode with mode selection
   const hasInteractive = args.includes('--interactive') || args.includes('-i') || args.includes('--human');
   const modeIndex = args.indexOf('--mode');
@@ -476,7 +495,14 @@ Usage: pnpm dev [options]
 Modes:
   --interactive, -i, --human  Play interactively against a bot (Human vs Bot)
                               Use with --mode to select game mode
+  --leaderboard               Show local leaderboard (derived from stored matches)
   (no flags)                  Run bot-vs-bot simulation (default)
+
+Leaderboard Options:
+  --leaderboard              Show the full leaderboard table
+  --mode <mode1|mode2>       Filter by game mode [optional]
+  --difficulty <easy|medium|hard>  Filter by difficulty level [optional]
+  --summary                  Show summary instead of full table [optional]
 
 Bot-vs-Bot Options:
   --mode <1|2>       Game mode: 1 (Infinite 3x3) or 2 (Expanding Board) [default: 1]
@@ -498,6 +524,12 @@ Match Fairness:
   each game, eliminating first-player advantage across the match.
 
 Examples:
+  # View leaderboards
+  pnpm dev --leaderboard
+  pnpm dev --leaderboard --mode mode1
+  pnpm dev --leaderboard --mode mode2 --difficulty hard
+  pnpm dev --leaderboard --summary
+
   # Interactive Mode 1 - Play against a bot (Infinite 3x3)
   pnpm dev --interactive
   pnpm dev -i
