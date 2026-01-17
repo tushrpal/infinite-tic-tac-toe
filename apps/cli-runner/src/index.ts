@@ -19,6 +19,7 @@ import { printBoard, printHeader, printResult, printMove } from './printer.js';
 import { StatsTracker } from './stats.js';
 import { runHumanVsBot } from './humanVsBot.js';
 import { runMode2Game } from './mode2Runner.js';
+import { runHumanVsBotMode2 } from './humanVsBotMode2.js';
 
 const { createInitialState, applyMove } = Modes.Infinite3x3;
 
@@ -336,15 +337,25 @@ async function main() {
   // Parse command-line arguments first
   const args = process.argv.slice(2);
   
-  // Check for interactive mode
-  if (args.includes('--interactive') || args.includes('-i')) {
-    await runHumanVsBot();
-    return;
-  }
-  
   // Check for help first
   if (args.includes('--help')) {
     printHelp();
+    return;
+  }
+  
+  // Check for interactive mode with mode selection
+  const hasInteractive = args.includes('--interactive') || args.includes('-i') || args.includes('--human');
+  const modeIndex = args.indexOf('--mode');
+  const mode = modeIndex !== -1 ? parseInt(args[modeIndex + 1], 10) : 1;
+  
+  if (hasInteractive) {
+    if (mode === 2) {
+      // Mode 2: Human vs Bot (Expanding Board)
+      await runHumanVsBotMode2();
+    } else {
+      // Mode 1: Human vs Bot (Infinite 3x3)
+      await runHumanVsBot();
+    }
     return;
   }
   
@@ -435,8 +446,9 @@ Infinite Tic-Tac-Toe CLI Runner
 Usage: pnpm dev [options]
 
 Modes:
-  --interactive, -i  Play interactively against a bot (Human vs Bot)
-  (no flags)         Run bot-vs-bot simulation (default)
+  --interactive, -i, --human  Play interactively against a bot (Human vs Bot)
+                              Use with --mode to select game mode
+  (no flags)                  Run bot-vs-bot simulation (default)
 
 Bot-vs-Bot Options:
   --mode <1|2>       Game mode: 1 (Infinite 3x3) or 2 (Expanding Board) [default: 1]
@@ -458,9 +470,14 @@ Match Fairness:
   each game, eliminating first-player advantage across the match.
 
 Examples:
-  # Interactive mode - Play against a bot (Mode 1)
+  # Interactive Mode 1 - Play against a bot (Infinite 3x3)
   pnpm dev --interactive
   pnpm dev -i
+  pnpm dev --human
+
+  # Interactive Mode 2 - Play Expanding Board against a bot
+  pnpm dev --mode 2 --human
+  pnpm dev --mode 2 -i
 
   # Mode 1: Single game (traditional mode)
   pnpm dev
