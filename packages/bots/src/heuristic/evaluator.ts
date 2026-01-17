@@ -92,6 +92,64 @@ function countImmediateWinningMoves(state: Infinite3x3State, player: Player): nu
   return winningMoveCount;
 }
 
+/**
+ * Check if opponent can create a fork on their next move (Mode 1 specific)
+ * A fork setup means the opponent can play a move that creates 2+ winning threats
+ * This is critical for Mode 1 where sliding happens AFTER the threatening move
+ * 
+ * @param state - Current game state (after our defensive move)
+ * @param opponent - The opponent player
+ * @returns true if opponent can create a fork with any of their next moves
+ */
+function canOpponentCreateFork(state: Infinite3x3State, opponent: Player): boolean {
+  const validMoves = getValidMoves(state);
+  
+  for (const moveIndex of validMoves) {
+    const position = indexToPosition(moveIndex);
+    // Simulate opponent's next move
+    const afterOpponentMove = applyMove(state, opponent, position);
+    
+    if (afterOpponentMove === state) {
+      continue; // Invalid move
+    }
+    
+    // Check if this creates 2+ winning opportunities for the opponent
+    // (after their move, before we respond)
+    const winningMoves = countImmediateWinningMoves(afterOpponentMove, opponent);
+    if (winningMoves >= 2) {
+      return true; // Opponent can create a fork
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Check if a player has marks in opposite corners
+ * This is a dangerous pattern in Mode 1 that gives strategic advantage
+ * 
+ * Opposite corner pairs:
+ * - (0,0) and (2,2) - main diagonal
+ * - (0,2) and (2,0) - anti-diagonal
+ * 
+ * @param board - Current board state
+ * @param player - Player to check
+ * @returns true if player has opposite corners
+ */
+function hasOppositeCorners(board: any[][], player: Player): boolean {
+  // Check main diagonal opposite corners
+  if (board[0][0] === player && board[2][2] === player) {
+    return true;
+  }
+  
+  // Check anti-diagonal opposite corners
+  if (board[0][2] === player && board[2][0] === player) {
+    return true;
+  }
+  
+  return false;
+}
+
 
 /**
  * Evaluate a move by simulating it and scoring the resulting state
@@ -144,28 +202,47 @@ export function evaluateMove(
   }
   
   // Priority 2: Block opponent's immediate win
-  // Check if opponent had a winning move and our move blocked it
-  if (opponentHadWinningMove) {
-    // Check if opponent can still win after our move (using engine reducer for accuracy)
-    const opponentCanWinAfter = checkOpponentWinningMove(simulatedState, opponent);
-    if (!opponentCanWinAfter) {
-      // We blocked their winning move!
-      score += HEURISTIC_SCORES.BLOCK_OPPONENT_WIN;
-    }
+  // Check if opponent had a winning move before, and if we blocked it
+  const opponentCanWinAfter = checkOpponentWinningMove(simulatedState, opponent);
+  
+  if (opponentHadWinningMove && !opponentCanWinAfter) {
+    // We blocked their winning move!
+    score += config.blockWeight;
+  }
+  
+  // If opponent can still win after our move (or gained a win they didn't have)
+  if (opponentCanWinAfter && !opponentHadWinningMove) {
+    // Our move enabled their win (they couldn't win before, but can now)
+    score += HEURISTIC_SCORES.ENABLE_OPPONENT_WIN;
   }
   
   // Priority 2.5: Fork Detection (Hard mode only)
   // Detect if this move allows opponent to create 2+ winning threats (a fork)
-  // This is critical for preventing corner-opposite-corner traps
+  // For Mode 1 (sliding), need to look 2 moves ahead due to sliding mechanics
   if (config.randomness <= 0.1) { // Hard mode threshold
+    // Check immediate fork (opponent has 2+ wins right now)
     const opponentForkCount = countImmediateWinningMoves(simulatedState, opponent);
     
     if (opponentForkCount >= 2) {
-      // This move allows opponent to fork - heavily penalize it
-      // Penalty is high but lower than blocking an immediate win
       score -= 8500;
     }
-  }
+    
+    // Mode 1 specific: Check if opponent can create a fork with their next move
+    // This catches corner-opposite-corner setups where sliding happens after
+    const opponentCanCreateFork = canOpponentCreateFork(simulatedState, opponent);
+    if (opponentCanCreateFork) {
+      score -= 8500;
+    }    
+    // Mode 1 specific: Detect dangerous symmetric corner patterns
+    // If opponent has opposite corners, avoid giving them more corner control
+    // BUT: Don't penalize if this move blocks an immediate win
+    if (hasOppositeCorners(state.board, opponent) && !(opponentHadWinningMove && !opponentCanWinAfter)) {
+      // If this move is a corner, heavily penalize it
+      const CORNERS = [0, 2, 6, 8];
+      if (CORNERS.includes(moveIndex)) {
+        score -= 7000; // High penalty for giving opponent corner advantage
+      }
+    }  }
   
   // Priority 3: Creates 2-in-a-row threat for bot
   // Check if bot has exactly 2 marks in a row (threat after move)
@@ -180,13 +257,6 @@ export function evaluateMove(
     score += HEURISTIC_SCORES.CORNER_CONTROL;
   } else {
     score += HEURISTIC_SCORES.EDGE_CELL;
-  }
-  
-  // Priority 7: Enables opponent win (check if opponent can win after our move)
-  const opponentCanWinAfter = checkOpponentWinningMove(simulatedState, opponent);
-  if (opponentCanWinAfter && !opponentHadWinningMove) {
-    // Our move enabled their win (they couldn't win before, but can now)
-    score += HEURISTIC_SCORES.ENABLE_OPPONENT_WIN;
   }
   
   return score;
