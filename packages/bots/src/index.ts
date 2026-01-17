@@ -5,12 +5,12 @@
  */
 
 // Core bot types and interfaces
-export type { Bot } from './core/types';
-export { getValidMoves, positionToIndex, indexToPosition } from './core/types';
+export type { Bot } from './core/types.js';
+export { getValidMoves, positionToIndex, indexToPosition } from './core/types.js';
 
 // Bot implementations
-export { RandomBot, createRandomBot } from './random/randomBot';
-export { HeuristicBot, createHeuristicBot } from './heuristic/heuristicBot';
+export { RandomBot, createRandomBot } from './random/randomBot.js';
+export { HeuristicBot, createHeuristicBot } from './heuristic/heuristicBot.js';
 
 // Utility types (for advanced users)
-export type { RandomGenerator } from './random/randomBot';
+export type { RandomGenerator } from './random/randomBot.js';
