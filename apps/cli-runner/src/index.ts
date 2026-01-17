@@ -17,6 +17,7 @@ import { createRandomBot, createHeuristicBot } from '@infinite-ttt/bots';
 import type { Bot } from '@infinite-ttt/bots';
 import { printBoard, printHeader, printResult, printMove } from './printer.js';
 import { StatsTracker } from './stats.js';
+import { runHumanVsBot } from './humanVsBot.js';
 
 const { createInitialState, applyMove } = Modes.Infinite3x3;
 
@@ -263,7 +264,22 @@ async function runMatch(config: RunnerConfig): Promise<void> {
  * Main entry point
  */
 async function main() {
-  // Default configuration
+  // Parse command-line arguments first
+  const args = process.argv.slice(2);
+  
+  // Check for interactive mode
+  if (args.includes('--interactive') || args.includes('-i')) {
+    await runHumanVsBot();
+    return;
+  }
+  
+  // Check for help first
+  if (args.includes('--help')) {
+    printHelp();
+    return;
+  }
+  
+  // Default configuration for bot-vs-bot mode
   const config: RunnerConfig = {
     bot1Type: 'heuristic',
     bot2Type: 'random',
@@ -273,13 +289,15 @@ async function main() {
     swapStart: false,
   };
   
-  // Parse command-line arguments
-  const args = process.argv.slice(2);
-  
+  // Continue parsing remaining arguments for bot-vs-bot config
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     
     switch (arg) {
+      case '--interactive':
+      case '-i':
+        // Already handled above
+        break;
       case '--player1':
       case '--p1':
         config.bot1Type = args[++i] as 'random' | 'heuristic';
@@ -326,11 +344,15 @@ async function main() {
  */
 function printHelp(): void {
   console.log(`
-Infinite Tic-Tac-Toe CLI Bot-vs-Bot Runner
+Infinite Tic-Tac-Toe CLI Runner
 
 Usage: pnpm dev [options]
 
-Options:
+Modes:
+  --interactive, -i  Play interactively against a bot (Human vs Bot)
+  (no flags)         Run bot-vs-bot simulation (default)
+
+Bot-vs-Bot Options:
   --player1 <type>   Bot type for player 1 (random | heuristic) [default: heuristic]
   --p1 <type>        Alias for --player1
   --player2 <type>   Bot type for player 2 (random | heuristic) [default: random]
@@ -348,22 +370,26 @@ Match Fairness:
   each game, eliminating first-player advantage across the match.
 
 Examples:
-  # Single game (traditional mode)
+  # Interactive mode - Play against a bot
+  pnpm dev --interactive
+  pnpm dev -i
+
+  # Bot-vs-Bot: Single game (traditional mode)
   pnpm dev
 
-  # Match mode with alternating starts
+  # Bot-vs-Bot: Match mode with alternating starts
   pnpm dev --games 10 --swap-start --quiet
 
-  # Heuristic vs Heuristic with fairness
+  # Bot-vs-Bot: Heuristic vs Heuristic with fairness
   pnpm dev --p1 heuristic --p2 heuristic --games 20 --swap-start --quiet
 
-  # Random vs Random
+  # Bot-vs-Bot: Random vs Random
   pnpm dev --player1 random --player2 random
 
-  # Watch a game with delay
+  # Bot-vs-Bot: Watch a game with delay
   pnpm dev --delay 500
 
-  # Large-scale simulation
+  # Bot-vs-Bot: Large-scale simulation
   pnpm dev --games 100 --swap-start --quiet
 `);
 }

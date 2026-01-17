@@ -71,6 +71,10 @@ export class StatsTracker {
         averageTurns: 0,
         shortestGame: 0,
         longestGame: 0,
+        player1Wins: 0,
+        player2Wins: 0,
+        winsAsX: 0,
+        winsAsO: 0,
       };
     }
 
