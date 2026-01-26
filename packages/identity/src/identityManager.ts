@@ -1,6 +1,6 @@
-import type { IdentityStore } from './IdentityStore';
-import type { PlayerIdentity } from './PlayerIdentity';
-import { createPlayerIdentity } from './PlayerIdentity';
+import type { IdentityStore } from './IdentityStore.js';
+import type { PlayerIdentity } from './PlayerIdentity.js';
+import { createPlayerIdentity } from './PlayerIdentity.js';
 
 /**
  * IdentityManager handles the core identity logic:

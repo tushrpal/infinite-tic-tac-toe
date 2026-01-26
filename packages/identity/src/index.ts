@@ -1,4 +1,4 @@
-export { PlayerIdentity, createPlayerIdentity } from './PlayerIdentity';
-export { IdentityStore } from './IdentityStore';
-export { LocalIdentityStore } from './LocalIdentityStore';
-export { IdentityManager } from './identityManager';
+export { PlayerIdentity, createPlayerIdentity } from './PlayerIdentity.js';
+export { IdentityStore } from './IdentityStore.js';
+export { LocalIdentityStore } from './LocalIdentityStore.js';
+export { IdentityManager } from './identityManager.js';

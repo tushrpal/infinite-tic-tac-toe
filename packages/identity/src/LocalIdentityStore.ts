@@ -1,8 +1,8 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import type { IdentityStore } from './IdentityStore';
-import type { PlayerIdentity } from './PlayerIdentity';
+import type { IdentityStore } from './IdentityStore.js';
+import type { PlayerIdentity } from './PlayerIdentity.js';
 
 /**
  * LocalIdentityStore stores player identity in ~/.infinite-ttt/player.json
