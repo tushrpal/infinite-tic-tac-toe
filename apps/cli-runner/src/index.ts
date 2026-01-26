@@ -54,6 +54,8 @@ interface RunnerConfig {
   mode?: 1 | 2;
   /** Target score for Mode 2 */
   targetScore?: number;
+  /** Optional backend URL for remote storage */
+  backendUrl?: string;
 }
 
 /**
@@ -195,7 +197,7 @@ async function runSingleGame(
   });
   
   if (config.verbose) {
-    await emitMatchResult(matchResult);
+    await emitMatchResult(matchResult, config.backendUrl);
   }
   
   // Game ended - return result
@@ -371,7 +373,21 @@ async function runMatch(config: RunnerConfig): Promise<void> {
  */
 async function main() {
   // Parse command-line arguments first
-  const args = process.argv.slice(2);
+  let args = process.argv.slice(2);
+  
+  // Preprocess args to handle --key=value format
+  // Split any --key=value into [--key, value]
+  const processedArgs: string[] = [];
+  for (const arg of args) {
+    if (arg.startsWith('--') && arg.includes('=')) {
+      const [key, ...valueParts] = arg.split('=');
+      processedArgs.push(key);
+      processedArgs.push(valueParts.join('=')); // Rejoin in case URL had = in it
+    } else {
+      processedArgs.push(arg);
+    }
+  }
+  args = processedArgs;
   
   // Check for help first
   if (args.includes('--help')) {
@@ -487,6 +503,7 @@ async function main() {
     swapStart: false,
     mode: 1, // Default to Mode 1
     targetScore: 3, // Default for Mode 2
+    backendUrl: undefined,
   };
   
   // Continue parsing remaining arguments for bot-vs-bot config
@@ -535,6 +552,9 @@ async function main() {
         break;
       case '--target-score':
         config.targetScore = parseInt(args[++i], 10);
+        break;
+      case '--backend-url':
+        config.backendUrl = args[++i];
         break;
       case '--help':
         printHelp();
@@ -591,6 +611,7 @@ Bot-vs-Bot Options:
   --games <n>        Number of games to run [default: 1]
   --target-score <n> Target score for Mode 2 (rounds to win) [default: 3]
   --swap-start       Enable alternating starting player (Mode 1 match fairness)
+  --backend-url <url> Backend URL for remote match storage [optional]
   --quiet            Disable verbose output (summary only)
   --help             Show this help message
 
@@ -647,6 +668,10 @@ Examples:
 
   # Mode 1: Large-scale simulation
   pnpm dev --games 100 --swap-start --quiet
+
+  # With backend storage
+  pnpm dev --backend-url=http://localhost:3000
+  pnpm dev --mode 2 --backend-url=http://localhost:3000
 `);
 }
 

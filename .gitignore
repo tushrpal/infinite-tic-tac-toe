@@ -10,6 +10,7 @@ out/
 
 # local data storage
 apps/cli-runner/data/
+apps/backend/data/
 
 # env files
 .env

@@ -1,0 +1,25 @@
+{
+  "name": "@infinite-ttt/backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal Express backend for Infinite Tic-Tac-Toe MatchResult storage",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "nodemon",
+    "start": "ts-node src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "@infinite-ttt/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "nodemon": "^3.0.2",
+    "@types/node": "^20.10.6",
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17"
+  }
+}
