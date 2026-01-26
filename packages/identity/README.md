@@ -25,9 +25,9 @@ This is intentional and correct for the current stage of the project.
 
 ```typescript
 interface PlayerIdentity {
-  playerId: string;       // UUID
-  displayName: string;    // e.g., "Tushar"
-  createdAt: number;      // Timestamp
+  playerId: string; // UUID
+  displayName: string; // e.g., "Tushar"
+  createdAt: number; // Timestamp
 }
 ```
 
@@ -38,6 +38,7 @@ interface PlayerIdentity {
 Stores identity in `~/.infinite-ttt/player.json`
 
 **Behavior:**
+
 - Creates file if missing
 - Never overwrites `playerId`
 - Allows `displayName` updates
@@ -47,8 +48,8 @@ Stores identity in `~/.infinite-ttt/player.json`
 ### CLI Integration
 
 ```typescript
-import { LocalIdentityStore, IdentityManager } from '@infinite-ttt/identity';
-import { promptDisplayName } from './input';
+import { LocalIdentityStore, IdentityManager } from "@infinite-ttt/identity";
+import { promptDisplayName } from "./input";
 
 const identityStore = new LocalIdentityStore();
 const identityManager = new IdentityManager(identityStore);
@@ -62,10 +63,12 @@ console.log(`ID: ${playerIdentity.playerId}`);
 // Use in match results
 const matchResult = {
   ...otherFields,
-  players: [{
-    id: playerIdentity.playerId,
-    type: 'human'
-  }]
+  players: [
+    {
+      id: playerIdentity.playerId,
+      type: "human",
+    },
+  ],
 };
 ```
 
@@ -86,6 +89,7 @@ The backend provides a simple `/players` endpoint:
 ```
 
 **Backend Rules:**
+
 - Idempotent (same ID → update name only)
 - No authentication
 - No validation beyond structure
@@ -171,6 +175,7 @@ npx tsx test-identity.ts
 ```
 
 This verifies:
+
 - ✓ First-time identity creation
 - ✓ Identity persistence
 - ✓ Display name updates
@@ -183,8 +188,9 @@ Old matches with `"human"` player ID remain valid.
 New matches use real player IDs.
 
 Leaderboard logic can handle both:
+
 ```typescript
-const playerId = match.players[0].id || 'anonymous';
+const playerId = match.players[0].id || "anonymous";
 ```
 
 ## File Location

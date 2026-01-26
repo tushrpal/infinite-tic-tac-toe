@@ -147,6 +147,7 @@ pnpm dev --interactive
 ### Why No Authentication?
 
 This is **intentional** for the current stage:
+
 - Local-first architecture
 - Offline gameplay
 - No server dependency
