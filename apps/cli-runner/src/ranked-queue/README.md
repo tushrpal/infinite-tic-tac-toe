@@ -11,6 +11,7 @@
 Implements a **local-only ranked queue and matchmaking system** that simulates real online ranked play without networking.
 
 This system:
+
 - ✅ Manages ranked queue state
 - ✅ Applies skill-based matchmaking rules
 - ✅ Handles timeout-based bot fallback
@@ -74,7 +75,11 @@ interface QueueTicket {
 ```typescript
 type MatchmakingResult =
   | { type: "human"; playerA: QueueTicket; playerB: QueueTicket }
-  | { type: "bot"; human: QueueTicket; botDifficulty: "easy" | "medium" | "hard" };
+  | {
+      type: "bot";
+      human: QueueTicket;
+      botDifficulty: "easy" | "medium" | "hard";
+    };
 ```
 
 ---
@@ -108,15 +113,16 @@ type MatchmakingResult =
 
 ## 🤖 Bot Fallback Rules
 
-| Player Rank   | Bot Difficulty |
-|---------------|----------------|
-| Bronze        | Easy           |
-| Silver        | Medium         |
-| Gold          | Medium         |
-| Platinum      | Hard           |
-| Diamond       | Hard           |
+| Player Rank | Bot Difficulty |
+| ----------- | -------------- |
+| Bronze      | Easy           |
+| Silver      | Medium         |
+| Gold        | Medium         |
+| Platinum    | Hard           |
+| Diamond     | Hard           |
 
 **Important:**
+
 - Bot matches ARE ranked
 - Bot penalty multiplier (0.6x) applies
 - Full `MatchResult` still generated
@@ -128,10 +134,12 @@ type MatchmakingResult =
 ### Must Match
 
 ✅ **Same mode**
+
 - Mode 1 players only match Mode 1
 - Mode 2 players only match Mode 2
 
 ✅ **Similar rank tier (±1 tier)**
+
 - Bronze can match Silver
 - Silver can match Bronze, Gold
 - Gold can match Silver, Platinum
@@ -140,12 +148,12 @@ type MatchmakingResult =
 
 ### Examples
 
-| Player A      | Player B      | Match? | Reason                          |
-|---------------|---------------|--------|---------------------------------|
-| Silver        | Silver        | ✅     | Same tier, same mode            |
-| Gold          | Platinum      | ✅     | Adjacent tiers, same mode       |
-| Bronze        | Gold          | ❌     | Rank gap too large (2 tiers)    |
-| Silver (M1)   | Silver (M2)   | ❌     | Different modes                 |
+| Player A    | Player B    | Match? | Reason                       |
+| ----------- | ----------- | ------ | ---------------------------- |
+| Silver      | Silver      | ✅     | Same tier, same mode         |
+| Gold        | Platinum    | ✅     | Adjacent tiers, same mode    |
+| Bronze      | Gold        | ❌     | Rank gap too large (2 tiers) |
+| Silver (M1) | Silver (M2) | ❌     | Different modes              |
 
 ---
 
@@ -159,11 +167,7 @@ import { RankedQueueController } from "./ranked-queue";
 const controller = new RankedQueueController();
 
 // Player enters ranked queue
-const result = await controller.findMatch(
-  "player123",
-  "Silver",
-  "mode1"
-);
+const result = await controller.findMatch("player123", "Silver", "mode1");
 
 if (result.type === "human") {
   console.log("Matched with:", result.playerB.playerId);
@@ -200,7 +204,7 @@ const result = await controller.findMatch("player1", "Gold", "mode2");
 
 ```typescript
 const controller = new RankedQueueController({
-  timeoutMs: 60_000,        // 60s timeout
+  timeoutMs: 60_000, // 60s timeout
   recheckIntervalMs: 5_000, // Check every 5s
 });
 ```
@@ -254,7 +258,11 @@ import { RankedQueueController } from "./ranked-queue";
 import { RankedMatchController } from "./ranked";
 
 const queueController = new RankedQueueController();
-const matchResult = await queueController.findMatch("player1", "Silver", "mode1");
+const matchResult = await queueController.findMatch(
+  "player1",
+  "Silver",
+  "mode1",
+);
 
 // Start ranked match
 const rankedController = new RankedMatchController(session);
@@ -361,6 +369,7 @@ When adding real backend:
 ### Production Considerations
 
 When going online:
+
 - Add real-time queue updates (WebSocket)
 - Add queue position tracking
 - Add estimated wait time
