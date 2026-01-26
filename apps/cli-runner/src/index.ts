@@ -21,6 +21,7 @@ import { StatsTracker } from './stats.js';
 import { runHumanVsBot } from './humanVsBot.js';
 import { runMode2Game } from './mode2Runner.js';
 import { runHumanVsBotMode2 } from './humanVsBotMode2.js';
+import { runOnlinePvP } from './onlinePvP.js';
 import { buildMode1MatchResult } from './match/matchResultBuilder.js';
 import { emitMatchResult } from './match/emitMatchResult.js';
 import { showLeaderboard } from './leaderboard/index.js';
@@ -37,7 +38,9 @@ const { createInitialState, applyMove } = Modes.Infinite3x3;
 const matchStore = createLocalMatchStore();
 
 // Create identity manager instance
-const identityStore = new LocalIdentityStore();
+// Support custom identity path via PLAYER_ID env var for multi-player testing
+const identityPath = process.env.PLAYER_ID ? `${process.env.PLAYER_ID}.json` : undefined;
+const identityStore = new LocalIdentityStore(identityPath);
 const identityManager = new IdentityManager(identityStore);
 
 /**
@@ -492,8 +495,15 @@ async function main() {
   
   // Check for interactive mode with mode selection
   const hasInteractive = args.includes('--interactive') || args.includes('-i') || args.includes('--human');
+  const hasPvP = args.includes('--pvp') || args.includes('--online');
   const modeIndex = args.indexOf('--mode');
   const mode = modeIndex !== -1 ? parseInt(args[modeIndex + 1], 10) : 1;
+  
+  // Handle online PvP mode
+  if (hasPvP) {
+    await runOnlinePvP(identityManager);
+    return;
+  }
   
   if (hasInteractive) {
     if (mode === 2) {
@@ -599,6 +609,7 @@ Usage: pnpm dev [options]
 Modes:
   --interactive, -i, --human  Play interactively against a bot (Human vs Bot)
                               Use with --mode to select game mode
+  --pvp, --online             Play online against another human (PvP)
   --leaderboard               Show local leaderboard (derived from stored matches)
   --replay <matchId|last>     Replay a completed match
                               Use "last" to replay the most recent match
@@ -653,6 +664,10 @@ Examples:
   pnpm dev --interactive
   pnpm dev -i
   pnpm dev --human
+
+  # Online PvP - Play against another human
+  pnpm dev --pvp
+  pnpm dev --online
 
   # Interactive Mode 2 - Play Expanding Board against a bot
   pnpm dev --mode 2 --human

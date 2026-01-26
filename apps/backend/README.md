@@ -1,25 +1,29 @@
 # Infinite TTT - Minimal Backend
 
-A minimal Express backend for storing and serving MatchResult data from Infinite Tic-Tac-Toe games.
+A minimal Express backend for storing MatchResult data and managing online PvP matches.
 
 ## 🎯 Purpose
 
-This backend does **exactly three things**:
+This backend does **exactly five things**:
 
 1. ✅ Accept `MatchResult` via POST
 2. ✅ Store it in JSON
 3. ✅ Serve it back via GET
+4. ✅ Manage online PvP match state
+5. ✅ Enforce turn ownership in PvP
 
 **What it does NOT do:**
 
-- ❌ No game logic
+- ❌ No game logic or rule validation
 - ❌ No ranking calculations
-- ❌ No matchmaking
+- ❌ No matchmaking decisions
 - ❌ No authentication
-- ❌ No real-time sockets
+- ❌ No real-time sockets (uses polling)
 - ❌ No gameplay validation
 
-Think of it as a **recorder**, not a brain.
+Think of it as a **recorder and state store**, not a brain.
+
+> **Note:** For detailed PvP documentation, see [ONLINE_PVP.md](./ONLINE_PVP.md)
 
 ## 🚀 Quick Start
 
@@ -104,7 +108,93 @@ Health check endpoint.
 }
 ```
 
+### PvP Endpoints
+
+#### POST /pvp/match
+
+Create or join an online PvP match.
+
+**Request:**
+
+```json
+{
+  "playerId": "abc123",
+  "mode": "mode1",
+  "boardSize": 3
+}
+```
+
+**Response:**
+
+```json
+{
+  "matchId": "uuid",
+  "role": "X" | "O",
+  "status": "waiting" | "active",
+  "message": "Match created, waiting for opponent"
+}
+```
+
+#### GET /pvp/match/:matchId
+
+Poll current match state.
+
+**Response:** Full PvPMatch object with game state.
+
+#### POST /pvp/match/:matchId/move
+
+Submit a move (turn enforcement only).
+
+**Request:**
+
+```json
+{
+  "playerId": "abc123",
+  "gameState": {
+    /* updated GameState */
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true
+}
+```
+
+#### POST /pvp/match/:matchId/complete
+
+Finalize match with result.
+
+**Request:**
+
+```json
+{
+  "matchResult": {
+    /* MatchResult */
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true
+}
+```
+
+#### GET /pvp/matches/active
+
+Get all active/waiting matches (debugging).
+
+**Response:** Array of PvPMatch objects.
+
 ## 🎮 Integration with CLI
+
+### Bot vs Bot with backend storage
 
 Run the CLI with backend storage:
 
@@ -119,11 +209,35 @@ pnpm dev --games 10 --backend-url=http://localhost:3000
 pnpm dev --mode 2 --backend-url=http://localhost:3000
 ```
 
+### Online PvP
+
+Play against another human online:
+
+```bash
+# Terminal 1 - Start backend
+cd apps/backend
+pnpm dev
+
+# Terminal 2 - Player 1
+cd apps/cli-runner
+pnpm dev --pvp
+
+# Terminal 3 - Player 2
+cd apps/cli-runner
+pnpm dev --pvp
+```
+
+See [ONLINE_PVP.md](./ONLINE_PVP.md) for complete PvP documentation.
+
 ## 📁 Data Storage
 
-Match data is stored in `data/matches.json` (gitignored).
+Match data is stored in:
 
-**Important:** This is a simple JSON file - not suitable for production. It will be replaced with a real database later.
+- `data/matches.json` - Completed match results (gitignored)
+- `data/pvp-matches.json` - Active/waiting PvP matches (gitignored)
+- `data/players.json` - Player identity data (gitignored)
+
+**Important:** These are simple JSON files - not suitable for production. They will be replaced with a real database later.
 
 ## 🔧 Configuration
 
