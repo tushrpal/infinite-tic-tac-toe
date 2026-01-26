@@ -28,11 +28,17 @@ import { createLocalMatchStore } from './storage/index.js';
 import type { GameMode, Difficulty } from '@infinite-ttt/shared';
 import { loadMatch, loadLastMatch, runReplay } from './replay/index.js';
 import { buildRankedHistory, buildRankTimeline, printRankedHistory, printRankTimeline } from './ranked-history/index.js';
+import { LocalIdentityStore, IdentityManager } from '@infinite-ttt/identity';
+import { promptDisplayName } from './input.js';
 
 const { createInitialState, applyMove } = Modes.Infinite3x3;
 
 // Create match store instance
 const matchStore = createLocalMatchStore();
+
+// Create identity manager instance
+const identityStore = new LocalIdentityStore();
+const identityManager = new IdentityManager(identityStore);
 
 /**
  * Configuration for the CLI runner
@@ -372,6 +378,13 @@ async function runMatch(config: RunnerConfig): Promise<void> {
  * Main entry point
  */
 async function main() {
+  // Initialize player identity (load existing or prompt for new)
+  const playerIdentity = await identityManager.initialize(promptDisplayName);
+  
+  // Display player info (short form of UUID)
+  const shortId = playerIdentity.playerId.substring(0, 8);
+  console.log(`👤 Player: ${playerIdentity.displayName} (id: ${shortId}...)\n`);
+  
   // Parse command-line arguments first
   let args = process.argv.slice(2);
   
@@ -485,10 +498,10 @@ async function main() {
   if (hasInteractive) {
     if (mode === 2) {
       // Mode 2: Human vs Bot (Expanding Board)
-      await runHumanVsBotMode2();
+      await runHumanVsBotMode2(identityManager);
     } else {
       // Mode 1: Human vs Bot (Infinite 3x3)
-      await runHumanVsBot();
+      await runHumanVsBot(identityManager);
     }
     return;
   }

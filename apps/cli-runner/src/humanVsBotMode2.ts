@@ -14,6 +14,7 @@ import { createHeuristicBot, createRandomBot, type Bot } from '@infinite-ttt/bot
 import type { Move, GameResult } from '@infinite-ttt/shared';
 import { buildMode2MatchResult } from './match/matchResultBuilder.js';
 import { emitMatchResult } from './match/emitMatchResult.js';
+import type { IdentityManager } from '@infinite-ttt/identity';
 // Note: Not importing printBoard from printer.js as it's hardcoded for 3×3
 
 const { ExpandingBoard } = Modes;
@@ -405,7 +406,11 @@ async function playRound(
 /**
  * Play a complete game
  */
-async function playGame(rl: readline.Interface, config: HumanVsBotMode2Config): Promise<void> {
+async function playGame(
+  rl: readline.Interface, 
+  config: HumanVsBotMode2Config, 
+  identityManager: IdentityManager
+): Promise<void> {
   // Create bot
   const bot = config.botType === 'heuristic' ? createHeuristicBot() : createRandomBot();
   
@@ -464,6 +469,9 @@ async function playGame(rl: readline.Interface, config: HumanVsBotMode2Config): 
       console.log(`  Total Moves: ${totalMoves}`);
       console.log('════════════════════════════════════════════════════════════\n');
       
+      // Get player identity
+      const playerIdentity = identityManager.getCurrentPlayer();
+      
       // Emit MatchResult
       const matchResult = buildMode2MatchResult({
         games: gameResults,
@@ -473,9 +481,10 @@ async function playGame(rl: readline.Interface, config: HumanVsBotMode2Config): 
         scoreX,
         scoreO,
         targetScore: config.targetScore,
+        humanPlayerId: playerIdentity.playerId,
       });
       
-      await emitMatchResult(matchResult);
+      await emitMatchResult(matchResult, undefined, playerIdentity);
       
       return;
     }
@@ -570,7 +579,7 @@ async function promptConfiguration(rl: readline.Interface): Promise<HumanVsBotMo
 /**
  * Main entry point for Human vs Bot Mode 2
  */
-export async function runHumanVsBotMode2(): Promise<void> {
+export async function runHumanVsBotMode2(identityManager: IdentityManager): Promise<void> {
   const rl = createReadline();
   
   try {
@@ -583,7 +592,7 @@ export async function runHumanVsBotMode2(): Promise<void> {
     
     // Play game loop
     while (true) {
-      await playGame(rl, config);
+      await playGame(rl, config, identityManager);
       
       // Ask to play again
       const playAgain = await askQuestion(rl, '\nPlay again? (y/n): ');

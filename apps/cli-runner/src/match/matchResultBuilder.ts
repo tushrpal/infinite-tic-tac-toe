@@ -39,8 +39,9 @@ export function buildMode1MatchResult(params: {
   difficulty: Difficulty;
   humanPlayer?: Player; // undefined means bot vs bot
   isRanked: boolean;
+  humanPlayerId?: string; // Real player ID from identity system
 }): MatchResult {
-  const { winner, moves, boardSize, difficulty, humanPlayer, isRanked } = params;
+  const { winner, moves, boardSize, difficulty, humanPlayer, isRanked, humanPlayerId } = params;
 
   // Build players array
   const players: MatchPlayer[] = [];
@@ -48,7 +49,7 @@ export function buildMode1MatchResult(params: {
   if (humanPlayer !== undefined) {
     // Human vs Bot
     players.push({
-      id: 'human',
+      id: humanPlayerId || 'anonymous', // Use real player ID or fallback
       type: 'human',
     });
     players.push({
@@ -79,7 +80,7 @@ export function buildMode1MatchResult(params: {
   let matchWinner: string | null = null;
   if (winner !== null) {
     if (humanPlayer !== undefined) {
-      matchWinner = winner === humanPlayer ? 'human' : 'bot';
+      matchWinner = winner === humanPlayer ? (humanPlayerId || 'anonymous') : 'bot';
     } else {
       matchWinner = winner === 'X' ? 'botX' : 'botO';
     }
@@ -111,8 +112,9 @@ export function buildMode2MatchResult(params: {
   scoreX: number;
   scoreO: number;
   targetScore: number;
+  humanPlayerId?: string; // Real player ID from identity system
 }): MatchResult {
-  const { games, difficulty, humanPlayer, isRanked, scoreX, scoreO, targetScore } = params;
+  const { games, difficulty, humanPlayer, isRanked, scoreX, scoreO, targetScore, humanPlayerId } = params;
 
   // Build players array
   const players: MatchPlayer[] = [];
@@ -120,7 +122,7 @@ export function buildMode2MatchResult(params: {
   if (humanPlayer !== undefined) {
     // Human vs Bot
     players.push({
-      id: 'human',
+      id: humanPlayerId || 'anonymous', // Use real player ID or fallback
       type: 'human',
     });
     players.push({
@@ -144,7 +146,7 @@ export function buildMode2MatchResult(params: {
   if (scoreX >= targetScore || scoreO >= targetScore) {
     const winningPlayer: Player = scoreX >= targetScore ? 'X' : 'O';
     if (humanPlayer !== undefined) {
-      matchWinner = winningPlayer === humanPlayer ? 'human' : 'bot';
+      matchWinner = winningPlayer === humanPlayer ? (humanPlayerId || 'anonymous') : 'bot';
     } else {
       matchWinner = winningPlayer === 'X' ? 'botX' : 'botO';
     }

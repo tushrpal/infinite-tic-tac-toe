@@ -38,6 +38,7 @@ import {
 } from './input.js';
 import { buildMode1MatchResult } from './match/matchResultBuilder.js';
 import { emitMatchResult } from './match/emitMatchResult.js';
+import type { IdentityManager } from '@infinite-ttt/identity';
 
 const { createInitialState, applyMove } = Modes.Infinite3x3;
 
@@ -114,7 +115,8 @@ async function runGame(
   humanSymbol: 'X' | 'O',
   bot: Bot,
   botType: string,
-  difficulty: string
+  difficulty: string,
+  identityManager: IdentityManager
 ): Promise<void> {
   // Initialize fresh game state
   let state: Infinite3x3State = createInitialState();
@@ -250,6 +252,9 @@ async function runGame(
   const isHumanWinner = state.winner === humanSymbol;
   printWin(state.winner!, isHumanWinner, state.currentTurn);
   
+  // Get player identity
+  const playerIdentity = identityManager.getCurrentPlayer();
+  
   // Emit MatchResult
   const difficultyEnum = difficulty === 'Easy' ? 'easy' : difficulty === 'Medium' ? 'medium' : 'hard';
   const matchResult = buildMode1MatchResult({
@@ -259,9 +264,10 @@ async function runGame(
     difficulty: difficultyEnum as 'easy' | 'medium' | 'hard',
     humanPlayer: humanSymbol,
     isRanked: false, // CLI matches are not ranked
+    humanPlayerId: playerIdentity.playerId,
   });
   
-  await emitMatchResult(matchResult);
+  await emitMatchResult(matchResult, undefined, playerIdentity);
 }
 
 /**
@@ -331,7 +337,7 @@ async function setupGame(): Promise<{
 /**
  * Main entry point for human vs bot mode
  */
-export async function runHumanVsBot(): Promise<void> {
+export async function runHumanVsBot(identityManager: IdentityManager): Promise<void> {
   printWelcome();
   
   let playing = true;
@@ -343,7 +349,7 @@ export async function runHumanVsBot(): Promise<void> {
       break;
     }
     
-    await runGame(setup.humanSymbol, setup.bot, setup.botType, setup.difficulty);
+    await runGame(setup.humanSymbol, setup.bot, setup.botType, setup.difficulty, identityManager);
     
     // Ask to play again
     promptPlayAgain();

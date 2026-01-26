@@ -23,7 +23,9 @@ infinite-ttt/
 │
 └── packages/
     ├── game-engine/    ✅ Core game logic (Mode 1 complete)
-    └── bots/           ✅ AI opponents (Random & Heuristic)
+    ├── bots/           ✅ AI opponents (Random & Heuristic)
+    ├── identity/       ✅ Player identity system (no auth)
+    └── shared/         ✅ Common types and utilities
 ```
 
 ## 🎮 Current Status
@@ -38,7 +40,14 @@ infinite-ttt/
   - Random Bot (easy difficulty)
   - Heuristic Bot (medium difficulty)
   - 13/13 tests passing
+- **Player Identity**
+  - Stable player IDs (UUID-based)
+  - Display name management
+  - Local-first persistence
+  - Backend-compatible
+  - No authentication (by design)
 - **CLI Runner** - Developer tool for testing and simulation
+- **Backend API** - Match and player storage
 
 ### 🔜 Planned
 
@@ -109,6 +118,44 @@ pnpm dev -- --delay 500
 - Eliminates draw states
 - Makes every move count
 
+## 👤 Player Identity System
+
+**Philosophy: Identity ≠ Authentication** (for now)
+
+The identity system provides stable player IDs and display names without requiring passwords, logins, or authentication.
+
+### Features
+
+- ✅ Stable player IDs (UUID)
+- ✅ User-chosen display names
+- ✅ Local persistence (`~/.infinite-ttt/player.json`)
+- ✅ Backend-compatible API
+- ✅ Works offline
+- ✅ No authentication required
+
+### First Run Experience
+
+```bash
+pnpm dev --interactive
+
+# Prompts:
+# → Enter your display name: Tushar
+# ✅ Welcome, Tushar!
+# 👤 Player: Tushar (id: e5340a4b...)
+```
+
+### Why No Authentication?
+
+This is **intentional** for the current stage:
+- Local-first architecture
+- Offline gameplay
+- No server dependency
+- User owns their data
+
+**Future:** When PvP arrives, authentication can be layered on top without breaking existing identities.
+
+See [Identity Package Documentation](packages/identity/) for details.
+
 ## 🏗️ Architecture Principles
 
 ### 1. One Shared Game Engine
@@ -138,7 +185,9 @@ All state transitions return new state objects.
 
 - [Game Engine](packages/game-engine/)
 - [Bots](packages/bots/)
+- [Identity System](packages/identity/)
 - [CLI Runner](apps/cli-runner/)
+- [Backend API](apps/backend/)
 
 ## 🧪 Testing
 

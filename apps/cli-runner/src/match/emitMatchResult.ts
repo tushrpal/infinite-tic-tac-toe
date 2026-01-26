@@ -12,6 +12,7 @@
  */
 
 import type { MatchResult } from '@infinite-ttt/shared';
+import type { PlayerIdentity } from '@infinite-ttt/identity';
 import { createLocalMatchStore } from '../storage/index.js';
 
 // Initialize storage layer
@@ -31,10 +32,12 @@ const matchStore = createLocalMatchStore();
  * 
  * @param matchResult - The completed match result
  * @param backendUrl - Optional backend URL for remote storage
+ * @param playerIdentity - Optional player identity to sync with backend
  */
 export async function emitMatchResult(
   matchResult: MatchResult,
-  backendUrl?: string
+  backendUrl?: string,
+  playerIdentity?: PlayerIdentity
 ): Promise<void> {
   console.log('\n═══════════════════════════════════════════════════════════');
   console.log('📊 MATCH RESULT');
@@ -53,6 +56,16 @@ export async function emitMatchResult(
   // Send to backend if configured
   if (backendUrl) {
     try {
+      // Send player identity first (if provided)
+      if (playerIdentity) {
+        await fetch(`${backendUrl}/players`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(playerIdentity)
+        });
+      }
+      
+      // Then send match result
       await fetch(`${backendUrl}/matches`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

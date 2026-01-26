@@ -99,6 +99,47 @@ export function readLine(): Promise<string> {
 }
 
 /**
+ * Prompt user for input with a custom message
+ */
+export async function prompt(message: string): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(message, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
+
+/**
+ * Prompt user for their display name (for first-time setup)
+ */
+export async function promptDisplayName(): Promise<string> {
+  console.log('\n' + '='.repeat(60));
+  console.log('  👋 WELCOME TO INFINITE TIC-TAC-TOE');
+  console.log('='.repeat(60));
+  console.log('\nFirst, let\'s set up your player identity.\n');
+  
+  let displayName = '';
+  while (!displayName || displayName.length === 0) {
+    displayName = await prompt('Enter your display name: ');
+    if (!displayName || displayName.length === 0) {
+      console.log('❌ Display name cannot be empty. Please try again.\n');
+    } else if (displayName.length > 30) {
+      console.log('❌ Display name too long (max 30 characters). Please try again.\n');
+      displayName = '';
+    }
+  }
+  
+  console.log(`\n✅ Welcome, ${displayName}!\n`);
+  return displayName;
+}
+
+/**
  * Read and parse move input from user
  * Returns null if user wants to quit
  */

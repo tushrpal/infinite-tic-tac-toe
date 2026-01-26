@@ -13,7 +13,8 @@
   "dependencies": {
     "@infinite-ttt/game-engine": "workspace:*",
     "@infinite-ttt/bots": "workspace:*",
-    "@infinite-ttt/shared": "workspace:*"
+    "@infinite-ttt/shared": "workspace:*",
+    "@infinite-ttt/identity": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

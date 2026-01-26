@@ -17,6 +17,9 @@ importers:
 
   apps/backend:
     dependencies:
+      '@infinite-ttt/identity':
+        specifier: workspace:*
+        version: link:../../packages/identity
       '@infinite-ttt/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -54,6 +57,9 @@ importers:
       '@infinite-ttt/game-engine':
         specifier: workspace:*
         version: link:../../packages/game-engine
+      '@infinite-ttt/identity':
+        specifier: workspace:*
+        version: link:../../packages/identity
       '@infinite-ttt/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -98,6 +104,22 @@ importers:
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.30)
+
+  packages/identity:
+    dependencies:
+      '@infinite-ttt/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.30
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.0.0
+        version: 1.6.1(@types/node@20.19.30)
 
   packages/shared: {}
 

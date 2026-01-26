@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import matchesRouter from './routes/matches';
+import playersRouter from './routes/players';
 
 export function createServer() {
   const app = express();
@@ -9,6 +10,7 @@ export function createServer() {
   app.use(express.json());
 
   app.use('/matches', matchesRouter);
+  app.use('/players', playersRouter);
 
   app.get('/health', (_, res) => {
     res.json({ status: 'ok' });
