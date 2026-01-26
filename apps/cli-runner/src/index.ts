@@ -27,6 +27,7 @@ import { showLeaderboard } from './leaderboard/index.js';
 import { createLocalMatchStore } from './storage/index.js';
 import type { GameMode, Difficulty } from '@infinite-ttt/shared';
 import { loadMatch, loadLastMatch, runReplay } from './replay/index.js';
+import { buildRankedHistory, buildRankTimeline, printRankedHistory, printRankTimeline } from './ranked-history/index.js';
 
 const { createInitialState, applyMove } = Modes.Infinite3x3;
 
@@ -390,6 +391,39 @@ async function main() {
     await showLeaderboard(matchStore, { mode, difficulty }, summaryOnly);
     return;
   }
+
+  // Check for ranked history command
+  if (args.includes('ranked')) {
+    const subcommandIndex = args.indexOf('ranked') + 1;
+    const subcommand = args[subcommandIndex];
+    
+    if (!subcommand || (subcommand !== 'history' && subcommand !== 'timeline')) {
+      console.error('Error: "ranked" requires a subcommand: "history" or "timeline"');
+      console.log('Usage: pnpm dev ranked history [--player <playerId>]');
+      console.log('       pnpm dev ranked timeline [--player <playerId>]');
+      process.exit(1);
+    }
+    
+    // Get player ID from args or use default
+    const playerIndex = args.indexOf('--player');
+    const playerId = playerIndex !== -1 ? args[playerIndex + 1] : 'Player1';
+    
+    // Load all matches
+    const allMatches = await matchStore.getAll();
+    
+    if (subcommand === 'history') {
+      // Build and display ranked match history
+      const history = buildRankedHistory(allMatches, playerId);
+      printRankedHistory(history, playerId);
+    } else if (subcommand === 'timeline') {
+      // Build and display rank timeline
+      const history = buildRankedHistory(allMatches, playerId);
+      const timeline = buildRankTimeline(history);
+      printRankTimeline(timeline, playerId);
+    }
+    
+    return;
+  }
   
   // Check for replay command
   if (args.includes('--replay')) {
@@ -535,6 +569,8 @@ Modes:
   --leaderboard               Show local leaderboard (derived from stored matches)
   --replay <matchId|last>     Replay a completed match
                               Use "last" to replay the most recent match
+  ranked history              Show ranked match history with rank changes
+  ranked timeline             Show rank progression timeline
   (no flags)                  Run bot-vs-bot simulation (default)
 
 Leaderboard Options:
@@ -567,11 +603,17 @@ Examples:
   pnpm dev --leaderboard
   pnpm dev --leaderboard --mode mode1
   pnpm dev --leaderboard --mode mode2 --difficulty hard
-  pnReplay matches
+  pnpm dev --leaderboard --summary
+
+  # View ranked history and timeline
+  pnpm dev ranked history
+  pnpm dev ranked timeline
+  pnpm dev ranked history --player Alice
+  pnpm dev ranked timeline --player Bob
+
+  # Replay matches
   pnpm dev --replay last
   pnpm dev --replay match_1768...
-
-  # pm dev --leaderboard --summary
 
   # Interactive Mode 1 - Play against a bot (Infinite 3x3)
   pnpm dev --interactive
