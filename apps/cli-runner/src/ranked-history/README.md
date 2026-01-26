@@ -5,6 +5,7 @@
 ## 🎯 Purpose
 
 This module provides a **read-only** view of:
+
 - How a player's rank evolved over time
 - Which matches caused rank changes
 - Performance context for each match
@@ -12,6 +13,7 @@ This module provides a **read-only** view of:
 ## ⚠️ CRITICAL RULES
 
 This is a **DERIVED** system:
+
 - ✅ Reads from stored `MatchResult[]`
 - ✅ Uses existing ranked logic (`computeRankDelta`, `applyRankDelta`)
 - ❌ Does NOT store rank in files
@@ -31,14 +33,14 @@ interface RankedMatchHistoryEntry {
   difficulty: "easy" | "medium" | "hard";
   opponentType: "human" | "bot";
   opponentLabel: string; // "Bot (Medium)" or "Player123"
-  
+
   result: "win" | "loss" | "draw";
   performanceTag: "dominant" | "close" | "scrappy" | "draw";
-  
+
   rankBefore: { tier: RankTier; points: number };
   rankAfter: { tier: RankTier; points: number };
   delta: number; // +34, -27, etc.
-  
+
   playedAt: number; // Unix timestamp
 }
 ```
@@ -49,11 +51,11 @@ A point in the rank progression timeline.
 
 ```typescript
 interface RankTimelinePoint {
-  index: number;        // Sequential index (0 = start)
-  tier: RankTier;       // Rank tier at this point
-  points: number;       // Exact rank points
-  delta: number;        // Change from previous point
-  matchId: string;      // Match that caused this change
+  index: number; // Sequential index (0 = start)
+  tier: RankTier; // Rank tier at this point
+  points: number; // Exact rank points
+  delta: number; // Change from previous point
+  matchId: string; // Match that caused this change
 }
 ```
 
@@ -68,6 +70,7 @@ const history = buildRankedHistory(matches, playerId, initialPoints);
 ```
 
 **Algorithm:**
+
 1. Start with initial rank (default: Bronze, 1000 points)
 2. Filter for ranked matches involving player
 3. Sort chronologically
@@ -78,6 +81,7 @@ const history = buildRankedHistory(matches, playerId, initialPoints);
    - Update current rank for next iteration
 
 **Key Properties:**
+
 - Deterministic (same inputs → same outputs)
 - Replay-safe (recomputes from scratch)
 - Backend-ready (no local state dependencies)
@@ -91,6 +95,7 @@ const timeline = buildRankTimeline(history, initialPoints);
 ```
 
 Creates a sequential view:
+
 - Point 0: Initial state (before matches)
 - Point N: State after match N
 
@@ -99,11 +104,13 @@ Creates a sequential view:
 Determine performance quality (UX only, doesn't affect rank).
 
 **Mode 1 Rules:**
+
 - ≤5 moves → "dominant"
 - 6-7 moves → "close"
 - ≥8 moves → "scrappy"
 
 **Mode 2 Rules:**
+
 - 2-0 win (no draws) → "dominant"
 - 2-1 win (no draws) → "close"
 - Win with any draw rounds → "scrappy"
@@ -180,6 +187,7 @@ Total Points: 5
 ## 🚀 Future Extensions
 
 This derived system enables:
+
 - Rank progression charts (web UI)
 - Historical analysis (peak rank, trends)
 - Session summaries (last 10 matches)
