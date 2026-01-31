@@ -14,3 +14,8 @@ httpServer.listen(PORT, () => {
   console.log(`🚀 Backend running on http://localhost:${PORT}`);
   console.log(`🔌 WebSocket server ready for real-time PvP`);
 });
+
+httpServer.on('error', (error) => {
+  console.error('❌ Server error:', error);
+  process.exit(1);
+});

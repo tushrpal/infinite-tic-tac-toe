@@ -395,13 +395,13 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
     }
 
     while (!localState.winner) {
+      const isMyTurn = currentMatch.currentPlayer === role;
+
       // Display current state
       console.clear();
       console.log(`\n🎮 Online PvP - You are ${role}`);
       console.log(`${connection.isUsingWebSocket() ? '⚡ WebSocket' : '📡 Polling'}\n`);
       printBoard(gameStateToBoard(localState));
-
-      const isMyTurn = currentMatch.currentPlayer === role;
 
       if (isMyTurn) {
         // My turn - get move from player
@@ -484,6 +484,11 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
             const serverState = currentMatch.gameState;
             stateUpdateReceived = false;
             
+            // Safety check for undefined state
+            if (!serverState || !serverState.board) {
+              continue;
+            }
+            
             if (serverState.currentTurn > previousMoveCount) {
               localState = serverState;
               console.log('✅ Opponent moved!');
@@ -500,6 +505,11 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
             await sleep(connection.isUsingWebSocket() ? 500 : POLL_INTERVAL);
             currentMatch = await getMatch(matchId);
             const serverState = currentMatch.gameState;
+            
+            // Safety check for undefined state
+            if (!serverState || !serverState.board) {
+              continue;
+            }
             
             if (serverState.currentTurn > previousMoveCount) {
               localState = serverState;

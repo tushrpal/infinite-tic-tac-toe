@@ -174,15 +174,15 @@ router.post('/match/:matchId/move', async (req, res) => {
     // Backend trusts the client to have applied engine rules correctly
     // Calculate next player based on turn number (even = X, odd = O)
     const nextPlayer = gameState.currentTurn % 2 === 0 ? 'X' : 'O';
-    // Get updated match and broadcast to all players
-    const updatedMatch = await pvpStore.getById(matchId);
-    wsManager.broadcastStateUpdate(matchId, updatedMatch);
-
     
     await pvpStore.update(matchId, {
       gameState,
       currentPlayer: nextPlayer,
     });
+
+    // Get updated match and broadcast to all players
+    const updatedMatch = await pvpStore.getById(matchId);
+    wsManager.broadcastStateUpdate(matchId, updatedMatch);
 
     res.json({ success: true });
   } catch (error) {
