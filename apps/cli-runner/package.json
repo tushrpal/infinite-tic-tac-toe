@@ -11,10 +11,12 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@infinite-ttt/game-engine": "workspace:*",
     "@infinite-ttt/bots": "workspace:*",
+    "@infinite-ttt/game-engine": "workspace:*",
+    "@infinite-ttt/identity": "workspace:*",
     "@infinite-ttt/shared": "workspace:*",
-    "@infinite-ttt/identity": "workspace:*"
+    "@types/ws": "^8.18.1",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

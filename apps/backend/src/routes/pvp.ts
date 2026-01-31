@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { LocalJsonPvPMatchStore } from '../storage/LocalJsonPvPMatchStore';
 import type { PvPMatch } from '../storage/PvPMatchStore';
+import { wsManager } from '../websocket';
 
 const router = Router();
 const pvpStore = new LocalJsonPvPMatchStore();
@@ -54,6 +55,12 @@ router.post('/match', async (req, res) => {
         currentPlayer: 'X', // Game starts, X goes first
         status: 'active',
       });
+
+      // Get updated match to broadcast
+      const updatedMatch = await pvpStore.getById(waitingMatch.matchId);
+      
+      // Broadcast to both players that match is now active
+      wsManager.broadcastStateUpdate(waitingMatch.matchId, updatedMatch);
 
       return res.json({
         matchId: waitingMatch.matchId,
@@ -167,6 +174,10 @@ router.post('/match/:matchId/move', async (req, res) => {
     // Backend trusts the client to have applied engine rules correctly
     // Calculate next player based on turn number (even = X, odd = O)
     const nextPlayer = gameState.currentTurn % 2 === 0 ? 'X' : 'O';
+    // Get updated match and broadcast to all players
+    const updatedMatch = await pvpStore.getById(matchId);
+    wsManager.broadcastStateUpdate(matchId, updatedMatch);
+
     
     await pvpStore.update(matchId, {
       gameState,
@@ -195,6 +206,9 @@ router.post('/match/:matchId/complete', async (req, res) => {
 
     if (!matchResult) {
       return res.status(400).json({ error: 'Missing matchResult' });
+    // Broadcast match completion to all connected clients
+    wsManager.broadcastMatchComplete(matchId, matchResult);
+
     }
 
     const match = await pvpStore.getById(matchId);

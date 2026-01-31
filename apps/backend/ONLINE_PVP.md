@@ -2,14 +2,14 @@
 
 ## Overview
 
-This implements polling-based online Player vs Player matches for Infinite Tic-Tac-Toe.
+This implements WebSocket-based online Player vs Player matches for Infinite Tic-Tac-Toe, with automatic fallback to polling.
 
 **Key Design Principles:**
 
 - Backend is **dumb** - only stores state, never applies game rules
 - Client is **smart** - applies engine logic, validates moves
 - Backend enforces **turn ownership only**
-- Uses **polling**, not WebSockets
+- Uses **WebSockets for real-time updates**, with polling fallback
 - Backend is **replaceable** - no business logic
 
 ## Architecture
@@ -20,6 +20,7 @@ This implements polling-based online Player vs Player matches for Infinite Tic-T
 - Store move history
 - Enforce turn ownership (only correct player can move)
 - Track match lifecycle (waiting → active → completed)
+- **Broadcast state changes via WebSocket**
 
 ### Backend Does NOT ❌
 
@@ -35,7 +36,7 @@ This implements polling-based online Player vs Player matches for Infinite Tic-T
 - Validate move legality
 - Detect wins/draws
 - Emit MatchResult at end
-- Poll for state updates
+- **Connect to WebSocket for real-time updates (with polling fallback)**
 
 ## Data Model
 
@@ -90,19 +91,80 @@ Create or join a match.
 
 ### GET `/pvp/match/:matchId`
 
-Poll match state.
+Poll match state (fallback when WebSocket unavailable).
 
 **Response:** Full `PvPMatch` object
 
-Clients poll this every 1-2 seconds.
+Clients use this as fallback if WebSocket connection fails.
+
+## WebSocket Protocol
+
+### Connection
+
+Client connects to `ws://localhost:3001` and sends:
+
+```json
+{
+  "type": "join",
+  "playerId": "abc123",
+  "matchId": "uuid"
+}
+```
+
+### Server → Client Messages
+
+**State Update:**
+
+```json
+{
+  "type": "state-update",
+  "payload": {
+    /* full PvPMatch object */
+  }
+}
+```
+
+Sent whenever match state changes (opponent joins, move submitted, etc.)
+
+**Match Complete:**
+
+```json
+{
+  "type": "match-complete",
+  "payload": {
+    /* MatchResult */
+  }
+}
+```
+
+Sent when match ends, connection closes shortly after.
+
+### Client → Server Messages
+
+Clients do NOT send moves via WebSocket. Moves are submitted via REST API (`POST /pvp/match/:matchId/move`). WebSocket is **broadcast-only**.
+
+### Fallback Behavior
+
+If WebSocket connection fails:
+- Client automatically falls back to polling
+- No feature loss, only slightly higher latency
+- Client displays connection status (⚡ WebSocket or 📡 Polling)
 
 ### POST `/pvp/match/:matchId/move`
 
-Submit a move.
+// Connect to WebSocket
+const connection = new PvPConnection(matchId, playerId);
+await connection.connect();
 
-**Request:**
+// Register state update callback
+connection.onStateUpdate((match) => {
+  // Update UI with new state
+});
 
-```json
+if (status === "waiting") {
+  // Wait for WebSocket update (or poll as fallback)
+  while (match.status !== "active") {
+    await sleep(500
 {
   "playerId": "abc123",
   "gameState": {
@@ -117,17 +179,13 @@ Submit a move.
 - Match is active ✓
 - Player is in this match ✓
 - It's player's turn ✓
-
-**NOT Validated:**
-
-- Move legality ❌ (client's job)
-- Game rules ❌ (client's job)
-- Win conditions ❌ (client's job)
-
-### POST `/pvp/match/:matchId/complete`
-
-Finalize match with result.
-
+ (broadcasts via WebSocket)
+    await submitMove(matchId, playerId, gameState);
+    
+    // WebSocket will notify when state updates
+  } else {
+    // Wait for WebSocket update (or poll as fallback)
+    // State update callback will trigger when opponent moves
 **Request:**
 
 ```json
@@ -237,6 +295,9 @@ Player 2 joins match and game begins!
 
 ## Environment Variables
 
+# Default: ws://localhost:3001
+BACKEND_WS_URL=ws://localhost:3001
+
 ```bash
 # Default: http://localhost:3001
 BACKEND_URL=http://localhost:3001
@@ -259,19 +320,18 @@ apps/cli-runner/data/matches.json
 Both players store the MatchResult locally for leaderboard/ranking.
 
 ## Why This Design?
-
-### ✅ Benefits
-
+Real-time updates** - WebSocket provides instant feedback
+6. **Deterministic** - both clients run same engine
+7. **Testable** - backend and client are decoupled
+8. **Resilient** - automatic fallback to polling if WebSocket fails
 1. **Backend is simple** - no game logic, easy to scale
 2. **Backend is replaceable** - swap JSON files for database anytime
 3. **Engine stays pure** - no server-side modifications
-4. **Ranking works** - both clients emit MatchResult
-5. **Turn-based** - polling is sufficient, no real-time needed
-6. **Deterministic** - both clients run same engine
-7. **Testable** - backend and client are decoupled
+4. **Sync issues** - if clients disagree on state
 
-### ⚠️ Tradeoffs
+### 🔮 Future Improvements
 
+1. ~~Add WebSockets for real-time updates~~ ✅ **Done in Step 13!**
 1. **Trust** - clients can cheat (send invalid moves)
 2. **Bandwidth** - polling creates constant traffic
 3. **Latency** - 2s poll interval = 2s wait per move
@@ -322,16 +382,19 @@ cd apps/cli-runner && pnpm dev --pvp
 - ✓ Ranking updates
 
 ## Files Added
-
-### Backend
-
-- `src/storage/PvPMatchStore.ts` - Interface
-- `src/storage/LocalJsonPvPMatchStore.ts` - Implementation
-- `src/routes/pvp.ts` - API endpoints
+- **`src/websocket/index.ts` - WebSocket manager (Step 13)**
 
 ### CLI
 
 - `src/onlinePvP.ts` - PvP game mode
+
+### Modified
+
+- `apps/backend/src/storage/index.ts` - Export PvP store
+- `apps/backend/src/server.ts` - Add PvP routes
+- **`apps/backend/src/index.ts` - Attach WebSocket server (Step 13)**
+- `apps/cli-runner/src/index.ts` - Add --pvp flag
+- **`apps/cli-runner/src/onlinePvP.ts` - Add WebSocket support with fallback (Step 13)**
 
 ### Modified
 

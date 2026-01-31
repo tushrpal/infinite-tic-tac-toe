@@ -1,10 +1,10 @@
 /**
- * Online PvP game mode using polling
+ * Online PvP game mode using WebSockets with polling fallback
  * 
  * This module implements online Player vs Player matches.
  * - Backend stores state
  * - Client applies game rules
- * - Client polls for updates
+ * - WebSocket for real-time updates (with polling fallback)
  * - Backend enforces turn ownership only
  */
 
@@ -12,6 +12,7 @@ import { Modes } from '@infinite-ttt/game-engine';
 import type { Infinite3x3State, Board, Position } from '@infinite-ttt/game-engine';
 import type { Player } from '@infinite-ttt/shared';
 import type { IdentityManager } from '@infinite-ttt/identity';
+import { WebSocket } from 'ws';
 import { printBoard } from './printer.js';
 import {
   printGameStart,
@@ -30,7 +31,8 @@ import { promptDisplayName } from './input.js';
 const { createInitialState, applyMove } = Modes.Infinite3x3;
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
-const POLL_INTERVAL = 2000; // 2 seconds
+const BACKEND_WS_URL = process.env.BACKEND_WS_URL || 'ws://localhost:3001';
+const POLL_INTERVAL = 2000; // 2 seconds (fallback only)
 
 interface PvPMatch {
   matchId: string;
@@ -45,6 +47,159 @@ interface PvPMatch {
   lastUpdated: number;
   status: 'waiting' | 'active' | 'completed';
   matchResult?: any;
+}
+
+interface WebSocketMessage {
+  type: 'join' | 'state-update' | 'match-complete' | 'error';
+  playerId?: string;
+  matchId?: string;
+  payload?: any;
+  error?: string;
+}
+
+/**
+ * WebSocket connection manager with fallback to polling
+ */
+class PvPConnection {
+  private ws: WebSocket | null = null;
+  private useWebSocket = true;
+  private stateUpdateCallback: ((state: PvPMatch) => void) | null = null;
+  private matchCompleteCallback: ((result: any) => void) | null = null;
+
+  constructor(
+    private matchId: string,
+    private playerId: string
+  ) {}
+
+  /**
+   * Connect to WebSocket server
+   */
+  async connect(): Promise<boolean> {
+    return new Promise((resolve) => {
+      try {
+        console.log('🔌 Connecting via WebSocket...');
+        this.ws = new WebSocket(BACKEND_WS_URL);
+
+        const timeout = setTimeout(() => {
+          console.log('⚠️  WebSocket connection timeout, falling back to polling');
+          this.useWebSocket = false;
+          if (this.ws) {
+            this.ws.close();
+            this.ws = null;
+          }
+          resolve(false);
+        }, 5000);
+
+        this.ws.on('open', () => {
+          clearTimeout(timeout);
+          console.log('✅ WebSocket connected');
+          
+          // Send join message
+          this.send({
+            type: 'join',
+            playerId: this.playerId,
+            matchId: this.matchId,
+          });
+
+          resolve(true);
+        });
+
+        this.ws.on('message', (data: Buffer) => {
+          try {
+            const message: WebSocketMessage = JSON.parse(data.toString());
+            this.handleMessage(message);
+          } catch (error) {
+            console.error('❌ WebSocket message error:', error);
+          }
+        });
+
+        this.ws.on('error', (error) => {
+          clearTimeout(timeout);
+          console.error('❌ WebSocket error:', error);
+          console.log('⚠️  Falling back to polling');
+          this.useWebSocket = false;
+          resolve(false);
+        });
+
+        this.ws.on('close', () => {
+          console.log('🔌 WebSocket connection closed');
+          this.ws = null;
+        });
+
+      } catch (error) {
+        console.error('❌ WebSocket connection failed:', error);
+        console.log('⚠️  Falling back to polling');
+        this.useWebSocket = false;
+        resolve(false);
+      }
+    });
+  }
+
+  /**
+   * Handle incoming WebSocket message
+   */
+  private handleMessage(message: WebSocketMessage) {
+    switch (message.type) {
+      case 'state-update':
+        if (this.stateUpdateCallback && message.payload) {
+          // Only trigger callback if it's an actual match update, not the join confirmation
+          if (message.payload.matchId) {
+            this.stateUpdateCallback(message.payload);
+          }
+        }
+        break;
+
+      case 'match-complete':
+        if (this.matchCompleteCallback && message.payload) {
+          this.matchCompleteCallback(message.payload);
+        }
+        break;
+
+      case 'error':
+        console.error('❌ Server error:', message.error);
+        break;
+    }
+  }
+
+  /**
+   * Send message via WebSocket
+   */
+  private send(message: WebSocketMessage) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(message));
+    }
+  }
+
+  /**
+   * Register callback for state updates
+   */
+  onStateUpdate(callback: (state: PvPMatch) => void) {
+    this.stateUpdateCallback = callback;
+  }
+
+  /**
+   * Register callback for match completion
+   */
+  onMatchComplete(callback: (result: any) => void) {
+    this.matchCompleteCallback = callback;
+  }
+
+  /**
+   * Check if using WebSocket
+   */
+  isUsingWebSocket(): boolean {
+    return this.useWebSocket && this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+  }
+
+  /**
+   * Close connection
+   */
+  close() {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+  }
 }
 
 /**
@@ -159,7 +314,7 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
   console.log('='.repeat(60));
   console.log('\n  Mode 1: Infinite 3×3 (Sliding Moves)');
   console.log('  • Play against another human online');
-  console.log('  • Polling-based multiplayer');
+  console.log('  • Real-time WebSocket updates with polling fallback');
   console.log('\n' + '='.repeat(60) + '\n');
 
   // Initialize identity
@@ -176,18 +331,51 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
     console.log(`🎯 You are playing as: ${role}`);
     console.log(`🆔 Match ID: ${matchId.slice(0, 8)}...\n`);
 
+    // Create WebSocket connection
+    const connection = new PvPConnection(matchId, identity.playerId);
+    const wsConnected = await connection.connect();
+
+    if (!wsConnected) {
+      console.log('📡 Using polling mode for updates\n');
+    } else {
+      console.log('⚡ Using WebSocket for instant updates\n');
+    }
+
+    // Track state updates
+    let stateUpdateReceived = false;
+    let latestMatch: PvPMatch | null = null;
+
+    // Register WebSocket callbacks
+    connection.onStateUpdate((match) => {
+      latestMatch = match;
+      stateUpdateReceived = true;
+    });
+
     if (status === 'waiting') {
       console.log('⏳ Waiting for opponent to join...');
       
-      // Poll until opponent joins
+      // Wait until opponent joins
       let match: PvPMatch;
       while (true) {
-        match = await getMatch(matchId);
-        if (match.status === 'active') {
-          console.log('✅ Opponent joined! Game starting...\n');
-          break;
+        if (connection.isUsingWebSocket() && stateUpdateReceived && latestMatch) {
+          // WebSocket update received
+          match = latestMatch;
+          stateUpdateReceived = false;
+          
+          if (match.status === 'active') {
+            console.log('✅ Opponent joined! Game starting...\n');
+            break;
+          }
+        } else {
+          // Polling fallback
+          match = await getMatch(matchId);
+          if (match.status === 'active') {
+            console.log('✅ Opponent joined! Game starting...\n');
+            break;
+          }
         }
-        await sleep(POLL_INTERVAL);
+        
+        await sleep(connection.isUsingWebSocket() ? 500 : POLL_INTERVAL);
       }
     }
 
@@ -202,13 +390,15 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
     if (!localState || !localState.board) {
       console.error('❌ Error: Invalid game state received from server');
       console.error('Game state:', JSON.stringify(localState, null, 2));
+      connection.close();
       return;
     }
 
     while (!localState.winner) {
       // Display current state
       console.clear();
-      console.log(`\n🎮 Online PvP - You are ${role}\n`);
+      console.log(`\n🎮 Online PvP - You are ${role}`);
+      console.log(`${connection.isUsingWebSocket() ? '⚡ WebSocket' : '📡 Polling'}\n`);
       printBoard(gameStateToBoard(localState));
 
       const isMyTurn = currentMatch.currentPlayer === role;
@@ -228,6 +418,7 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
 
         if (moveInput.type === 'quit') {
           console.log('\n👋 Quitting game...');
+          connection.close();
           return;
         }
 
@@ -255,9 +446,25 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
           await submitMove(matchId, identity.playerId, localState);
           console.log('✅ Move submitted');
           
-          // Poll for updated match state to get new currentPlayer
-          await sleep(500);
-          currentMatch = await getMatch(matchId);
+          // Wait for state update
+          if (connection.isUsingWebSocket()) {
+            // WebSocket will update automatically
+            stateUpdateReceived = false;
+            const startTime = Date.now();
+            while (!stateUpdateReceived && Date.now() - startTime < 3000) {
+              await sleep(100);
+            }
+            if (latestMatch) {
+              currentMatch = latestMatch;
+            } else {
+              // Fallback to polling if no update received
+              currentMatch = await getMatch(matchId);
+            }
+          } else {
+            // Polling fallback
+            await sleep(500);
+            currentMatch = await getMatch(matchId);
+          }
         } catch (error) {
           console.error('❌ Failed to submit move:', (error as Error).message);
           await sleep(2000);
@@ -265,28 +472,46 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
         }
 
       } else {
-        // Opponent's turn - poll for updates
+        // Opponent's turn - wait for updates
         console.log(`\n⏳ Waiting for opponent (${currentMatch.currentPlayer}) to move...`);
         
         let previousMoveCount = localState.currentTurn;
         
         while (true) {
-          await sleep(POLL_INTERVAL);
-          currentMatch = await getMatch(matchId);
-          const serverState = currentMatch.gameState;
-          
-          // Check if opponent made a move
-          if (serverState.currentTurn > previousMoveCount) {
-            localState = serverState;
-            console.log('✅ Opponent moved!');
-            await sleep(1000);
-            break;
-          }
+          if (connection.isUsingWebSocket() && stateUpdateReceived && latestMatch) {
+            // WebSocket update received
+            currentMatch = latestMatch;
+            const serverState = currentMatch.gameState;
+            stateUpdateReceived = false;
+            
+            if (serverState.currentTurn > previousMoveCount) {
+              localState = serverState;
+              console.log('✅ Opponent moved!');
+              await sleep(1000);
+              break;
+            }
 
-          // Check if game ended
-          if (serverState.winner) {
-            localState = serverState;
-            break;
+            if (serverState.winner) {
+              localState = serverState;
+              break;
+            }
+          } else {
+            // Polling fallback
+            await sleep(connection.isUsingWebSocket() ? 500 : POLL_INTERVAL);
+            currentMatch = await getMatch(matchId);
+            const serverState = currentMatch.gameState;
+            
+            if (serverState.currentTurn > previousMoveCount) {
+              localState = serverState;
+              console.log('✅ Opponent moved!');
+              await sleep(1000);
+              break;
+            }
+
+            if (serverState.winner) {
+              localState = serverState;
+              break;
+            }
           }
         }
       }
@@ -341,6 +566,9 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
     await completeMatch(matchId, matchResult);
 
     console.log('✅ Match result saved!');
+    
+    // Close WebSocket connection
+    connection.close();
     
     await sleep(3000);
 
