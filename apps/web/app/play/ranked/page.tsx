@@ -1,0 +1,310 @@
+"use client";
+
+/**
+ * Ranked Play Page
+ * Competitive matchmaking with rankings
+ */
+
+import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { RankBadge } from "@/components/hud/RankBadge";
+import { useWebSocket, useSocketEvent } from "@/hooks/useWebSocket";
+import { ROUTES, RANKS } from "@/lib/constants";
+import { cn, getRankFromRating, getRankProgress } from "@/lib/helpers";
+import type { GameMode } from "@/ws/types";
+
+type QueueState = "idle" | "queuing" | "match-found";
+
+// Mock user data - in real app this comes from auth context
+const mockUserRating = 1250;
+const mockUserRank = getRankFromRating(mockUserRating);
+
+// Generate or retrieve a player ID from localStorage
+function getPlayerId(): string {
+  if (typeof window === "undefined") return "";
+  let id = localStorage.getItem("playerId");
+  if (!id) {
+    id = `player_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem("playerId", id);
+  }
+  return id;
+}
+
+function getUsername(): string {
+  if (typeof window === "undefined") return "Player";
+  return localStorage.getItem("username") || "Player";
+}
+
+export default function RankedPlayPage() {
+  const router = useRouter();
+  const { socket, isConnected, connectionState } = useWebSocket();
+
+  const [selectedMode, setSelectedMode] = useState<GameMode>("MODE_1");
+  const [queueState, setQueueState] = useState<QueueState>("idle");
+  const [queueTime, setQueueTime] = useState(0);
+  const [matchId, setMatchId] = useState<string | null>(null);
+
+  // Store player identity
+  const playerIdRef = useRef<string>("");
+  const usernameRef = useRef<string>("Player");
+
+  useEffect(() => {
+    playerIdRef.current = getPlayerId();
+    usernameRef.current = getUsername();
+  }, []);
+
+  // Queue timer
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (queueState === "queuing") {
+      interval = setInterval(() => {
+        setQueueTime((t) => t + 1);
+      }, 1000);
+    } else {
+      setQueueTime(0);
+    }
+    return () => clearInterval(interval);
+  }, [queueState]);
+
+  // Handle queue events
+  useSocketEvent(
+    "QUEUE_JOINED",
+    () => {
+      setQueueState("queuing");
+    },
+    [],
+  );
+
+  useSocketEvent(
+    "QUEUE_LEFT",
+    () => {
+      setQueueState("idle");
+    },
+    [],
+  );
+
+  useSocketEvent(
+    "MATCH_FOUND",
+    (payload) => {
+      setQueueState("match-found");
+      setMatchId(payload.matchId);
+      // Store match data for the match page to retrieve
+      socket.setPendingMatch({
+        matchId: payload.matchId,
+        yourPlayer: payload.yourPlayer,
+        matchState: payload.matchState,
+      });
+      setTimeout(() => {
+        router.push(ROUTES.MATCH(payload.matchId));
+      }, 1500);
+    },
+    [router, socket],
+  );
+
+  const joinQueue = useCallback(() => {
+    if (isConnected && playerIdRef.current) {
+      socket.joinQueue(
+        playerIdRef.current,
+        selectedMode,
+        true,
+        usernameRef.current,
+      ); // ranked = true
+    }
+  }, [socket, isConnected, selectedMode]);
+
+  const leaveQueue = useCallback(() => {
+    socket.leaveQueue();
+    setQueueState("idle");
+  }, [socket]);
+
+  const rankProgress = getRankProgress(mockUserRating);
+
+  return (
+    <main className="flex-1 flex flex-col items-center px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="mb-8">
+          <Link
+            href={ROUTES.PLAY}
+            className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+          >
+            ← Back to Mode Selection
+          </Link>
+        </div>
+
+        <div className="text-center">
+          <h1 className="text-3xl font-display font-bold mb-2">Ranked Match</h1>
+          <p className="text-text-secondary mb-8">
+            Compete for glory and climb the ladder
+          </p>
+
+          {/* Rank Display Card */}
+          <div className="p-6 rounded-xl bg-surface-elevated border border-board-grid mb-8">
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <RankBadge
+                rank={mockUserRank.name}
+                color={mockUserRank.color}
+                rating={mockUserRating}
+                size="lg"
+                showTooltip={false}
+              />
+            </div>
+
+            <div className="text-2xl font-bold mb-2">{mockUserRating}</div>
+            <div className="text-sm text-text-secondary mb-4">
+              Rating Points
+            </div>
+
+            {/* Progress to next rank */}
+            <div className="w-full">
+              <div className="flex justify-between text-xs text-text-muted mb-1">
+                <span>{mockUserRank.name}</span>
+                <span>
+                  {RANKS.TIERS[
+                    RANKS.TIERS.findIndex((t) => t.name === mockUserRank.name) +
+                      1
+                  ]?.name ?? "Max"}
+                </span>
+              </div>
+              <div className="h-2 bg-board-grid rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-accent-primary transition-all duration-500"
+                  style={{ width: `${rankProgress.progress}%` }}
+                />
+              </div>
+              <div className="text-xs text-text-muted mt-1">
+                {Math.round(rankProgress.next - mockUserRating)} points to next
+                rank
+              </div>
+            </div>
+          </div>
+
+          {queueState === "idle" && (
+            <>
+              {/* Mode Selection */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-text-secondary mb-3">
+                  Select Game Mode
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <ModeButton
+                    label="Sliding"
+                    selected={selectedMode === "MODE_1"}
+                    onClick={() => setSelectedMode("MODE_1")}
+                  />
+                  <ModeButton
+                    label="Classic"
+                    selected={selectedMode === "MODE_2"}
+                    onClick={() => setSelectedMode("MODE_2")}
+                  />
+                </div>
+              </div>
+
+              {/* Connection indicator */}
+              <div
+                className={cn(
+                  "inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6 text-sm",
+                  isConnected
+                    ? "bg-accent-success/10 text-accent-success"
+                    : "bg-accent-warning/10 text-accent-warning",
+                )}
+              >
+                <div
+                  className={cn(
+                    "w-2 h-2 rounded-full",
+                    isConnected
+                      ? "bg-accent-success"
+                      : "bg-accent-warning animate-pulse",
+                  )}
+                />
+                {isConnected ? "Ready" : "Connecting..."}
+              </div>
+
+              {/* Find Match */}
+              <Button
+                size="lg"
+                onClick={joinQueue}
+                disabled={!isConnected}
+                className="w-full"
+              >
+                Find Ranked Match
+              </Button>
+
+              {/* Warning */}
+              <p className="text-xs text-text-muted mt-4">
+                ⚠️ Leaving a ranked match will result in a rating penalty
+              </p>
+            </>
+          )}
+
+          {queueState === "queuing" && (
+            <div className="py-8">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-accent-warning border-t-transparent animate-spin" />
+              <p className="text-xl font-semibold mb-2">Finding Opponent...</p>
+              <p className="text-text-secondary mb-2">
+                Searching for players near your rank
+              </p>
+              <p className="text-sm text-text-muted mb-6">
+                Time: {Math.floor(queueTime / 60)}:
+                {String(queueTime % 60).padStart(2, "0")}
+              </p>
+              <Button variant="secondary" onClick={leaveQueue}>
+                Cancel
+              </Button>
+            </div>
+          )}
+
+          {queueState === "match-found" && (
+            <div className="py-8">
+              <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-accent-success/20">
+                <svg
+                  className="w-8 h-8 text-accent-success"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <p className="text-xl font-semibold text-accent-success mb-2">
+                Match Found!
+              </p>
+              <p className="text-text-secondary">Joining ranked game...</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function ModeButton({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "p-4 rounded-xl border-2 transition-all font-semibold",
+        selected
+          ? "border-accent-warning bg-accent-warning/10 text-accent-warning"
+          : "border-board-grid bg-surface-elevated text-text-primary hover:border-text-muted",
+      )}
+    >
+      {label}
+    </button>
+  );
+}

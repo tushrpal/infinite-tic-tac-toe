@@ -206,9 +206,6 @@ router.post('/match/:matchId/complete', async (req, res) => {
 
     if (!matchResult) {
       return res.status(400).json({ error: 'Missing matchResult' });
-    // Broadcast match completion to all connected clients
-    wsManager.broadcastMatchComplete(matchId, matchResult);
-
     }
 
     const match = await pvpStore.getById(matchId);
@@ -218,6 +215,9 @@ router.post('/match/:matchId/complete', async (req, res) => {
     }
 
     await pvpStore.complete(matchId, matchResult);
+
+    // Broadcast match completion to all connected clients
+    wsManager.broadcastMatchComplete(matchId, matchResult);
 
     res.json({ success: true });
   } catch (error) {

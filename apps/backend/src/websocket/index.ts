@@ -1,76 +1,352 @@
 /**
- * WebSocket manager for real-time PvP updates
+ * WebSocket Manager for Real-Time PvP Matchmaking
  * 
- * Responsibilities:
- * - Manage WebSocket connections per match
- * - Broadcast state changes to both players
- * - Enforce connection authenticity (playerId + matchId)
+ * Handles:
+ * - Matchmaking queue (JOIN_QUEUE, LEAVE_QUEUE, MATCH_FOUND)
+ * - Real-time game events (MAKE_MOVE, GAME_STATE_UPDATE, MATCH_END)
+ * - Player connections and disconnections
  * 
- * NOT responsible for:
- * - Game rules (client-side)
- * - Move validation (only turn ownership checked)
- * - Match logic (handled by routes)
+ * This is a thin orchestration layer - no game logic here.
  */
 
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server as HTTPServer } from 'http';
+import {
+  Modes,
+  type Infinite3x3State,
+  type ExpandingBoardState,
+  type Position as EnginePosition,
+  getNextPlayer,
+} from '@infinite-ttt/game-engine';
 
-export interface WebSocketMessage {
-  type: 'join' | 'submit-move' | 'state-update' | 'match-complete' | 'error';
-  playerId?: string;
-  matchId?: string;
-  payload?: any;
-  error?: string;
+// ============================================
+// Types
+// ============================================
+
+type Player = 'X' | 'O';
+type GameMode = 'MODE_1' | 'MODE_2';
+
+interface Position {
+  row: number;
+  col: number;
 }
 
-interface ClientConnection {
+interface Move {
+  position: Position;
+  player: Player;
+  timestamp: number;
+  moveNumber: number;
+  removedPosition?: Position;
+}
+
+interface WinInfo {
+  winner: Player;
+  winningCells: Position[];
+  winType: 'row' | 'column' | 'diagonal' | 'anti-diagonal';
+}
+
+interface GameState {
+  board: (Player | null)[][];
+  boardSize: number;
+  currentPlayer: Player;
+  moveHistory: Move[];
+  isGameOver: boolean;
+  winner: Player | null;
+  winInfo: WinInfo | null;
+  isDraw: boolean;
+  mode: GameMode;
+  moveCount: number;
+}
+
+interface MatchState {
+  matchId: string;
+  status: 'waiting' | 'active' | 'completed';
+  mode: GameMode;
+  players: {
+    X: PlayerInfo | null;
+    O: PlayerInfo | null;
+  };
+  gameState: GameState;
+  spectatorCount: number;
+  startedAt: number | null;
+  rematchRequestedBy?: Player | null;
+}
+
+interface PlayerInfo {
+  id: string;
+  username: string;
+  rating?: number;
+  rank?: string;
+  avatar?: string;
+  isConnected: boolean;
+}
+
+// Client -> Server events
+type ClientEventType =
+  | 'JOIN_QUEUE'
+  | 'LEAVE_QUEUE'
+  | 'JOIN_MATCH'
+  | 'LEAVE_MATCH'
+  | 'MAKE_MOVE'
+  | 'FORFEIT'
+  | 'REMATCH_REQUEST'
+  | 'REMATCH_ACCEPT'
+  | 'REMATCH_DECLINE'
+  | 'PING';
+
+interface ClientEvent {
+  type: ClientEventType;
+  payload?: any;
+}
+
+// Server -> Client events
+type ServerEventType =
+  | 'QUEUE_JOINED'
+  | 'QUEUE_LEFT'
+  | 'QUEUE_STATUS'
+  | 'MATCH_FOUND'
+  | 'MATCH_JOINED'
+  | 'GAME_STATE_UPDATE'
+  | 'MOVE_ACCEPTED'
+  | 'MOVE_REJECTED'
+  | 'MATCH_END'
+  | 'PLAYER_DISCONNECTED'
+  | 'PLAYER_RECONNECTED'
+  | 'REMATCH_REQUESTED'
+  | 'REMATCH_STARTING'
+  | 'REMATCH_DECLINED'
+  | 'ERROR'
+  | 'PONG';
+
+interface ServerEvent {
+  type: ServerEventType;
+  payload?: any;
+}
+
+// Internal types
+interface QueueEntry {
+  playerId: string;
+  username: string;
+  ws: WebSocket;
+  mode: GameMode;
+  isRanked: boolean;
+  joinedAt: number;
+}
+
+interface ConnectedClient {
   ws: WebSocket;
   playerId: string;
-  matchId: string;
+  username: string;
+  matchId: string | null;
+  inQueue: boolean;
+}
+
+// ============================================
+// Engine State Types
+// ============================================
+
+type EngineState = Infinite3x3State | ExpandingBoardState;
+
+// ============================================
+// Engine Adapter Functions
+//
+// All game logic is delegated to @infinite-ttt/game-engine.
+// These adapters bridge between the engine's state and the
+// wire format (GameState) that clients expect.
+// ============================================
+
+function initEngineState(mode: GameMode): EngineState {
+  if (mode === 'MODE_1') {
+    return Modes.Infinite3x3.createInitialState();
+  }
+  return Modes.ExpandingBoard.createInitialState();
+}
+
+function isMode1(state: EngineState): state is Infinite3x3State {
+  return 'playerMarks' in state;
+}
+
+function validateMove(engineState: EngineState, mode: GameMode, position: Position, player: Player): boolean {
+  if (mode === 'MODE_1') {
+    return Modes.Infinite3x3.isValidMove(engineState as Infinite3x3State, player, position);
+  }
+  return Modes.ExpandingBoard.isValidMove(engineState as ExpandingBoardState, player, position);
+}
+
+function executeMove(engineState: EngineState, mode: GameMode, player: Player, position: Position): EngineState {
+  if (mode === 'MODE_1') {
+    return Modes.Infinite3x3.applyMove(engineState as Infinite3x3State, player, position);
+  }
+  return Modes.ExpandingBoard.applyMove(engineState as ExpandingBoardState, player, position);
 }
 
 /**
- * WebSocket manager singleton
+ * Find which cells form the winning line on the board.
+ * This is a UI enrichment helper, NOT game logic — the engine
+ * has already authoritatively determined IF someone won.
+ * This just locates WHERE for client display.
  */
+function findWinningLine(board: (Player | null)[][]): WinInfo | null {
+  const size = board.length;
+
+  // Rows
+  for (let r = 0; r < size; r++) {
+    const cells = Array.from({ length: size }, (_, c) => ({ row: r, col: c }));
+    if (board[r][0] && cells.every((c) => board[c.row][c.col] === board[r][0])) {
+      return { winner: board[r][0]!, winningCells: cells, winType: 'row' };
+    }
+  }
+
+  // Columns
+  for (let c = 0; c < size; c++) {
+    const cells = Array.from({ length: size }, (_, r) => ({ row: r, col: c }));
+    if (board[0][c] && cells.every((pos) => board[pos.row][pos.col] === board[0][c])) {
+      return { winner: board[0][c]!, winningCells: cells, winType: 'column' };
+    }
+  }
+
+  // Diagonals
+  const diag = Array.from({ length: size }, (_, i) => ({ row: i, col: i }));
+  if (board[0][0] && diag.every((c) => board[c.row][c.col] === board[0][0])) {
+    return { winner: board[0][0], winningCells: diag, winType: 'diagonal' };
+  }
+
+  const antiDiag = Array.from({ length: size }, (_, i) => ({ row: i, col: size - 1 - i }));
+  if (board[0][size - 1] && antiDiag.every((c) => board[c.row][c.col] === board[0][size - 1])) {
+    return { winner: board[0][size - 1]!, winningCells: antiDiag, winType: 'anti-diagonal' };
+  }
+
+  return null;
+}
+
+/**
+ * Convert engine state to the wire GameState format that clients expect.
+ */
+function engineToWireState(engineState: EngineState, mode: GameMode): GameState {
+  if (isMode1(engineState)) {
+    const board = engineState.board.map((row) => [...row]) as (Player | null)[][];
+    const currentPlayer = getNextPlayer(engineState.currentTurn);
+    const isGameOver = engineState.winner !== null;
+    const winInfo = engineState.winner ? findWinningLine(board) : null;
+
+    // Derive removedPosition by comparing consecutive board snapshots
+    const moveHistory: Move[] = engineState.moveHistory.map((m, i) => ({
+      position: m.position,
+      player: m.player,
+      timestamp: Date.now(),
+      moveNumber: i + 1,
+    }));
+
+    return {
+      board,
+      boardSize: 3,
+      currentPlayer,
+      moveHistory,
+      isGameOver,
+      winner: engineState.winner,
+      winInfo,
+      isDraw: false, // Mode 1 never draws due to sliding rule
+      mode,
+      moveCount: engineState.currentTurn,
+    };
+  }
+
+  // Mode 2 (Expanding Board)
+  const state = engineState as ExpandingBoardState;
+  const board = state.board.map((row) => [...row]) as (Player | null)[][];
+  const currentPlayer = getNextPlayer(state.currentTurn);
+  const isDraw = !state.roundWinner && board.every((row) => row.every((cell) => cell !== null));
+  const isGameOver = state.roundWinner !== null || isDraw;
+
+  let winInfo: WinInfo | null = null;
+  if (state.roundWinner && state.winningLine) {
+    const winType = inferWinType(state.winningLine, state.boardSize);
+    winInfo = { winner: state.roundWinner, winningCells: state.winningLine, winType };
+  }
+
+  const moveHistory: Move[] = state.moveHistory.map((m, i) => ({
+    position: m.position,
+    player: m.player,
+    timestamp: Date.now(),
+    moveNumber: i + 1,
+  }));
+
+  return {
+    board,
+    boardSize: state.boardSize,
+    currentPlayer,
+    moveHistory,
+    isGameOver,
+    winner: state.roundWinner,
+    winInfo,
+    isDraw,
+    mode,
+    moveCount: state.currentTurn,
+  };
+}
+
+function inferWinType(cells: Position[], boardSize: number): 'row' | 'column' | 'diagonal' | 'anti-diagonal' {
+  if (cells.every((c) => c.row === cells[0].row)) return 'row';
+  if (cells.every((c) => c.col === cells[0].col)) return 'column';
+  if (cells.every((c, i) => c.row === i && c.col === i)) return 'diagonal';
+  return 'anti-diagonal';
+}
+
+// ============================================
+// WebSocket Manager
+// ============================================
+
 class WebSocketManager {
   private wss: WebSocketServer | null = null;
-  private connections: Map<string, ClientConnection[]> = new Map(); // matchId -> connections[]
+  
+  // Connected clients by playerId
+  private clients: Map<string, ConnectedClient> = new Map();
+  
+  // Authoritative engine state per match (source of truth for game logic)
+  private engineStates: Map<string, EngineState> = new Map();
+  
+  // Matchmaking queues (by mode + ranked)
+  private queues: Map<string, QueueEntry[]> = new Map();
+  
+  // Active matches
+  private matches: Map<string, MatchState> = new Map();
+  
+  // Match ID counter
+  private matchCounter = 0;
 
   /**
-   * Initialize WebSocket server attached to HTTP server
+   * Initialize WebSocket server
    */
   initialize(server: HTTPServer) {
     this.wss = new WebSocketServer({ server });
 
+    // Initialize queues
+    this.queues.set('MODE_1_casual', []);
+    this.queues.set('MODE_2_casual', []);
+    this.queues.set('MODE_1_ranked', []);
+    this.queues.set('MODE_2_ranked', []);
+
     this.wss.on('connection', (ws: WebSocket) => {
       console.log('🔌 New WebSocket connection');
 
-      let clientConnection: ClientConnection | null = null;
+      // Generate temporary ID until client identifies
+      const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      let clientId = tempId;
 
       ws.on('message', (data: Buffer) => {
         try {
-          const message: WebSocketMessage = JSON.parse(data.toString());
-          
-          if (message.type === 'join') {
-            this.handleJoin(ws, message, (connection) => {
-              clientConnection = connection;
-            });
-          } else if (message.type === 'submit-move') {
-            // Move submissions are handled via REST API
-            // WebSocket is only for broadcasting state
-            this.sendError(ws, 'Use REST API for move submission');
-          }
+          const event: ClientEvent = JSON.parse(data.toString());
+          this.handleClientEvent(ws, clientId, event, (newId) => {
+            clientId = newId;
+          });
         } catch (error) {
-          console.error('❌ WebSocket message error:', error);
-          this.sendError(ws, 'Invalid message format');
+          console.error('❌ Invalid message:', error);
+          this.send(ws, { type: 'ERROR', payload: { message: 'Invalid message format' } });
         }
       });
 
       ws.on('close', () => {
-        if (clientConnection) {
-          console.log(`🔌 Client disconnected from match ${clientConnection.matchId}`);
-          this.removeConnection(clientConnection);
-        }
+        this.handleDisconnect(clientId);
       });
 
       ws.on('error', (error) => {
@@ -82,152 +358,769 @@ class WebSocketManager {
   }
 
   /**
-   * Handle client join request
+   * Handle incoming client event
    */
-  private handleJoin(
+  private handleClientEvent(
     ws: WebSocket,
-    message: WebSocketMessage,
-    onSuccess: (connection: ClientConnection) => void
+    clientId: string,
+    event: ClientEvent,
+    setClientId: (id: string) => void
   ) {
-    const { playerId, matchId } = message;
+    switch (event.type) {
+      case 'JOIN_QUEUE':
+        this.handleJoinQueue(ws, event.payload, setClientId);
+        break;
 
-    if (!playerId || !matchId) {
-      this.sendError(ws, 'Missing playerId or matchId');
-      return;
+      case 'LEAVE_QUEUE':
+        this.handleLeaveQueue(clientId);
+        break;
+
+      case 'JOIN_MATCH':
+        this.handleJoinMatch(ws, event.payload, setClientId);
+        break;
+
+      case 'LEAVE_MATCH':
+        this.handleLeaveMatch(clientId);
+        break;
+
+      case 'MAKE_MOVE':
+        this.handleMakeMove(clientId, event.payload, ws);
+        break;
+
+      case 'FORFEIT':
+        this.handleForfeit(clientId);
+        break;
+
+      case 'REMATCH_REQUEST':
+        this.handleRematchRequest(clientId, event.payload);
+        break;
+
+      case 'REMATCH_ACCEPT':
+        this.handleRematchAccept(clientId, event.payload);
+        break;
+
+      case 'REMATCH_DECLINE':
+        this.handleRematchDecline(clientId, event.payload);
+        break;
+
+      case 'PING':
+        this.send(ws, { type: 'PONG', payload: { timestamp: Date.now() } });
+        break;
+
+      default:
+        this.send(ws, { type: 'ERROR', payload: { message: `Unknown event type: ${event.type}` } });
     }
+  }
 
-    // Create connection
-    const connection: ClientConnection = {
+  /**
+   * Handle JOIN_QUEUE
+   */
+  private handleJoinQueue(
+    ws: WebSocket,
+    payload: { playerId: string; username?: string; mode: GameMode; isRanked?: boolean },
+    setClientId: (id: string) => void
+  ) {
+    const { playerId, username = 'Player', mode = 'MODE_1', isRanked = false } = payload;
+
+    // Register client
+    setClientId(playerId);
+    this.clients.set(playerId, {
       ws,
       playerId,
-      matchId,
+      username,
+      matchId: null,
+      inQueue: true,
+    });
+
+    // Add to queue
+    const queueKey = `${mode}_${isRanked ? 'ranked' : 'casual'}`;
+    const queue = this.queues.get(queueKey) || [];
+
+    // Remove if already in queue
+    const existingIndex = queue.findIndex((e) => e.playerId === playerId);
+    if (existingIndex !== -1) {
+      queue.splice(existingIndex, 1);
+    }
+
+    const entry: QueueEntry = {
+      playerId,
+      username,
+      ws,
+      mode,
+      isRanked,
+      joinedAt: Date.now(),
     };
 
-    // Add to connections map
-    if (!this.connections.has(matchId)) {
-      this.connections.set(matchId, []);
-    }
-    this.connections.get(matchId)!.push(connection);
+    queue.push(entry);
+    this.queues.set(queueKey, queue);
 
-    console.log(`✅ Player ${playerId.slice(0, 8)} joined match ${matchId.slice(0, 8)}`);
-    console.log(`   Total connections in match: ${this.connections.get(matchId)!.length}`);
-
-    onSuccess(connection);
+    console.log(`📥 ${username} joined ${queueKey} queue (${queue.length} in queue)`);
 
     // Send confirmation
     this.send(ws, {
-      type: 'state-update',
-      payload: { status: 'connected', matchId, playerId },
+      type: 'QUEUE_JOINED',
+      payload: {
+        position: queue.length,
+        estimatedWait: queue.length > 1 ? 0 : 30000,
+        mode,
+        isRanked,
+      },
     });
+
+    // Try to match
+    this.tryMatch(queueKey);
   }
 
   /**
-   * Remove connection from map
+   * Handle LEAVE_QUEUE
    */
-  private removeConnection(connection: ClientConnection) {
-    const matchConnections = this.connections.get(connection.matchId);
-    if (matchConnections) {
-      const index = matchConnections.indexOf(connection);
+  private handleLeaveQueue(playerId: string) {
+    const client = this.clients.get(playerId);
+    if (!client) return;
+
+    // Remove from all queues
+    for (const [queueKey, queue] of this.queues.entries()) {
+      const index = queue.findIndex((e) => e.playerId === playerId);
       if (index !== -1) {
-        matchConnections.splice(index, 1);
-      }
-
-      // Clean up empty match entries
-      if (matchConnections.length === 0) {
-        this.connections.delete(connection.matchId);
-        console.log(`🧹 Cleaned up empty match ${connection.matchId.slice(0, 8)}`);
+        queue.splice(index, 1);
+        console.log(`📤 Player ${playerId.slice(0, 8)} left ${queueKey} queue`);
       }
     }
+
+    client.inQueue = false;
+    this.send(client.ws, { type: 'QUEUE_LEFT', payload: {} });
   }
 
   /**
-   * Broadcast state update to all clients in a match
+   * Try to match players in a queue
    */
-  broadcastStateUpdate(matchId: string, matchState: any) {
-    const connections = this.connections.get(matchId);
-    if (!connections || connections.length === 0) {
-      // No WebSocket connections, clients are using polling fallback
-      return;
-    }
+  private tryMatch(queueKey: string) {
+    const queue = this.queues.get(queueKey);
+    if (!queue || queue.length < 2) return;
 
-    console.log(`📡 Broadcasting state update to ${connections.length} client(s) in match ${matchId.slice(0, 8)}`);
+    // Match first two players
+    const player1 = queue.shift()!;
+    const player2 = queue.shift()!;
 
-    const message: WebSocketMessage = {
-      type: 'state-update',
-      payload: matchState,
+    // Create match
+    const matchId = `match_${++this.matchCounter}_${Date.now()}`;
+    const mode = player1.mode;
+
+    // Randomly assign X/O
+    const [playerX, playerO] = Math.random() < 0.5 ? [player1, player2] : [player2, player1];
+
+    const matchState: MatchState = {
+      matchId,
+      status: 'active',
+      mode,
+      players: {
+        X: { id: playerX.playerId, username: playerX.username, isConnected: true },
+        O: { id: playerO.playerId, username: playerO.username, isConnected: true },
+      },
+      gameState: engineToWireState(initEngineState(mode), mode),
+      spectatorCount: 0,
+      startedAt: Date.now(),
     };
 
-    connections.forEach((connection) => {
-      if (connection.ws.readyState === WebSocket.OPEN) {
-        this.send(connection.ws, message);
-      }
+    this.matches.set(matchId, matchState);
+    this.engineStates.set(matchId, initEngineState(mode));
+
+    // Update client states
+    const clientX = this.clients.get(playerX.playerId);
+    const clientO = this.clients.get(playerO.playerId);
+
+    if (clientX) {
+      clientX.matchId = matchId;
+      clientX.inQueue = false;
+    }
+    if (clientO) {
+      clientO.matchId = matchId;
+      clientO.inQueue = false;
+    }
+
+    console.log(`🎮 Match created: ${matchId.slice(0, 16)}`);
+    console.log(`   X: ${playerX.username} vs O: ${playerO.username}`);
+
+    // Notify both players
+    this.send(playerX.ws, {
+      type: 'MATCH_FOUND',
+      payload: {
+        matchId,
+        yourPlayer: 'X',
+        opponent: { username: playerO.username },
+        matchState,
+      },
+    });
+
+    this.send(playerO.ws, {
+      type: 'MATCH_FOUND',
+      payload: {
+        matchId,
+        yourPlayer: 'O',
+        opponent: { username: playerX.username },
+        matchState,
+      },
     });
   }
 
   /**
-   * Broadcast match completion to all clients
+   * Handle JOIN_MATCH (for reconnection)
    */
-  broadcastMatchComplete(matchId: string, matchResult: any) {
-    const connections = this.connections.get(matchId);
-    if (!connections || connections.length === 0) {
+  private handleJoinMatch(
+    ws: WebSocket,
+    payload: { matchId: string; playerId?: string },
+    setClientId: (id: string) => void
+  ) {
+    const { matchId, playerId } = payload;
+    const match = this.matches.get(matchId);
+
+    if (!match) {
+      this.send(ws, { type: 'ERROR', payload: { message: 'Match not found' } });
       return;
     }
 
-    console.log(`🏁 Broadcasting match completion to ${connections.length} client(s) in match ${matchId.slice(0, 8)}`);
+    if (!playerId) {
+      this.send(ws, { type: 'ERROR', payload: { message: 'Player ID required' } });
+      return;
+    }
 
-    const message: WebSocketMessage = {
-      type: 'match-complete',
-      payload: matchResult,
-    };
+    // Find which player this is
+    let yourPlayer: Player | null = null;
+    let wasDisconnected = false;
+    
+    if (match.players.X?.id === playerId) {
+      yourPlayer = 'X';
+      wasDisconnected = !match.players.X.isConnected;
+      match.players.X.isConnected = true;
+    } else if (match.players.O?.id === playerId) {
+      yourPlayer = 'O';
+      wasDisconnected = !match.players.O.isConnected;
+      match.players.O.isConnected = true;
+    }
 
-    connections.forEach((connection) => {
-      if (connection.ws.readyState === WebSocket.OPEN) {
-        this.send(connection.ws, message);
-      }
-    });
+    if (!yourPlayer) {
+      this.send(ws, { type: 'ERROR', payload: { message: 'You are not in this match' } });
+      return;
+    }
 
-    // Close connections after a brief delay
-    setTimeout(() => {
-      connections.forEach((connection) => {
-        if (connection.ws.readyState === WebSocket.OPEN) {
-          connection.ws.close(1000, 'Match completed');
-        }
+    // Register/update client with actual playerId
+    setClientId(playerId);
+    let client = this.clients.get(playerId);
+    if (client) {
+      client.ws = ws;
+      client.matchId = matchId;
+    } else {
+      // New client registration
+      this.clients.set(playerId, {
+        ws,
+        playerId,
+        username: match.players[yourPlayer]?.username || 'Player',
+        matchId,
+        inQueue: false,
       });
-      this.connections.delete(matchId);
-    }, 1000);
-  }
+    }
 
-  /**
-   * Send message to a WebSocket client
-   */
-  private send(ws: WebSocket, message: WebSocketMessage) {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(message));
+    console.log(`🔗 ${yourPlayer} (${playerId.slice(0, 12)}) joined match ${matchId.slice(0, 16)}`);
+
+    // Send current state
+    this.send(ws, {
+      type: 'MATCH_JOINED',
+      payload: {
+        matchState: match,
+        yourPlayer,
+      },
+    });
+
+    // Only notify opponent of reconnection if they were actually disconnected
+    if (wasDisconnected) {
+      this.broadcastToMatch(matchId, {
+        type: 'PLAYER_RECONNECTED',
+        payload: { matchId, player: yourPlayer },
+      }, playerId);
+      console.log(`🔄 ${yourPlayer} reconnected to match ${matchId.slice(0, 16)}`);
     }
   }
 
   /**
-   * Send error message to client
+   * Handle LEAVE_MATCH
    */
-  private sendError(ws: WebSocket, error: string) {
-    this.send(ws, {
-      type: 'error',
-      error,
-    });
+  private handleLeaveMatch(playerId: string) {
+    const client = this.clients.get(playerId);
+    if (!client?.matchId) return;
+
+    const match = this.matches.get(client.matchId);
+    if (!match) return;
+
+    // Mark as disconnected
+    if (match.players.X?.id === playerId) {
+      match.players.X.isConnected = false;
+    } else if (match.players.O?.id === playerId) {
+      match.players.O.isConnected = false;
+    }
+
+    client.matchId = null;
   }
 
   /**
-   * Get active match count (for monitoring)
+   * Handle MAKE_MOVE
+   */
+  private handleMakeMove(connectionId: string, payload: { position: Position; playerId?: string }, ws: WebSocket) {
+    // Use playerId from payload if provided, otherwise fall back to connection tracking
+    const playerId = payload.playerId || connectionId;
+    console.log(`🎯 MAKE_MOVE from ${playerId.slice(0, 12)} (conn: ${connectionId.slice(0, 12)})`, payload.position);
+    
+    const client = this.clients.get(playerId);
+    if (!client?.matchId) {
+      console.log(`❌ Client ${playerId.slice(0, 12)} not in a match. Known clients:`, 
+        [...this.clients.keys()].map(k => k.slice(0, 12)));
+      this.send(ws, { type: 'MOVE_REJECTED', payload: { reason: 'Not in a match' } });
+      return;
+    }
+
+    const match = this.matches.get(client.matchId);
+    if (!match) {
+      this.send(client.ws, { type: 'MOVE_REJECTED', payload: { reason: 'Match not found' } });
+      return;
+    }
+
+    // Determine which player this is
+    let player: Player | null = null;
+    if (match.players.X?.id === playerId) player = 'X';
+    else if (match.players.O?.id === playerId) player = 'O';
+
+    if (!player) {
+      console.log(`❌ ${playerId.slice(0, 12)} not a player. X=${match.players.X?.id?.slice(0,12)}, O=${match.players.O?.id?.slice(0,12)}`);
+      this.send(client.ws, { type: 'MOVE_REJECTED', payload: { reason: 'Not a player in this match' } });
+      return;
+    }
+
+    // Get authoritative engine state
+    const engineState = this.engineStates.get(client.matchId);
+    if (!engineState) {
+      this.send(client.ws, { type: 'MOVE_REJECTED', payload: { reason: 'Engine state not found' } });
+      return;
+    }
+
+    // Validate move via engine
+    if (!validateMove(engineState, match.mode, payload.position, player)) {
+      const currentPlayer = getNextPlayer(
+        isMode1(engineState) ? engineState.currentTurn : (engineState as ExpandingBoardState).currentTurn
+      );
+      this.send(client.ws, {
+        type: 'MOVE_REJECTED',
+        payload: {
+          reason: currentPlayer !== player
+            ? 'Not your turn'
+            : 'Invalid move position',
+          matchId: client.matchId,
+        },
+      });
+      return;
+    }
+
+    // Apply move via engine (single source of truth)
+    const newEngineState = executeMove(engineState, match.mode, player, payload.position);
+    this.engineStates.set(client.matchId, newEngineState);
+    match.gameState = engineToWireState(newEngineState, match.mode);
+
+    console.log(`🎯 ${player} played at (${payload.position.row},${payload.position.col}) in match ${client.matchId.slice(0, 12)}`);
+
+    // Send move accepted to player who made the move
+    this.send(client.ws, {
+      type: 'MOVE_ACCEPTED',
+      payload: { matchId: client.matchId, position: payload.position },
+    });
+
+    // Broadcast updated state
+    this.broadcastToMatch(client.matchId, {
+      type: 'GAME_STATE_UPDATE',
+      payload: {
+        matchId: client.matchId,
+        gameState: match.gameState,
+      },
+    });
+
+    // Check if game ended
+    if (match.gameState.isGameOver) {
+      match.status = 'completed';
+      
+      const duration = Date.now() - (match.startedAt || Date.now());
+      
+      this.broadcastToMatch(client.matchId, {
+        type: 'MATCH_END',
+        payload: {
+          matchId: client.matchId,
+          result: {
+            matchId: client.matchId,
+            winner: match.gameState.winner,
+            isDraw: match.gameState.isDraw,
+            winInfo: match.gameState.winInfo || null,
+            players: match.players,
+            moveCount: match.gameState.moveCount,
+            duration,
+            endReason: 'win',
+          },
+          finalGameState: match.gameState,
+        },
+      });
+
+      console.log(`🏁 Match ${client.matchId.slice(0, 12)} ended - Winner: ${match.gameState.winner || 'Draw'}`);
+
+      // Clean up after delay (60s to allow rematch requests)
+      setTimeout(() => {
+        this.cleanupMatch(client.matchId!);
+      }, 60000);
+    }
+  }
+
+  /**
+   * Handle FORFEIT
+   */
+  private handleForfeit(playerId: string) {
+    const client = this.clients.get(playerId);
+    if (!client?.matchId) return;
+
+    const match = this.matches.get(client.matchId);
+    if (!match || match.status !== 'active') return;
+
+    // Determine winner (opponent)
+    let winner: Player | null = null;
+    if (match.players.X?.id === playerId) winner = 'O';
+    else if (match.players.O?.id === playerId) winner = 'X';
+
+    if (!winner) return;
+
+    match.status = 'completed';
+    match.gameState.isGameOver = true;
+    match.gameState.winner = winner;
+
+    const duration = Date.now() - (match.startedAt || Date.now());
+
+    this.broadcastToMatch(client.matchId, {
+      type: 'MATCH_END',
+      payload: {
+        matchId: client.matchId,
+        result: {
+          matchId: client.matchId,
+          winner,
+          isDraw: false,
+          winInfo: null,
+          players: match.players,
+          moveCount: match.gameState.moveCount,
+          duration,
+          endReason: 'forfeit',
+        },
+        finalGameState: match.gameState,
+      },
+    });
+
+    console.log(`🏳️ Player forfeited in match ${client.matchId.slice(0, 12)} - Winner: ${winner}`);
+
+    setTimeout(() => {
+      this.cleanupMatch(client.matchId!);
+    }, 60000);
+  }
+
+  /**
+   * Handle REMATCH_REQUEST
+   */
+  private handleRematchRequest(playerId: string, payload: { matchId: string }) {
+    const client = this.clients.get(playerId);
+    const match = this.matches.get(payload.matchId);
+    
+    if (!match || match.status !== 'completed') {
+      if (client?.ws) {
+        this.send(client.ws, { type: 'ERROR', payload: { message: 'Match not found or not completed' } });
+      }
+      return;
+    }
+
+    // Find which player this is
+    let requestingPlayer: Player | null = null;
+    if (match.players.X?.id === playerId) requestingPlayer = 'X';
+    else if (match.players.O?.id === playerId) requestingPlayer = 'O';
+
+    if (!requestingPlayer) {
+      if (client?.ws) {
+        this.send(client.ws, { type: 'ERROR', payload: { message: 'Not a player in this match' } });
+      }
+      return;
+    }
+
+    match.rematchRequestedBy = requestingPlayer;
+
+    // Notify opponent
+    this.broadcastToMatch(payload.matchId, {
+      type: 'REMATCH_REQUESTED',
+      payload: {
+        matchId: payload.matchId,
+        requestedBy: requestingPlayer,
+      },
+    }, playerId);
+
+    console.log(`🔄 ${requestingPlayer} requested rematch in match ${payload.matchId.slice(0, 12)}`);
+  }
+
+  /**
+   * Handle REMATCH_ACCEPT
+   */
+  private handleRematchAccept(playerId: string, payload: { matchId: string }) {
+    const client = this.clients.get(playerId);
+    const oldMatch = this.matches.get(payload.matchId);
+    
+    if (!oldMatch || !oldMatch.rematchRequestedBy) {
+      if (client?.ws) {
+        this.send(client.ws, { type: 'ERROR', payload: { message: 'No rematch request pending' } });
+      }
+      return;
+    }
+
+    // Find which player accepted
+    let acceptingPlayer: Player | null = null;
+    if (oldMatch.players.X?.id === playerId) acceptingPlayer = 'X';
+    else if (oldMatch.players.O?.id === playerId) acceptingPlayer = 'O';
+
+    // Can't accept your own request
+    if (acceptingPlayer === oldMatch.rematchRequestedBy) {
+      if (client?.ws) {
+        this.send(client.ws, { type: 'ERROR', payload: { message: 'Cannot accept your own rematch request' } });
+      }
+      return;
+    }
+
+    // Create new match with swapped players
+    const newMatchId = `match_${++this.matchCounter}_${Date.now()}`;
+    const mode = oldMatch.mode;
+
+    // Swap X and O for the rematch
+    const newMatchState: MatchState = {
+      matchId: newMatchId,
+      status: 'active',
+      mode,
+      players: {
+        X: oldMatch.players.O ? { ...oldMatch.players.O, isConnected: true } : null,
+        O: oldMatch.players.X ? { ...oldMatch.players.X, isConnected: true } : null,
+      },
+      gameState: engineToWireState(initEngineState(mode), mode),
+      spectatorCount: 0,
+      startedAt: Date.now(),
+    };
+
+    this.matches.set(newMatchId, newMatchState);
+    this.engineStates.set(newMatchId, initEngineState(mode));
+
+    // Clean up old match engine state
+    this.engineStates.delete(payload.matchId);
+
+    // Update client match references
+    const playerXId = oldMatch.players.X?.id;
+    const playerOId = oldMatch.players.O?.id;
+    
+    if (playerXId) {
+      const clientX = this.clients.get(playerXId);
+      if (clientX) clientX.matchId = newMatchId;
+    }
+    if (playerOId) {
+      const clientO = this.clients.get(playerOId);
+      if (clientO) clientO.matchId = newMatchId;
+    }
+
+    // Notify both players of the new match
+    // Old X is now O
+    if (playerXId) {
+      const clientX = this.clients.get(playerXId);
+      if (clientX?.ws) {
+        this.send(clientX.ws, {
+          type: 'REMATCH_STARTING',
+          payload: {
+            oldMatchId: payload.matchId,
+            newMatchId,
+            yourPlayer: 'O',
+            matchState: newMatchState,
+          },
+        });
+      }
+    }
+    
+    // Old O is now X
+    if (playerOId) {
+      const clientO = this.clients.get(playerOId);
+      if (clientO?.ws) {
+        this.send(clientO.ws, {
+          type: 'REMATCH_STARTING',
+          payload: {
+            oldMatchId: payload.matchId,
+            newMatchId,
+            yourPlayer: 'X',
+            matchState: newMatchState,
+          },
+        });
+      }
+    }
+
+    console.log(`🔄 Rematch started: ${newMatchId.slice(0, 16)}`);
+    console.log(`   X: ${newMatchState.players.X?.username} vs O: ${newMatchState.players.O?.username}`);
+
+    // Clean up old match
+    this.matches.delete(payload.matchId);
+  }
+
+  /**
+   * Handle REMATCH_DECLINE
+   */
+  private handleRematchDecline(playerId: string, payload: { matchId: string }) {
+    const client = this.clients.get(playerId);
+    const match = this.matches.get(payload.matchId);
+    
+    if (!match || !match.rematchRequestedBy) {
+      return;
+    }
+
+    // Find which player declined
+    let decliningPlayer: Player | null = null;
+    if (match.players.X?.id === playerId) decliningPlayer = 'X';
+    else if (match.players.O?.id === playerId) decliningPlayer = 'O';
+
+    match.rematchRequestedBy = null;
+
+    // Notify both players
+    this.broadcastToMatch(payload.matchId, {
+      type: 'REMATCH_DECLINED',
+      payload: {
+        matchId: payload.matchId,
+        declinedBy: decliningPlayer,
+      },
+    });
+
+    console.log(`❌ ${decliningPlayer} declined rematch in match ${payload.matchId.slice(0, 12)}`);
+  }
+
+  /**
+   * Handle client disconnect
+   */
+  private handleDisconnect(playerId: string) {
+    const client = this.clients.get(playerId);
+    if (!client) return;
+
+    console.log(`🔌 Client disconnected: ${playerId.slice(0, 8)}`);
+
+    // Remove from queues
+    for (const [, queue] of this.queues.entries()) {
+      const index = queue.findIndex((e) => e.playerId === playerId);
+      if (index !== -1) {
+        queue.splice(index, 1);
+      }
+    }
+
+    // Notify match
+    if (client.matchId) {
+      const match = this.matches.get(client.matchId);
+      if (match && match.status === 'active') {
+        let disconnectedPlayer: Player | null = null;
+        if (match.players.X?.id === playerId) {
+          match.players.X.isConnected = false;
+          disconnectedPlayer = 'X';
+        } else if (match.players.O?.id === playerId) {
+          match.players.O.isConnected = false;
+          disconnectedPlayer = 'O';
+        }
+
+        if (disconnectedPlayer) {
+          this.broadcastToMatch(client.matchId, {
+            type: 'PLAYER_DISCONNECTED',
+            payload: {
+              matchId: client.matchId,
+              player: disconnectedPlayer,
+              reconnectTimeout: 30000,
+            },
+          }, playerId);
+        }
+      }
+    }
+
+    this.clients.delete(playerId);
+  }
+
+  /**
+   * Clean up completed match
+   */
+  private cleanupMatch(matchId: string) {
+    const match = this.matches.get(matchId);
+    if (!match) return;
+
+    // Clear match references from clients
+    if (match.players.X?.id) {
+      const client = this.clients.get(match.players.X.id);
+      if (client) client.matchId = null;
+    }
+    if (match.players.O?.id) {
+      const client = this.clients.get(match.players.O.id);
+      if (client) client.matchId = null;
+    }
+
+    this.matches.delete(matchId);
+    this.engineStates.delete(matchId);
+    console.log(`🧹 Cleaned up match ${matchId.slice(0, 12)}`);
+  }
+
+  /**
+   * Broadcast message to all players in a match
+   */
+  private broadcastToMatch(matchId: string, event: ServerEvent, excludePlayerId?: string) {
+    const match = this.matches.get(matchId);
+    if (!match) return;
+
+    const playerIds = [match.players.X?.id, match.players.O?.id].filter(Boolean) as string[];
+
+    for (const pid of playerIds) {
+      if (pid === excludePlayerId) continue;
+      const client = this.clients.get(pid);
+      if (client?.ws.readyState === WebSocket.OPEN) {
+        this.send(client.ws, event);
+      }
+    }
+  }
+
+  /**
+   * Send message to WebSocket
+   */
+  private send(ws: WebSocket, event: ServerEvent) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(event));
+    }
+  }
+
+  /**
+   * Get queue status (for monitoring)
+   */
+  getQueueStatus() {
+    const status: Record<string, number> = {};
+    for (const [key, queue] of this.queues.entries()) {
+      status[key] = queue.length;
+    }
+    return status;
+  }
+
+  /**
+   * Get active match count
    */
   getActiveMatchCount(): number {
-    return this.connections.size;
+    return this.matches.size;
   }
 
-  /**
-   * Get connection count for a specific match
-   */
-  getMatchConnectionCount(matchId: string): number {
-    return this.connections.get(matchId)?.length || 0;
+  // Legacy method for polling-based system compatibility
+  broadcastStateUpdate(matchId: string, matchState: any) {
+    this.broadcastToMatch(matchId, {
+      type: 'GAME_STATE_UPDATE',
+      payload: matchState,
+    });
+  }
+
+  broadcastMatchComplete(matchId: string, matchResult: any) {
+    this.broadcastToMatch(matchId, {
+      type: 'MATCH_END',
+      payload: matchResult,
+    });
   }
 }
 

@@ -10,6 +10,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@infinite-ttt/game-engine": "workspace:*",
     "@infinite-ttt/identity": "workspace:*",
     "@infinite-ttt/shared": "workspace:*",
     "@types/ws": "^8.18.1",

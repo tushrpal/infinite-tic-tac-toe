@@ -1,0 +1,37 @@
+
+> @infinite-ttt/game-engine@1.0.0 test D:\infinite-ttt\packages\game-engine
+> vitest
+
+
+[1m[7m[34m DEV [39m[27m[22m [34mv2.1.9 [39m[90mD:/infinite-ttt/packages/game-engine[39m
+
+ [32m✓[39m src/modes/infinite-3x3/reducer.test.ts [2m([22m[2m15 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/modes/expanding-board/reducer.test.ts [2m([22m[2m21 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m36 passed[39m[22m[90m (36)[39m
+[2m   Start at [22m 13:00:24
+[2m   Duration [22m 1.07s[2m (transform 163ms, setup 0ms, collect 415ms, tests 22ms, environment 0ms, prepare 322ms)[22m
+
+[1m[7m[32m PASS [39m[27m[22m [32mWaiting for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+node:events:502
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: Worker exited unexpectedly
+    at ChildProcess.onUnexpectedExit (file:///D:/infinite-ttt/node_modules/.pnpm/tinypool@1.1.1/node_modules/tinypool/dist/index.js:118:30)
+    at ChildProcess.emit (node:events:536:35)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+Emitted 'error' event on Tinypool instance at:
+    at EventEmitterReferencingAsyncResource.runInAsyncScope (node:async_hooks:206:9)
+    at Tinypool.emit (node:events:170:18)
+    at file:///D:/infinite-ttt/node_modules/.pnpm/tinypool@1.1.1/node_modules/tinypool/dist/index.js:594:30
+    at ChildProcess.<anonymous> (file:///D:/infinite-ttt/node_modules/.pnpm/tinypool@1.1.1/node_modules/tinypool/dist/index.js:162:34)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess.onUnexpectedExit (file:///D:/infinite-ttt/node_modules/.pnpm/tinypool@1.1.1/node_modules/tinypool/dist/index.js:118:16)
+    at ChildProcess.emit (node:events:536:35)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v20.19.0
+ ELIFECYCLE  Test failed. See above for more details.
