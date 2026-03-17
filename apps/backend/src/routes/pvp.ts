@@ -1,10 +1,32 @@
 import { Router } from 'express';
+import type { MatchResult } from '@infinite-ttt/shared';
 import { LocalJsonPvPMatchStore } from '../storage/LocalJsonPvPMatchStore';
+import { createMatchStorage } from '../storage/createMatchStorage';
 import type { PvPMatch } from '../storage/PvPMatchStore';
 import { wsManager } from '../websocket';
+import { isValidMatchResult } from '../validators/matchResultSchema';
 
 const router = Router();
 const pvpStore = new LocalJsonPvPMatchStore();
+const matchStorage = createMatchStorage();
+
+function normalizeMatchPlayersForPersistence(matchResult: MatchResult, match: PvPMatch): MatchResult {
+  const playersById = new Map(matchResult.players.map((player) => [player.id, player]));
+
+  const xPlayer = playersById.get(match.players.X) ?? {
+    id: match.players.X,
+    type: 'human' as const,
+  };
+  const oPlayer = playersById.get(match.players.O) ?? {
+    id: match.players.O,
+    type: 'human' as const,
+  };
+
+  return {
+    ...matchResult,
+    players: [xPlayer, oPlayer],
+  };
+}
 
 // Initialize store
 pvpStore.init().catch(console.error);
@@ -208,16 +230,29 @@ router.post('/match/:matchId/complete', async (req, res) => {
       return res.status(400).json({ error: 'Missing matchResult' });
     }
 
+    if (!isValidMatchResult(matchResult)) {
+      return res.status(400).json({ error: 'Invalid MatchResult' });
+    }
+
+    if (matchResult.matchId !== matchId) {
+      return res.status(400).json({ error: 'matchId mismatch between URL and payload' });
+    }
+
     const match = await pvpStore.getById(matchId);
 
     if (!match) {
       return res.status(404).json({ error: 'Match not found' });
     }
 
-    await pvpStore.complete(matchId, matchResult);
+    const normalizedMatchResult = normalizeMatchPlayersForPersistence(matchResult, match);
+
+    // Canonical completed match persistence path (JSON + DB migration mode).
+    await matchStorage.saveMatch(normalizedMatchResult);
+
+    await pvpStore.complete(matchId, normalizedMatchResult);
 
     // Broadcast match completion to all connected clients
-    wsManager.broadcastMatchComplete(matchId, matchResult);
+    wsManager.broadcastMatchComplete(matchId, normalizedMatchResult);
 
     res.json({ success: true });
   } catch (error) {

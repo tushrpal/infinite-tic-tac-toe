@@ -109,6 +109,7 @@ export type ClientEventType =
   | 'SPECTATE_MATCH'
   | 'STOP_SPECTATING'
   | 'REQUEST_GAME_STATE'
+  | 'RECONNECT'
   | 'PING';
 
 export type ServerEventType =
@@ -123,6 +124,7 @@ export type ServerEventType =
   | 'MATCH_END'
   | 'PLAYER_DISCONNECTED'
   | 'PLAYER_RECONNECTED'
+  | 'RECONNECTED'
   | 'REMATCH_REQUESTED'
   | 'REMATCH_STARTING'
   | 'REMATCH_DECLINED'
@@ -229,6 +231,13 @@ export interface PingEvent {
   };
 }
 
+export interface ReconnectEvent {
+  type: 'RECONNECT';
+  payload: {
+    playerId: string;
+  };
+}
+
 export type ClientEvent =
   | JoinQueueEvent
   | LeaveQueueEvent
@@ -242,6 +251,7 @@ export type ClientEvent =
   | SpectateMatchEvent
   | StopSpectatingEvent
   | RequestGameStateEvent
+  | ReconnectEvent
   | PingEvent;
 
 // ============================================
@@ -400,6 +410,14 @@ export interface PongEvent {
   };
 }
 
+export interface ReconnectedEvent {
+  type: 'RECONNECTED';
+  payload: {
+    matchId: string;
+    role: Player;
+  };
+}
+
 export type ServerEvent =
   | QueueJoinedEvent
   | QueueLeftEvent
@@ -412,6 +430,7 @@ export type ServerEvent =
   | MatchEndEvent
   | PlayerDisconnectedEvent
   | PlayerReconnectedEvent
+  | ReconnectedEvent
   | RematchRequestedEvent
   | RematchStartingEvent
   | RematchDeclinedEvent

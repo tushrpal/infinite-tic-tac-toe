@@ -50,6 +50,7 @@ export class GameSocket {
   private pongTimer: ReturnType<typeof setTimeout> | null = null;
   private eventEmitter: EventEmitter;
   private stateChangeCallbacks: Set<(state: ConnectionState) => void> = new Set();
+  private activeMatchId: string | null = null;
 
   constructor(config: Partial<SocketConfig> = {}) {
     this.config = { ...defaultConfig, ...config };
@@ -103,6 +104,7 @@ export class GameSocket {
 
     this.ws.onopen = () => {
       this.log('Connected');
+      const wasReconnecting = this.connectionState.reconnectAttempts > 0;
       this.updateState({
         status: 'connected',
         reconnectAttempts: 0,
@@ -110,6 +112,11 @@ export class GameSocket {
         error: null,
       });
       this.startPingInterval();
+
+      // Auto-send RECONNECT if we were reconnecting and have an active match
+      if (wasReconnecting) {
+        this.attemptMatchReconnect();
+      }
     };
 
     this.ws.onclose = (event) => {
@@ -340,6 +347,45 @@ export class GameSocket {
       type: 'REQUEST_GAME_STATE',
       payload: { matchId },
     });
+  }
+
+  // ============================================
+  // Match Recovery & Reconnection
+  // ============================================
+
+  /**
+   * Send RECONNECT event to server to rejoin an active match
+   */
+  reconnectToMatch(playerId: string): boolean {
+    this.log('Sending RECONNECT for player', playerId.slice(0, 12));
+    return this.send({
+      type: 'RECONNECT',
+      payload: { playerId },
+    });
+  }
+
+  /**
+   * Track the currently active match for auto-reconnection
+   */
+  setActiveMatch(matchId: string | null): void {
+    this.activeMatchId = matchId;
+  }
+
+  getActiveMatch(): string | null {
+    return this.activeMatchId;
+  }
+
+  /**
+   * Automatically attempt to reconnect to an active match after WebSocket reconnection.
+   * Called internally when the socket reconnects after a disconnect.
+   */
+  private attemptMatchReconnect(): void {
+    const playerId = typeof window !== 'undefined' ? localStorage.getItem('playerId') : null;
+    if (!playerId) return;
+
+    // Always try to reconnect with playerId — server will find the match
+    this.log('Auto-reconnecting to match for player', playerId.slice(0, 12));
+    this.reconnectToMatch(playerId);
   }
 
   // ============================================

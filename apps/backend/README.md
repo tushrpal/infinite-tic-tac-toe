@@ -7,7 +7,7 @@ A minimal Express backend for storing MatchResult data and managing online PvP m
 This backend does **exactly five things**:
 
 1. ✅ Accept `MatchResult` via POST
-2. ✅ Store it in JSON
+2. ✅ Store it in PostgreSQL
 3. ✅ Serve it back via GET
 4. ✅ Manage online PvP match state
 5. ✅ Enforce turn ownership in PvP
@@ -233,11 +233,11 @@ See [ONLINE_PVP.md](./ONLINE_PVP.md) for complete PvP documentation.
 
 Match data is stored in:
 
-- `data/matches.json` - Completed match results (gitignored)
 - `data/pvp-matches.json` - Active/waiting PvP matches (gitignored)
 - `data/players.json` - Player identity data (gitignored)
+- PostgreSQL - Completed match results and replay moves
 
-**Important:** These are simple JSON files - not suitable for production. They will be replaced with a real database later.
+**Important:** PvP waiting/active state remains JSON-backed for now, while completed match history is PostgreSQL-backed.
 
 ## 🔧 Configuration
 
@@ -287,8 +287,8 @@ src/
 ├── routes/
 │   └── matches.ts        # Match endpoints
 ├── storage/
-│   ├── MatchStore.ts     # Storage interface
-│   ├── LocalJsonMatchStore.ts  # JSON implementation
+│   ├── MatchStorage.ts   # Storage interface
+│   ├── DbMatchStorage.ts # PostgreSQL implementation
 │   └── index.ts
 └── validators/
     └── matchResultSchema.ts  # Light validation
@@ -299,12 +299,12 @@ src/
 This backend is designed to be **replaceable**. When ready to migrate to NestJS or a real database:
 
 1. The CLI integration remains the same (just change the URL)
-2. The `MatchStore` interface stays - just swap implementations
+2. The `MatchStorage` interface stays - just swap implementations
 3. No game logic means no complex migration
 
 ## ⚠️ Limitations
 
-- **Single file storage** - concurrent writes may cause issues
+- **PvP waiting state in JSON** - active/waiting PvP matches are still file-backed
 - **No pagination** - GET /matches returns ALL matches
 - **No filtering** - no query parameters supported
 - **No auth** - anyone can read/write

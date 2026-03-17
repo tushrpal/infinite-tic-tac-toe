@@ -66,7 +66,15 @@ export default function MatchPage() {
     addToast({
       type: "success",
       title: "Opponent Reconnected",
-      message: "Game continues",
+      message: "Game resumes",
+    });
+  }, [addToast]);
+
+  const handleReconnected = useCallback(() => {
+    addToast({
+      type: "success",
+      title: "Reconnected to match",
+      message: "Game resumes",
     });
   }, [addToast]);
 
@@ -101,6 +109,7 @@ export default function MatchPage() {
     onMoveRejected: handleMoveRejected,
     onOpponentDisconnected: handleOpponentDisconnected,
     onOpponentReconnected: handleOpponentReconnected,
+    onReconnected: handleReconnected,
     onRematchStarting: handleRematchStarting,
   });
 
@@ -177,11 +186,14 @@ export default function MatchPage() {
       <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
         {/* Connection Status Bar */}
         {connectionState.status !== "connected" && (
-          <div className="p-3 rounded-lg bg-accent-warning/10 border border-accent-warning text-center">
+          <div className="p-3 rounded-lg bg-accent-warning/10 border border-accent-warning text-center flex items-center justify-center gap-2">
+            {connectionState.status === "reconnecting" && (
+              <div className="w-4 h-4 rounded-full border-2 border-accent-warning border-t-transparent animate-spin" />
+            )}
             <span className="text-sm text-accent-warning">
               {connectionState.status === "reconnecting"
-                ? "Reconnecting..."
-                : "Connection lost"}
+                ? "Reconnecting to server..."
+                : "Connection lost — attempting to reconnect"}
             </span>
           </div>
         )}
@@ -429,12 +441,37 @@ export default function MatchPage() {
 
       {/* Disconnect Warning */}
       {showDisconnectWarning && (
-        <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 p-4 rounded-lg bg-accent-warning/10 border border-accent-warning">
-          <p className="text-sm text-accent-warning">
-            Opponent disconnected. Waiting for reconnection...
-          </p>
-        </div>
+        <DisconnectWarningBanner timeoutMs={disconnectTimeout} />
       )}
     </main>
+  );
+}
+
+/**
+ * Disconnect warning banner with countdown timer
+ */
+function DisconnectWarningBanner({ timeoutMs }: { timeoutMs: number }) {
+  const [remaining, setRemaining] = useState(Math.ceil(timeoutMs / 1000));
+
+  useEffect(() => {
+    setRemaining(Math.ceil(timeoutMs / 1000));
+    const interval = setInterval(() => {
+      setRemaining((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timeoutMs]);
+
+  return (
+    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 p-4 rounded-lg bg-accent-warning/10 border border-accent-warning animate-pulse">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-accent-warning text-lg">&#9888;</span>
+        <p className="text-sm font-semibold text-accent-warning">
+          Opponent disconnected
+        </p>
+      </div>
+      <p className="text-xs text-text-secondary">
+        Waiting for reconnection... {remaining > 0 ? `(${remaining}s)` : ""}
+      </p>
+    </div>
   );
 }

@@ -1,0 +1,61 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+model Player {
+    id        String        @id
+    createdAt DateTime      @default(now())
+    updatedAt DateTime      @updatedAt
+    matches   MatchPlayer[]
+}
+
+model Match {
+    id           String        @id
+    mode         String
+    isRanked     Boolean
+    difficulty   String
+    winner       String?
+    roundsPlayed Int
+    totalMoves   Int
+    drawCount    Int
+    createdAtMs  BigInt
+    payload      Json
+    persistedAt  DateTime      @default(now())
+    players      MatchPlayer[]
+    moves        Move[]
+}
+
+model MatchPlayer {
+    id         String   @id @default(cuid())
+    matchId    String
+    playerId   String
+    playerType String
+    createdAt  DateTime @default(now())
+    match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+    player     Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+    @@unique([matchId, playerId])
+    @@index([playerId])
+}
+
+model Move {
+    id             String   @id @default(cuid())
+    matchId        String
+    gameIndex      Int
+    index          Int
+    playerId       String
+    playerSymbol   String
+    turn           Int
+    timestampMs    BigInt?
+    gameWinner     String?
+    gameTotalMoves Int
+    gameBoardSize  Int
+    createdAt      DateTime @default(now())
+    match          Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+    @@index([matchId, gameIndex, turn])
+}

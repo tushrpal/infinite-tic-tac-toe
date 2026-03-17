@@ -16,6 +16,7 @@ interface UseGameStateOptions {
   onMoveRejected?: (reason: string) => void;
   onOpponentDisconnected?: (reconnectTimeout: number) => void;
   onOpponentReconnected?: () => void;
+  onReconnected?: () => void;
   onRematchStarting?: (newMatchId: string) => void;
 }
 
@@ -41,7 +42,7 @@ function getPlayerId(): string {
 }
 
 export function useGameState(options: UseGameStateOptions): UseGameStateReturn {
-  const { matchId, onMatchEnd, onMoveRejected, onOpponentDisconnected, onOpponentReconnected, onRematchStarting } = options;
+  const { matchId, onMatchEnd, onMoveRejected, onOpponentDisconnected, onOpponentReconnected, onReconnected, onRematchStarting } = options;
   
   const { socket, isConnected } = useWebSocket();
   
@@ -72,12 +73,14 @@ export function useGameState(options: UseGameStateOptions): UseGameStateReturn {
       if (playerId) {
         console.log('[useGameState] Joining match to register connection', { matchId, playerId: playerId.slice(0, 12) });
         socket.joinMatch(matchId, playerId);
+        socket.setActiveMatch(matchId);
       }
     }
 
     return () => {
       if (matchId) {
         socket.leaveMatch(matchId);
+        socket.setActiveMatch(null);
       }
     };
   }, [isConnected, matchId, socket]);
@@ -101,6 +104,17 @@ export function useGameState(options: UseGameStateOptions): UseGameStateReturn {
       setError(null);
     }
   }, [matchId]);
+
+  // Handle RECONNECTED (server confirmed reconnection)
+  useSocketEvent('RECONNECTED', (payload) => {
+    if (payload.matchId === matchId) {
+      setYourPlayer(payload.role);
+      setIsLoading(false);
+      setError(null);
+      console.log(`[useGameState] Reconnected to match ${matchId} as ${payload.role}`);
+      onReconnected?.();
+    }
+  }, [matchId, onReconnected]);
 
   // Handle game state updates
   useSocketEvent('GAME_STATE_UPDATE', (payload) => {

@@ -1,5 +1,6 @@
-export { MatchStore } from './MatchStore';
-export { LocalJsonMatchStore } from './LocalJsonMatchStore';
+export { MatchStorage } from './MatchStorage';
+export { DbMatchStorage } from './dbMatchStorage';
+export { createMatchStorage } from './createMatchStorage';
 export { PlayerStore } from './PlayerStore';
 export { LocalJsonPlayerStore } from './LocalJsonPlayerStore';
 export { PvPMatchStore } from './PvPMatchStore';

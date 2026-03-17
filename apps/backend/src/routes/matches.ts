@@ -1,22 +1,32 @@
 import { Router } from 'express';
-import { LocalJsonMatchStore } from '../storage/LocalJsonMatchStore';
+import type { MatchStorage } from '../storage/MatchStorage';
 import { isValidMatchResult } from '../validators/matchResultSchema';
 
-const router = Router();
-const store = new LocalJsonMatchStore();
+export function createMatchesRouter(store: MatchStorage) {
+  const router = Router();
 
-router.post('/', async (req, res) => {
-  if (!isValidMatchResult(req.body)) {
-    return res.status(400).json({ error: 'Invalid MatchResult' });
-  }
+  router.post('/', async (req, res) => {
+    if (!isValidMatchResult(req.body)) {
+      return res.status(400).json({ error: 'Invalid MatchResult' });
+    }
 
-  await store.save(req.body);
-  res.json({ success: true });
-});
+    await store.saveMatch(req.body);
+    res.json({ success: true });
+  });
 
-router.get('/', async (_, res) => {
-  const matches = await store.getAll();
-  res.json(matches);
-});
+  router.get('/', async (_, res) => {
+    const matches = await store.getMatches();
+    res.json(matches);
+  });
 
-export default router;
+  router.get('/:matchId', async (req, res) => {
+    const match = await store.getMatch(req.params.matchId);
+    if (!match) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    return res.json(match);
+  });
+
+  return router;
+}
