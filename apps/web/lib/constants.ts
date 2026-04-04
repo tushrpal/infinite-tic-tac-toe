@@ -124,6 +124,7 @@ export const ROUTES = {
   PLAY_ONLINE: '/play/online',
   PLAY_RANKED: '/play/ranked',
   MATCH: (matchId: string) => `/match/${matchId}` as const,
+  WATCH: (matchId: string) => `/watch/${matchId}` as const,
   REPLAY: (matchId: string) => `/replay/${matchId}` as const,
   LEADERBOARD: '/leaderboard',
   PROFILE: '/profile',

@@ -12,6 +12,7 @@ import type {
   Position,
 } from './types';
 import { EventEmitter, serializeEvent, deserializeEvent } from './events';
+import { getStoredPlayerId } from '@/lib/player';
 
 // ============================================
 // Configuration
@@ -37,6 +38,41 @@ const defaultConfig: SocketConfig = {
   debug: process.env.NODE_ENV === 'development',
 };
 
+function normalizeWsUrl(url: string): string {
+  return url.replace(/\/+$/, '');
+}
+
+function unique(values: string[]): string[] {
+  return Array.from(new Set(values));
+}
+
+function getWsUrlCandidates(preferredUrl: string): string[] {
+  const candidates: string[] = [];
+  const envWsUrl = process.env.NEXT_PUBLIC_WS_URL?.trim();
+
+  if (envWsUrl) {
+    candidates.push(normalizeWsUrl(envWsUrl));
+  }
+
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    candidates.push(normalizeWsUrl(`${protocol}//${window.location.host}`));
+
+    if (process.env.NODE_ENV !== 'production') {
+      candidates.push(normalizeWsUrl(`${protocol}//${window.location.hostname}:3000`));
+      candidates.push('ws://localhost:3000');
+    }
+  } else {
+    candidates.push(preferredUrl || 'ws://localhost:3000');
+  }
+
+  if (preferredUrl) {
+    candidates.push(normalizeWsUrl(preferredUrl));
+  }
+
+  return unique(candidates);
+}
+
 // ============================================
 // Socket Client
 // ============================================
@@ -44,6 +80,8 @@ const defaultConfig: SocketConfig = {
 export class GameSocket {
   private ws: WebSocket | null = null;
   private config: SocketConfig;
+  private wsUrlCandidates: string[];
+  private wsUrlIndex = 0;
   private connectionState: ConnectionState;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
@@ -54,6 +92,7 @@ export class GameSocket {
 
   constructor(config: Partial<SocketConfig> = {}) {
     this.config = { ...defaultConfig, ...config };
+    this.wsUrlCandidates = getWsUrlCandidates(this.config.url);
     this.eventEmitter = new EventEmitter();
     this.connectionState = {
       status: 'disconnected',
@@ -74,10 +113,19 @@ export class GameSocket {
       return;
     }
 
+    if (this.ws?.readyState === WebSocket.CONNECTING) {
+      this.log('Connection already in progress');
+      return;
+    }
+
     this.updateState({ status: 'connecting', error: null });
 
+    this.refreshWsCandidates();
+    const wsUrl = this.currentWsUrl();
+    this.log(`Connecting to ${wsUrl}`);
+
     try {
-      this.ws = new WebSocket(this.config.url);
+      this.ws = new WebSocket(wsUrl);
       this.setupEventListeners();
     } catch (error) {
       this.handleError('Connection failed', error);
@@ -101,9 +149,14 @@ export class GameSocket {
 
   private setupEventListeners(): void {
     if (!this.ws) return;
+    const socket = this.ws;
 
-    this.ws.onopen = () => {
+    const isStaleSocket = () => this.ws !== socket;
+
+    socket.onopen = () => {
+      if (isStaleSocket()) return;
       this.log('Connected');
+      this.wsUrlIndex = 0;
       const wasReconnecting = this.connectionState.reconnectAttempts > 0;
       this.updateState({
         status: 'connected',
@@ -119,7 +172,8 @@ export class GameSocket {
       }
     };
 
-    this.ws.onclose = (event) => {
+    socket.onclose = (event) => {
+      if (isStaleSocket()) return;
       this.log(`Disconnected: ${event.code} ${event.reason}`);
       this.clearTimers();
       
@@ -130,11 +184,13 @@ export class GameSocket {
       }
     };
 
-    this.ws.onerror = (event) => {
+    socket.onerror = (event) => {
+      if (isStaleSocket()) return;
       this.handleError('WebSocket error', event);
     };
 
-    this.ws.onmessage = (event) => {
+    socket.onmessage = (event) => {
+      if (isStaleSocket()) return;
       this.handleMessage(event.data);
     };
   }
@@ -160,9 +216,31 @@ export class GameSocket {
       reconnectAttempts: attempts,
     });
 
+    this.advanceWsUrl();
+
     this.reconnectTimer = setTimeout(() => {
       this.connect();
     }, delay);
+  }
+
+  private refreshWsCandidates(): void {
+    this.wsUrlCandidates = getWsUrlCandidates(this.config.url);
+    if (this.wsUrlIndex >= this.wsUrlCandidates.length) {
+      this.wsUrlIndex = 0;
+    }
+  }
+
+  private currentWsUrl(): string {
+    return this.wsUrlCandidates[this.wsUrlIndex] ?? this.config.url;
+  }
+
+  private advanceWsUrl(): void {
+    if (this.wsUrlCandidates.length <= 1) {
+      return;
+    }
+
+    this.wsUrlIndex = (this.wsUrlIndex + 1) % this.wsUrlCandidates.length;
+    this.log(`Switching WebSocket endpoint to ${this.currentWsUrl()}`);
   }
 
   // ============================================
@@ -265,10 +343,10 @@ export class GameSocket {
   // High-Level Game Actions
   // ============================================
 
-  joinQueue(playerId: string, mode: GameMode, ranked: boolean = false, username?: string): boolean {
+  joinQueue(playerId: string, mode: GameMode, ranked: boolean = false, username?: string, rating?: number): boolean {
     return this.send({
       type: 'JOIN_QUEUE',
-      payload: { playerId, username, mode, isRanked: ranked },
+      payload: { playerId, username, rating, mode, isRanked: ranked },
     });
   }
 
@@ -292,7 +370,7 @@ export class GameSocket {
 
   makeMove(position: Position, playerId?: string): boolean {
     // Get playerId from localStorage if not provided
-    const pid = playerId || (typeof window !== 'undefined' ? localStorage.getItem('playerId') : null);
+    const pid = playerId || getStoredPlayerId();
     console.log('[GameSocket] makeMove called', { position, playerId: pid?.slice(0, 12), wsState: this.ws?.readyState });
     return this.send({
       type: 'MAKE_MOVE',
@@ -329,9 +407,15 @@ export class GameSocket {
   }
 
   spectateMatch(matchId: string): boolean {
+    const spectatorId = getStoredPlayerId();
+    if (!spectatorId) {
+      this.log('Cannot spectate match without spectatorId');
+      return false;
+    }
+
     return this.send({
-      type: 'SPECTATE_MATCH',
-      payload: { matchId },
+      type: 'JOIN_AS_SPECTATOR',
+      payload: { matchId, spectatorId },
     });
   }
 
@@ -380,7 +464,7 @@ export class GameSocket {
    * Called internally when the socket reconnects after a disconnect.
    */
   private attemptMatchReconnect(): void {
-    const playerId = typeof window !== 'undefined' ? localStorage.getItem('playerId') : null;
+    const playerId = getStoredPlayerId();
     if (!playerId) return;
 
     // Always try to reconnect with playerId — server will find the match

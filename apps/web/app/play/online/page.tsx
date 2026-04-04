@@ -5,51 +5,28 @@
  * Matchmaking for casual online games
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useWebSocket, useSocketEvent } from "@/hooks/useWebSocket";
+import { usePlayer } from "@/hooks/usePlayer";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/helpers";
 import type { GameMode } from "@/ws/types";
 
 type QueueState = "idle" | "queuing" | "match-found";
 
-// Generate or retrieve a player ID from localStorage
-function getPlayerId(): string {
-  if (typeof window === "undefined") return "";
-  let id = localStorage.getItem("playerId");
-  if (!id) {
-    id = `player_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    localStorage.setItem("playerId", id);
-  }
-  return id;
-}
-
-function getUsername(): string {
-  if (typeof window === "undefined") return "Player";
-  return localStorage.getItem("username") || "Player";
-}
-
 export default function OnlinePlayPage() {
   const router = useRouter();
   const { socket, isConnected, connectionState } = useWebSocket();
+  const { player, isLoading: isPlayerLoading } = usePlayer();
 
   const [selectedMode, setSelectedMode] = useState<GameMode>("MODE_1");
   const [queueState, setQueueState] = useState<QueueState>("idle");
   const [queuePosition, setQueuePosition] = useState<number>(0);
   const [estimatedWait, setEstimatedWait] = useState<number>(0);
   const [matchId, setMatchId] = useState<string | null>(null);
-
-  // Store player identity
-  const playerIdRef = useRef<string>("");
-  const usernameRef = useRef<string>("Player");
-
-  useEffect(() => {
-    playerIdRef.current = getPlayerId();
-    usernameRef.current = getUsername();
-  }, []);
 
   // Handle queue joined
   useSocketEvent(
@@ -103,15 +80,15 @@ export default function OnlinePlayPage() {
 
   // Join queue
   const joinQueue = useCallback(() => {
-    if (isConnected && playerIdRef.current) {
+    if (isConnected && player?.playerId) {
       socket.joinQueue(
-        playerIdRef.current,
+        player.playerId,
         selectedMode,
         false,
-        usernameRef.current,
+        player.displayName || "Player",
       );
     }
-  }, [socket, isConnected, selectedMode]);
+  }, [socket, isConnected, selectedMode, player]);
 
   // Leave queue
   const leaveQueue = useCallback(() => {
@@ -177,7 +154,7 @@ export default function OnlinePlayPage() {
               <Button
                 size="lg"
                 onClick={joinQueue}
-                disabled={!isConnected}
+                disabled={!isConnected || isPlayerLoading || !player?.playerId}
                 className="w-full"
               >
                 Find Match

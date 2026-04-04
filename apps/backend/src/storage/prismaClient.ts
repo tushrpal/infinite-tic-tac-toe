@@ -10,14 +10,20 @@ export function getPrismaClient(): PrismaClient {
       throw new Error('DATABASE_URL is required to initialize PrismaClient');
     }
 
+    const sharedOptions: ConstructorParameters<typeof PrismaClient>[0] = {
+      log: ['error', 'warn'],
+    };
+
     if (databaseUrl.startsWith('prisma://') || databaseUrl.startsWith('prisma+postgres://')) {
       prismaClient = new PrismaClient({
+        ...sharedOptions,
         accelerateUrl: databaseUrl,
       });
     } else {
       const adapter = new PrismaPg({ connectionString: databaseUrl });
-      prismaClient = new PrismaClient({ adapter });
+      prismaClient = new PrismaClient({ ...sharedOptions, adapter });
     }
+
   }
 
   return prismaClient;

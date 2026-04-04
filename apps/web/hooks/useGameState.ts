@@ -8,6 +8,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useWebSocket, useSocketEvent } from './useWebSocket';
 import { adaptMatchState, adaptMatchResult, type MatchUIState, type MatchResultUIState } from '@/lib/adapters/gameAdapter';
+import { getStoredPlayerId } from '@/lib/player';
 import type { MatchState, Player, Position, GameState, MatchResult } from '@/ws/types';
 
 interface UseGameStateOptions {
@@ -38,7 +39,7 @@ interface UseGameStateReturn {
 // Get playerId from localStorage for reconnection
 function getPlayerId(): string {
   if (typeof window === 'undefined') return '';
-  return localStorage.getItem('playerId') || '';
+  return getStoredPlayerId() || '';
 }
 
 export function useGameState(options: UseGameStateOptions): UseGameStateReturn {

@@ -101,6 +101,31 @@ pnpm dev -- --x-bot heuristic --o-bot heuristic
 pnpm dev -- --delay 500
 ```
 
+## ☁️ Deployment Configuration
+
+For cloud deployment, configure environment variables using:
+
+- `apps/backend/.env.example`
+- `apps/web/.env.example`
+
+Backend requires:
+
+- `DATABASE_URL`
+- `REDIS_URL`
+- `PORT`
+- `WS_URL`
+
+Frontend requires:
+
+- `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_WS_URL`
+
+Production migration command:
+
+```bash
+pnpm --filter @infinite-ttt/backend prisma:migrate:deploy
+```
+
 ## 🎲 Game Mode 1: Infinite 3×3 (Sliding Moves)
 
 ### Rules

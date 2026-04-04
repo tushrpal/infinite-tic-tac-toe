@@ -2,9 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   // Allow LAN-origin requests during development (e.g. testing from another device).
-  allowedDevOrigins: ["192.168.0.5", "localhost", "192.168.31.220"],
+  allowedDevOrigins: ["192.168.0.5", "localhost", "192.168.0.4"],
   images: {
-    domains: ["localhost", "192.168.31.220"],
+    domains: ["localhost", "192.168.0.4"],
   },
   experimental: {
     typedRoutes: true,

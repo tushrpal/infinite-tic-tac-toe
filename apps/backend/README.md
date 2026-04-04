@@ -41,6 +41,7 @@ pnpm install
 pnpm dev
 
 # Production mode
+pnpm build
 pnpm start
 ```
 
@@ -233,23 +234,58 @@ See [ONLINE_PVP.md](./ONLINE_PVP.md) for complete PvP documentation.
 
 Match data is stored in:
 
-- `data/pvp-matches.json` - Active/waiting PvP matches (gitignored)
+- Redis - Active/waiting PvP matches (`match:{matchId}`)
 - `data/players.json` - Player identity data (gitignored)
 - PostgreSQL - Completed match results and replay moves
 
-**Important:** PvP waiting/active state remains JSON-backed for now, while completed match history is PostgreSQL-backed.
+**Important:** PvP waiting/active state is Redis-backed, while completed match history is PostgreSQL-backed.
 
 ## 🔧 Configuration
 
-### Port
+Create an env file from `apps/backend/.env.example`.
 
-Set via environment variable:
+### Required Environment Variables
+
+- `DATABASE_URL` - PostgreSQL connection string used by Prisma runtime and migrations
+- `REDIS_URL` - Redis connection string for ranked queue and active match state
+- `PORT` - HTTP server port (default `3000`)
+- `WS_URL` - Public WebSocket URL exposed for clients/health checks
+
+### Example
+
+```bash
+DATABASE_URL=postgresql://user:pass@db.example.com:5432/infinite_ttt
+REDIS_URL=redis://default:pass@redis.example.com:6379
+PORT=3000
+WS_URL=wss://api.example.com
+```
+
+### Local Override Example
 
 ```bash
 PORT=4000 pnpm start
 ```
 
 Default: `3000`
+
+## ☁️ Production Deployment
+
+### Build and run
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --filter @infinite-ttt/backend build
+pnpm --filter @infinite-ttt/backend start
+```
+
+### Run Prisma migrations in production
+
+```bash
+# Uses DATABASE_URL from production environment
+pnpm --filter @infinite-ttt/backend prisma:migrate:deploy
+```
+
+Use `prisma:migrate` only for local development and `prisma:migrate:deploy` for cloud deployments.
 
 ## 📊 Testing
 
@@ -304,13 +340,12 @@ This backend is designed to be **replaceable**. When ready to migrate to NestJS 
 
 ## ⚠️ Limitations
 
-- **PvP waiting state in JSON** - active/waiting PvP matches are still file-backed
 - **No pagination** - GET /matches returns ALL matches
 - **No filtering** - no query parameters supported
 - **No auth** - anyone can read/write
-- **Dev only** - not production-ready
+- **Security hardening still needed** - add auth, rate limits, and stricter CORS before public launch
 
-These are intentional. This is a **minimal prototype** for development.
+These are intentional tradeoffs in the current iteration.
 
 ## 🎯 Development Philosophy
 

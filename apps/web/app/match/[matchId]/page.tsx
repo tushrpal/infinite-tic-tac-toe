@@ -8,6 +8,7 @@
 import { useEffect, useCallback, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import type { Route } from "next";
 import { GameBoard } from "@/components/board/GameBoard";
 import { TurnIndicator } from "@/components/hud/TurnIndicator";
 import { ScorePanel } from "@/components/hud/ScorePanel";
@@ -181,6 +182,8 @@ export default function MatchPage() {
     return null;
   }
 
+  const watchUrl = `/watch/${matchId}` as Route;
+
   return (
     <main className="flex-1 flex flex-col px-4 py-6">
       <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
@@ -203,8 +206,18 @@ export default function MatchPage() {
           <div className="text-sm text-text-muted">
             Match ID: {matchId.slice(0, 8)}...
           </div>
-          <div className="text-sm">
-            {matchState.board.mode === "MODE_1" ? "Sliding" : "Classic"} Mode
+          <div className="flex items-center gap-4 text-sm">
+            <Link
+              href={watchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent-primary hover:underline"
+            >
+              Share Watch Link
+            </Link>
+            <span>
+              {matchState.board.mode === "MODE_1" ? "Sliding" : "Classic"} Mode
+            </span>
           </div>
         </div>
 

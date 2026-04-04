@@ -100,6 +100,7 @@ export type ClientEventType =
   | 'JOIN_QUEUE'
   | 'LEAVE_QUEUE'
   | 'JOIN_MATCH'
+  | 'JOIN_AS_SPECTATOR'
   | 'LEAVE_MATCH'
   | 'MAKE_MOVE'
   | 'FORFEIT'
@@ -142,6 +143,7 @@ export interface JoinQueueEvent {
   payload: {
     playerId: string;
     username?: string;
+    rating?: number;
     mode: GameMode;
     isRanked?: boolean;
   };
@@ -181,7 +183,7 @@ export interface ForfeitEvent {
     matchId: string;
   };
 }
-``
+
 export interface RematchRequestEvent {
   type: 'REMATCH_REQUEST';
   payload: {
@@ -200,6 +202,14 @@ export interface RematchDeclineEvent {
   type: 'REMATCH_DECLINE';
   payload: {
     matchId: string;
+  };
+}
+
+export interface JoinAsSpectatorEvent {
+  type: 'JOIN_AS_SPECTATOR';
+  payload: {
+    matchId: string;
+    spectatorId: string;
   };
 }
 
@@ -248,6 +258,7 @@ export type ClientEvent =
   | RematchRequestEvent
   | RematchAcceptEvent
   | RematchDeclineEvent
+  | JoinAsSpectatorEvent
   | SpectateMatchEvent
   | StopSpectatingEvent
   | RequestGameStateEvent

@@ -7,10 +7,14 @@ datasource db {
 }
 
 model Player {
-    id        String        @id
-    createdAt DateTime      @default(now())
-    updatedAt DateTime      @updatedAt
-    matches   MatchPlayer[]
+    id          String        @id
+    displayName String?
+    rating      Int           @default(1200)
+    createdAt   DateTime      @default(now())
+    updatedAt   DateTime      @updatedAt
+    matches     MatchPlayer[]
+
+    @@index([rating])
 }
 
 model Match {
@@ -30,13 +34,14 @@ model Match {
 }
 
 model MatchPlayer {
-    id         String   @id @default(cuid())
-    matchId    String
-    playerId   String
-    playerType String
-    createdAt  DateTime @default(now())
-    match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-    player     Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
+    id           String   @id @default(cuid())
+    matchId      String
+    playerId     String
+    playerType   String
+    ratingChange Int?
+    createdAt    DateTime @default(now())
+    match        Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+    player       Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
 
     @@unique([matchId, playerId])
     @@index([playerId])

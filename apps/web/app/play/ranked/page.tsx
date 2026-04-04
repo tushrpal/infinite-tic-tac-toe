@@ -5,55 +5,28 @@
  * Competitive matchmaking with rankings
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { RankBadge } from "@/components/hud/RankBadge";
 import { useWebSocket, useSocketEvent } from "@/hooks/useWebSocket";
+import { usePlayer } from "@/hooks/usePlayer";
 import { ROUTES, RANKS } from "@/lib/constants";
 import { cn, getRankFromRating, getRankProgress } from "@/lib/helpers";
 import type { GameMode } from "@/ws/types";
 
 type QueueState = "idle" | "queuing" | "match-found";
 
-// Mock user data - in real app this comes from auth context
-const mockUserRating = 1250;
-const mockUserRank = getRankFromRating(mockUserRating);
-
-// Generate or retrieve a player ID from localStorage
-function getPlayerId(): string {
-  if (typeof window === "undefined") return "";
-  let id = localStorage.getItem("playerId");
-  if (!id) {
-    id = `player_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    localStorage.setItem("playerId", id);
-  }
-  return id;
-}
-
-function getUsername(): string {
-  if (typeof window === "undefined") return "Player";
-  return localStorage.getItem("username") || "Player";
-}
-
 export default function RankedPlayPage() {
   const router = useRouter();
-  const { socket, isConnected, connectionState } = useWebSocket();
+  const { socket, isConnected } = useWebSocket();
+  const { player, isLoading: isPlayerLoading } = usePlayer();
 
   const [selectedMode, setSelectedMode] = useState<GameMode>("MODE_1");
   const [queueState, setQueueState] = useState<QueueState>("idle");
   const [queueTime, setQueueTime] = useState(0);
   const [matchId, setMatchId] = useState<string | null>(null);
-
-  // Store player identity
-  const playerIdRef = useRef<string>("");
-  const usernameRef = useRef<string>("Player");
-
-  useEffect(() => {
-    playerIdRef.current = getPlayerId();
-    usernameRef.current = getUsername();
-  }, []);
 
   // Queue timer
   useEffect(() => {
@@ -104,22 +77,24 @@ export default function RankedPlayPage() {
   );
 
   const joinQueue = useCallback(() => {
-    if (isConnected && playerIdRef.current) {
+    if (isConnected && player?.playerId) {
       socket.joinQueue(
-        playerIdRef.current,
+        player.playerId,
         selectedMode,
         true,
-        usernameRef.current,
+        player.displayName || "Player",
       ); // ranked = true
     }
-  }, [socket, isConnected, selectedMode]);
+  }, [socket, isConnected, selectedMode, player]);
 
   const leaveQueue = useCallback(() => {
     socket.leaveQueue();
     setQueueState("idle");
   }, [socket]);
 
-  const rankProgress = getRankProgress(mockUserRating);
+  const playerRating = player?.rating ?? RANKS.DEFAULT_RATING;
+  const playerRank = getRankFromRating(playerRating);
+  const rankProgress = getRankProgress(playerRating);
 
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-12">
@@ -144,15 +119,17 @@ export default function RankedPlayPage() {
           <div className="p-6 rounded-xl bg-surface-elevated border border-board-grid mb-8">
             <div className="flex items-center justify-center gap-4 mb-4">
               <RankBadge
-                rank={mockUserRank.name}
-                color={mockUserRank.color}
-                rating={mockUserRating}
+                rank={playerRank.name}
+                color={playerRank.color}
+                rating={playerRating}
                 size="lg"
                 showTooltip={false}
               />
             </div>
 
-            <div className="text-2xl font-bold mb-2">{mockUserRating}</div>
+            <div className="text-2xl font-bold mb-2">
+              {isPlayerLoading ? "Loading..." : playerRating}
+            </div>
             <div className="text-sm text-text-secondary mb-4">
               Rating Points
             </div>
@@ -160,11 +137,10 @@ export default function RankedPlayPage() {
             {/* Progress to next rank */}
             <div className="w-full">
               <div className="flex justify-between text-xs text-text-muted mb-1">
-                <span>{mockUserRank.name}</span>
+                <span>{playerRank.name}</span>
                 <span>
                   {RANKS.TIERS[
-                    RANKS.TIERS.findIndex((t) => t.name === mockUserRank.name) +
-                      1
+                    RANKS.TIERS.findIndex((t) => t.name === playerRank.name) + 1
                   ]?.name ?? "Max"}
                 </span>
               </div>
@@ -175,7 +151,7 @@ export default function RankedPlayPage() {
                 />
               </div>
               <div className="text-xs text-text-muted mt-1">
-                {Math.round(rankProgress.next - mockUserRating)} points to next
+                {Math.round(rankProgress.next - playerRating)} points to next
                 rank
               </div>
             </div>
@@ -226,7 +202,7 @@ export default function RankedPlayPage() {
               <Button
                 size="lg"
                 onClick={joinQueue}
-                disabled={!isConnected}
+                disabled={!isConnected || isPlayerLoading || !player?.playerId}
                 className="w-full"
               >
                 Find Ranked Match

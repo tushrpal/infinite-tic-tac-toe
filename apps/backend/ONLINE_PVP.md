@@ -146,6 +146,7 @@ Clients do NOT send moves via WebSocket. Moves are submitted via REST API (`POST
 ### Fallback Behavior
 
 If WebSocket connection fails:
+
 - Client automatically falls back to polling
 - No feature loss, only slightly higher latency
 - Client displays connection status (⚡ WebSocket or 📡 Polling)
@@ -158,20 +159,21 @@ await connection.connect();
 
 // Register state update callback
 connection.onStateUpdate((match) => {
-  // Update UI with new state
+// Update UI with new state
 });
 
 if (status === "waiting") {
-  // Wait for WebSocket update (or poll as fallback)
-  while (match.status !== "active") {
-    await sleep(500
+// Wait for WebSocket update (or poll as fallback)
+while (match.status !== "active") {
+await sleep(500
 {
-  "playerId": "abc123",
-  "gameState": {
-    /* updated GameState after move */
-  }
+"playerId": "abc123",
+"gameState": {
+/_ updated GameState after move _/
 }
-```
+}
+
+````
 
 **Validation (Backend):**
 
@@ -181,7 +183,7 @@ if (status === "waiting") {
 - It's player's turn ✓
  (broadcasts via WebSocket)
     await submitMove(matchId, playerId, gameState);
-    
+
     // WebSocket will notify when state updates
   } else {
     // Wait for WebSocket update (or poll as fallback)
@@ -194,7 +196,7 @@ if (status === "waiting") {
     /* MatchResult from @infinite-ttt/shared */
   }
 }
-```
+````
 
 Backend stores result and marks match as completed.
 
@@ -296,6 +298,7 @@ Player 2 joins match and game begins!
 ## Environment Variables
 
 # Default: ws://localhost:3001
+
 BACKEND_WS_URL=ws://localhost:3001
 
 ```bash
@@ -308,7 +311,7 @@ BACKEND_URL=http://localhost:3001
 Backend stores PvP matches in:
 
 ```
-apps/backend/data/pvp-matches.json
+Redis keyspace (example: match:{matchId})
 ```
 
 Clients store MatchResults in:
@@ -320,12 +323,11 @@ apps/cli-runner/data/matches.json
 Both players store the MatchResult locally for leaderboard/ranking.
 
 ## Why This Design?
-Real-time updates** - WebSocket provides instant feedback
-6. **Deterministic** - both clients run same engine
-7. **Testable** - backend and client are decoupled
-8. **Resilient** - automatic fallback to polling if WebSocket fails
+
+Real-time updates** - WebSocket provides instant feedback 6. **Deterministic** - both clients run same engine 7. **Testable** - backend and client are decoupled 8. **Resilient\*\* - automatic fallback to polling if WebSocket fails
+
 1. **Backend is simple** - no game logic, easy to scale
-2. **Backend is replaceable** - swap JSON files for database anytime
+2. **Backend is scalable** - active matches in Redis, completed history in PostgreSQL
 3. **Engine stays pure** - no server-side modifications
 4. **Sync issues** - if clients disagree on state
 
@@ -333,9 +335,9 @@ Real-time updates** - WebSocket provides instant feedback
 
 1. ~~Add WebSockets for real-time updates~~ ✅ **Done in Step 13!**
 1. **Trust** - clients can cheat (send invalid moves)
-2. **Bandwidth** - polling creates constant traffic
-3. **Latency** - 2s poll interval = 2s wait per move
-4. **Sync issues** - if clients disagree on state
+1. **Bandwidth** - polling creates constant traffic
+1. **Latency** - 2s poll interval = 2s wait per move
+1. **Sync issues** - if clients disagree on state
 
 ### 🔮 Future Improvements
 
@@ -382,6 +384,7 @@ cd apps/cli-runner && pnpm dev --pvp
 - ✓ Ranking updates
 
 ## Files Added
+
 - **`src/websocket/index.ts` - WebSocket manager (Step 13)**
 
 ### CLI
