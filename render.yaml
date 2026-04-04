@@ -7,8 +7,7 @@ services:
     healthCheckPath: /health
     autoDeploy: true
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @infinite-ttt/backend build
-    preDeployCommand: pnpm --filter @infinite-ttt/backend prisma:migrate:deploy
-    startCommand: pnpm --filter @infinite-ttt/backend start
+    startCommand: pnpm --filter @infinite-ttt/backend prisma:migrate:deploy && pnpm --filter @infinite-ttt/backend start
     envVars:
       - key: NODE_ENV
         value: production
