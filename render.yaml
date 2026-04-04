@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: infinite-ttt-backend
+    runtime: node
+    plan: free
+    region: singapore
+    healthCheckPath: /health
+    autoDeploy: true
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @infinite-ttt/backend build
+    preDeployCommand: pnpm --filter @infinite-ttt/backend prisma:migrate:deploy
+    startCommand: pnpm --filter @infinite-ttt/backend start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: WS_URL
+        sync: false
