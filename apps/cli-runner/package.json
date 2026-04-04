@@ -1,0 +1,27 @@
+{
+  "name": "@infinite-ttt/cli-runner",
+  "version": "1.0.0",
+  "description": "CLI Bot-vs-Bot runner for stress-testing game engine",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@infinite-ttt/bots": "workspace:*",
+    "@infinite-ttt/game-engine": "workspace:*",
+    "@infinite-ttt/identity": "workspace:*",
+    "@infinite-ttt/shared": "workspace:*",
+    "@types/ws": "^8.18.1",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^1.0.0"
+  }
+}

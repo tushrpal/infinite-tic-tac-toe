@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "baseUrl": ".",
+    "paths": {
+      "@infinite-ttt/game-engine": ["../../packages/game-engine/dist/index.d.ts"],
+      "@infinite-ttt/shared": ["../../packages/shared/dist/index.d.ts"],
+      "@infinite-ttt/identity": ["../../packages/identity/dist/index.d.ts"]
+    },
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "prisma", "prisma.config.ts"]
+}

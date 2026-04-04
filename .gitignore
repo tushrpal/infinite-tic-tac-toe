@@ -1,26 +1,80 @@
-# dependencies
+# Dependencies
 node_modules/
 .pnpm-store/
 
-# build outputs
+# Build outputs
 dist/
 build/
 .next/
 out/
+*.tsbuildinfo
 
-# env files
+# Turbo
+.turbo/
+
+# Local data storage (JSON databases)
+apps/cli-runner/data/
+apps/backend/data/
+packages/identity/data/
+
+# Environment files
 .env
 .env.local
-.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
 
-# logs
+# Logs
+logs/
+*.log
 npm-debug.log*
 pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
-# OS
+# Testing
+coverage/
+.nyc_output/
+
+# OS files
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# IDE
+# IDE / Editor
 .vscode/
 .idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Debug
+.debug/
+
+# Mobile (React Native / Expo)
+apps/mobile/.expo/
+apps/mobile/ios/
+apps/mobile/android/
+*.apk
+*.aab
+*.ipa
+
+# Misc
+*.pem
+.cache/
+.parcel-cache/
+
+# Vercel
+.vercel/
+
+# Local Netlify folder
+.netlify/
