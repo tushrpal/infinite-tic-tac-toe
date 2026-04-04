@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "corepack enable && corepack prepare pnpm@10.21.0 --activate && pnpm install --frozen-lockfile",
-  "buildCommand": "corepack enable && corepack prepare pnpm@10.21.0 --activate && pnpm --filter infinite-tictactoe-web build"
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter infinite-tictactoe-web build"
 }
