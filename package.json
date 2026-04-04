@@ -11,10 +11,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "engines": {
-    "node": "20.x || 22.x",
-    "pnpm": "10.x"
-  },
   "packageManager": "pnpm@10.21.0",
   "devDependencies": {
     "turbo": "^2.7.5",

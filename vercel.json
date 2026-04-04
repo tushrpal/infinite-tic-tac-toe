@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "corepack enable && corepack prepare pnpm@10.21.0 --activate && pnpm install --no-frozen-lockfile",
-  "buildCommand": "corepack enable && corepack prepare pnpm@10.21.0 --activate && (pnpm --filter infinite-tictactoe-web build || pnpm build)"
+  "buildCommand": "pnpm --filter infinite-tictactoe-web build"
 }
