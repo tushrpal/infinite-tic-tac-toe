@@ -122,6 +122,7 @@ type ServerEventType =
   | 'MATCH_FOUND'
   | 'MATCH_JOINED'
   | 'GAME_STATE_UPDATE'
+  | 'MOVE_UPDATE'
   | 'SPECTATOR_JOINED'
   | 'SPECTATOR_LEFT'
   | 'MOVE_ACCEPTED'
@@ -999,6 +1000,12 @@ class WebSocketManager {
 
   /**
    * Handle MAKE_MOVE
+   *
+   * OPTIMIZED for low latency:
+   * - Uses in-memory state (no Redis read)
+   * - Broadcasts immediately
+   * - Persists asynchronously
+   * - Sends delta updates instead of full state
    */
   private async handleMakeMove(connectionId: string, payload: { position: Position; playerId?: string }, ws: WebSocket) {
     const client = this.clients.get(connectionId);
@@ -1021,20 +1028,28 @@ class WebSocketManager {
       console.warn(`⚠️ Ignoring spoofed playerId ${payload.playerId.slice(0, 12)} from ${connectionId.slice(0, 12)}`);
     }
 
-    // Use the active ws (from the incoming message) for responses
     const activeWs = ws;
+    const matchId = client.matchId;
 
-    const recovered = await this.matchManager.recoverMatch(client.matchId);
-    const match = recovered?.matchState as MatchState | undefined;
-    const recoveredEngineState = recovered?.engineState;
+    // OPTIMIZATION 1: Use in-memory state first, only recover from Redis if missing
+    let match = this.matches.get(matchId);
+    let engineState = this.engineStates.get(matchId);
 
-    if (!match || !recoveredEngineState) {
-      this.send(activeWs, { type: 'MOVE_REJECTED', payload: { reason: 'Match not found' } });
-      return;
+    if (!match || !engineState) {
+      // Fallback to Redis recovery if not in memory
+      const recovered = await this.matchManager.recoverMatch(matchId);
+      match = recovered?.matchState as MatchState | undefined;
+      engineState = recovered?.engineState;
+
+      if (!match || !engineState) {
+        this.send(activeWs, { type: 'MOVE_REJECTED', payload: { reason: 'Match not found' } });
+        return;
+      }
+
+      // Cache for next time
+      this.matches.set(matchId, match);
+      this.engineStates.set(matchId, engineState);
     }
-
-    this.matches.set(client.matchId, match);
-    this.engineStates.set(client.matchId, recoveredEngineState);
 
     // Determine which player this is
     let player: Player | null = null;
@@ -1044,13 +1059,6 @@ class WebSocketManager {
     if (!player) {
       console.log(`❌ ${playerId.slice(0, 12)} not a player. X=${match.players.X?.id?.slice(0,12)}, O=${match.players.O?.id?.slice(0,12)}`);
       this.send(activeWs, { type: 'MOVE_REJECTED', payload: { reason: 'Not a player in this match' } });
-      return;
-    }
-
-    // Get authoritative engine state
-    const engineState = this.engineStates.get(client.matchId);
-    if (!engineState) {
-      this.send(activeWs, { type: 'MOVE_REJECTED', payload: { reason: 'Engine state not found' } });
       return;
     }
 
@@ -1065,34 +1073,68 @@ class WebSocketManager {
           reason: currentPlayer !== player
             ? 'Not your turn'
             : 'Invalid move position',
-          matchId: client.matchId,
+          matchId,
         },
       });
       return;
     }
 
+    // Store old state for delta calculation
+    const oldEngineState = engineState;
+    const oldMoveCount = isMode1(engineState) ? engineState.currentTurn : (engineState as ExpandingBoardState).currentTurn;
+
     // Apply move via engine (single source of truth)
     const newEngineState = executeMove(engineState, match.mode, player, payload.position);
-    this.engineStates.set(client.matchId, newEngineState);
-    match.gameState = engineToWireState(newEngineState, match.mode);
-    await this.matchManager.applyMove(client.matchId, { matchState: match, engineState: newEngineState });
 
-    console.log(`🎯 ${player} played at (${payload.position.row},${payload.position.col}) in match ${client.matchId.slice(0, 12)}`);
+    // Calculate removed position for Mode 1 (sliding window)
+    let removedPosition: Position | undefined;
+    if (isMode1(newEngineState) && isMode1(oldEngineState)) {
+      const oldMarks = oldEngineState.playerMarks[player];
+      const newMarks = newEngineState.playerMarks[player];
+
+      if (oldMarks.length === 3 && newMarks.length === 3) {
+        // Find the position that was removed
+        const removed = oldMarks.find(pos =>
+          !newMarks.some(newPos => newPos.row === pos.row && newPos.col === pos.col)
+        );
+        removedPosition = removed;
+      }
+    }
+
+    // Update in-memory state
+    this.engineStates.set(matchId, newEngineState);
+    match.gameState = engineToWireState(newEngineState, match.mode);
+
+    console.log(`🎯 ${player} played at (${payload.position.row},${payload.position.col}) in match ${matchId.slice(0, 12)}`);
 
     // Send move accepted to player who made the move
     this.send(activeWs, {
       type: 'MOVE_ACCEPTED',
-      payload: { matchId: client.matchId, position: payload.position },
+      payload: { matchId, position: payload.position },
     });
 
-    // Broadcast updated state
-    this.broadcastToMatch(client.matchId, {
-      type: 'GAME_STATE_UPDATE',
+    // OPTIMIZATION 2 & 3: Broadcast delta update immediately (before persistence)
+    this.broadcastToMatch(matchId, {
+      type: 'MOVE_UPDATE',
       payload: {
-        matchId: client.matchId,
-        gameState: match.gameState,
+        matchId,
+        position: payload.position,
+        player,
+        moveNumber: isMode1(newEngineState) ? newEngineState.currentTurn : (newEngineState as ExpandingBoardState).currentTurn,
+        removedPosition,
+        isGameOver: match.gameState.isGameOver,
+        winner: match.gameState.winner,
+        winInfo: match.gameState.winInfo,
+        isDraw: match.gameState.isDraw,
       },
     });
+
+    // OPTIMIZATION 2: Persist asynchronously (don't block on Redis write)
+    this.matchManager.applyMove(matchId, { matchState: match, engineState: newEngineState })
+      .catch(err => {
+        console.error(`❌ Failed to persist move for match ${matchId.slice(0, 12)}:`, err);
+        // TODO: Could implement retry logic or alert monitoring here
+      });
 
     // Check if game ended
     if (match.gameState.isGameOver) {

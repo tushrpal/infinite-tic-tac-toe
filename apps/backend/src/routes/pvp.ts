@@ -354,11 +354,12 @@ router.post('/match/:matchId/move', async (req, res) => {
       },
     };
 
-    await matchManager.saveMatchState(updatedMatch, snapshot!.engineState);
+    // OPTIMIZATION: Broadcast immediately with in-memory state, persist async
+    wsManager.broadcastStateUpdate(matchId, updatedMatch);
 
-    // Get updated match and broadcast to all players
-    const persisted = await matchManager.recoverMatch(matchId);
-    wsManager.broadcastStateUpdate(matchId, persisted?.matchState);
+    // Persist asynchronously (don't block HTTP response)
+    matchManager.saveMatchState(updatedMatch, snapshot!.engineState)
+      .catch(err => console.error(`Failed to persist move for match ${matchId}:`, err));
 
     res.json({ success: true });
   } catch (error) {
