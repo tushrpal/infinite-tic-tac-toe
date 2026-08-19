@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
@@ -45,7 +45,7 @@ function getRecentForm(matches: PlayerMatchSummary[]): PlayerMatchSummary[] {
   return matches.slice(0, 10);
 }
 
-export default function ProfilePage() {
+function ProfileContent() {
   const searchParams = useSearchParams();
   const [profile, setProfile] = useState<PlayerStatsProfile | null>(null);
   const [matches, setMatches] = useState<PlayerMatchSummary[]>([]);
@@ -493,4 +493,20 @@ function ResultPill({ result }: { result: "win" | "loss" | "draw" }) {
 function formatRatingDelta(delta: number): string {
   if (delta === 0) return "0";
   return delta > 0 ? `+${delta}` : `${delta}`;
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <main className="flex-1 px-4 py-8">
+        <div className="mx-auto w-full max-w-3xl">
+          <div className="rounded-xl border border-board-grid bg-surface-elevated p-6">
+            <div className="text-sm text-text-muted">Loading profile...</div>
+          </div>
+        </div>
+      </main>
+    }>
+      <ProfileContent />
+    </Suspense>
+  );
 }
