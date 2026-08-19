@@ -163,7 +163,7 @@ export default function ProfilePage() {
 
     try {
       const updated = await updateDisplayName(profile.playerId, newDisplayName.trim());
-      setProfile({ ...profile, displayName: updated.displayName });
+      setProfile({ ...profile, displayName: updated.displayName ?? null });
       setIsEditing(false);
       setNewDisplayName("");
     } catch (err) {
