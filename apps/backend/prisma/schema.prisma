@@ -8,13 +8,17 @@ datasource db {
 
 model Player {
     id          String        @id
+    username    String?       @unique
     displayName String?
-    rating      Int           @default(1200)
+    ratingMode1 Int           @default(1200)
+    ratingMode2 Int           @default(1200)
     createdAt   DateTime      @default(now())
     updatedAt   DateTime      @updatedAt
     matches     MatchPlayer[]
 
-    @@index([rating])
+    @@index([ratingMode1])
+    @@index([ratingMode2])
+    @@index([username])
 }
 
 model Match {

@@ -1723,10 +1723,23 @@ class WebSocketManager {
 
   private async loadPlayerProfile(playerId: string): Promise<{ id: string; rating: number; displayName: string | null } | null> {
     const prisma = getPrismaClient();
-    return prisma.player.findUnique({
+    const player = await prisma.player.findUnique({
       where: { id: playerId },
-      select: { id: true, rating: true, displayName: true },
+      select: { id: true, ratingMode1: true, ratingMode2: true, displayName: true },
     });
+
+    if (!player) {
+      return null;
+    }
+
+    // For websocket, return combined rating (sum of both modes)
+    const combinedRating = player.ratingMode1 + player.ratingMode2;
+
+    return {
+      id: player.id,
+      rating: combinedRating,
+      displayName: player.displayName,
+    };
   }
 
   private async applyRankedRatingUpdate(
@@ -1747,7 +1760,7 @@ class WebSocketManager {
     const prisma = getPrismaClient();
     const players = await prisma.player.findMany({
       where: { id: { in: [xId, oId] } },
-      select: { id: true, rating: true },
+      select: { id: true, ratingMode1: true, ratingMode2: true },
     });
 
     const playerX = players.find((player) => player.id === xId);
@@ -1757,8 +1770,11 @@ class WebSocketManager {
       return null;
     }
 
-    const xRating = playerX.rating ?? this.DEFAULT_RATING;
-    const oRating = playerO.rating ?? this.DEFAULT_RATING;
+    // Determine which mode's rating to update
+    const isMode1 = match.mode === 'MODE_1';
+    const mode = isMode1 ? 'mode1' : 'mode2';
+    const xRating = isMode1 ? playerX.ratingMode1 : playerX.ratingMode2;
+    const oRating = isMode1 ? playerO.ratingMode1 : playerO.ratingMode2;
 
     let outcomeForX: MatchOutcome = 'draw';
     if (winner === 'X') outcomeForX = 'win';
@@ -1770,6 +1786,7 @@ class WebSocketManager {
           playerId: xId,
           match: {
             isRanked: true,
+            mode: mode,
           },
         },
       }),
@@ -1778,6 +1795,7 @@ class WebSocketManager {
           playerId: oId,
           match: {
             isRanked: true,
+            mode: mode,
           },
         },
       }),
@@ -1794,14 +1812,20 @@ class WebSocketManager {
     const newORating = Math.max(0, oRating + changeB);
 
     await prisma.$transaction(async (tx) => {
-      await tx.player.update({ where: { id: xId }, data: { rating: newXRating } });
-      await tx.player.update({ where: { id: oId }, data: { rating: newORating } });
+      // Update the mode-specific rating field
+      if (isMode1) {
+        await tx.player.update({ where: { id: xId }, data: { ratingMode1: newXRating } });
+        await tx.player.update({ where: { id: oId }, data: { ratingMode1: newORating } });
+      } else {
+        await tx.player.update({ where: { id: xId }, data: { ratingMode2: newXRating } });
+        await tx.player.update({ where: { id: oId }, data: { ratingMode2: newORating } });
+      }
     });
 
     const formattedXChange = `${changeA >= 0 ? '+' : ''}${changeA}`;
     const formattedOChange = `${changeB >= 0 ? '+' : ''}${changeB}`;
-    console.log(`Player ${xId}: ${xRating} -> ${newXRating} (${formattedXChange})`);
-    console.log(`Player ${oId}: ${oRating} -> ${newORating} (${formattedOChange})`);
+    console.log(`[${mode}] Player ${xId}: ${xRating} -> ${newXRating} (${formattedXChange})`);
+    console.log(`[${mode}] Player ${oId}: ${oRating} -> ${newORating} (${formattedOChange})`);
 
     return {
       ratingChanges: { X: changeA, O: changeB },

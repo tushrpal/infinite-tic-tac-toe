@@ -3,7 +3,8 @@ import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "@/styles/globals.css";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ToastProvider } from "@/components/ui/Toast";
-import { PlayerBootstrap } from "@/components/PlayerBootstrap";
+import { PlayerProvider } from "@/components/providers/PlayerProvider";
+import { Navigation } from "@/components/layout/Navigation";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -50,8 +51,12 @@ export default function RootLayout({
       <body className="min-h-screen bg-surface-base text-text-primary antialiased">
         <ThemeProvider defaultThemeId="dark">
           <ToastProvider>
-            <PlayerBootstrap />
-            <div className="flex flex-col min-h-screen">{children}</div>
+            <PlayerProvider>
+              <div className="flex flex-col min-h-screen">
+                <Navigation />
+                {children}
+              </div>
+            </PlayerProvider>
           </ToastProvider>
         </ThemeProvider>
       </body>

@@ -49,6 +49,11 @@ router.get('/', async (req, res) => {
       ? await getLeaderboardByMode(mode, limit)
       : await getGlobalLeaderboard(limit);
 
+    // Prevent caching to ensure fresh leaderboard data
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     return res.status(200).json({ leaderboard, count: leaderboard.length });
   } catch (error) {
     console.error('Error loading leaderboard:', error);
@@ -58,7 +63,7 @@ router.get('/', async (req, res) => {
 
 /**
  * GET /leaderboard/:playerId/rank
- * Returns global rank for the player.
+ * Returns global rank for the player (based on combined rating).
  */
 router.get('/:playerId/rank', async (req, res) => {
   try {
@@ -67,16 +72,24 @@ router.get('/:playerId/rank', async (req, res) => {
 
     const player = await prisma.player.findUnique({
       where: { id: playerId },
-      select: { id: true, displayName: true, rating: true },
+      select: { id: true, displayName: true, ratingMode1: true, ratingMode2: true },
     });
 
     if (!player) {
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    const higherRatedCount = await prisma.player.count({
-      where: { rating: { gt: player.rating } },
+    const playerCombinedRating = player.ratingMode1 + player.ratingMode2;
+
+    // Count players with higher combined rating
+    // Since we can't filter on computed fields, we need to fetch and calculate
+    const allPlayers = await prisma.player.findMany({
+      select: { ratingMode1: true, ratingMode2: true },
     });
+
+    const higherRatedCount = allPlayers.filter(
+      (p) => (p.ratingMode1 + p.ratingMode2) > playerCombinedRating
+    ).length;
 
     const rank = higherRatedCount + 1;
 
@@ -84,7 +97,7 @@ router.get('/:playerId/rank', async (req, res) => {
       rank,
       playerId: player.id,
       displayName: player.displayName ?? player.id,
-      rating: player.rating,
+      rating: playerCombinedRating,
     });
   } catch (error) {
     console.error('Error loading player rank:', error);
