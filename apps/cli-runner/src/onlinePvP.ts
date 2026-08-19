@@ -50,7 +50,7 @@ interface PvPMatch {
 }
 
 interface WebSocketMessage {
-  type: 'join' | 'state-update' | 'match-complete' | 'error';
+  type: 'join' | 'state-update' | 'move-update' | 'move-accepted' | 'move-rejected' | 'match-complete' | 'error';
   playerId?: string;
   matchId?: string;
   payload?: any;
@@ -64,6 +64,9 @@ class PvPConnection {
   private ws: WebSocket | null = null;
   private useWebSocket = true;
   private stateUpdateCallback: ((state: PvPMatch) => void) | null = null;
+  private moveUpdateCallback: ((update: any) => void) | null = null;
+  private moveAcceptedCallback: (() => void) | null = null;
+  private moveRejectedCallback: ((reason: string) => void) | null = null;
   private matchCompleteCallback: ((result: any) => void) | null = null;
 
   constructor(
@@ -149,6 +152,24 @@ class PvPConnection {
         }
         break;
 
+      case 'move-update':
+        if (this.moveUpdateCallback && message.payload) {
+          this.moveUpdateCallback(message.payload);
+        }
+        break;
+
+      case 'move-accepted':
+        if (this.moveAcceptedCallback) {
+          this.moveAcceptedCallback();
+        }
+        break;
+
+      case 'move-rejected':
+        if (this.moveRejectedCallback && message.payload) {
+          this.moveRejectedCallback(message.payload.reason || 'Move rejected');
+        }
+        break;
+
       case 'match-complete':
         if (this.matchCompleteCallback && message.payload) {
           this.matchCompleteCallback(message.payload);
@@ -178,10 +199,48 @@ class PvPConnection {
   }
 
   /**
+   * Register callback for move updates (delta updates)
+   */
+  onMoveUpdate(callback: (update: any) => void) {
+    this.moveUpdateCallback = callback;
+  }
+
+  /**
+   * Register callback for move accepted
+   */
+  onMoveAccepted(callback: () => void) {
+    this.moveAcceptedCallback = callback;
+  }
+
+  /**
+   * Register callback for move rejected
+   */
+  onMoveRejected(callback: (reason: string) => void) {
+    this.moveRejectedCallback = callback;
+  }
+
+  /**
    * Register callback for match completion
    */
   onMatchComplete(callback: (result: any) => void) {
     this.matchCompleteCallback = callback;
+  }
+
+  /**
+   * Send move via WebSocket
+   * Returns true if sent via WebSocket, false if should fallback to HTTP
+   */
+  sendMove(position: Position): boolean {
+    if (!this.isUsingWebSocket()) {
+      return false;
+    }
+
+    this.send({
+      type: 'MAKE_MOVE',
+      payload: { position },
+    });
+
+    return true;
   }
 
   /**
@@ -344,11 +403,30 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
     // Track state updates
     let stateUpdateReceived = false;
     let latestMatch: PvPMatch | null = null;
+    let moveUpdateReceived = false;
+    let latestMoveUpdate: any = null;
+    let moveAccepted = false;
+    let moveRejected = false;
+    let moveRejectionReason = '';
 
     // Register WebSocket callbacks
     connection.onStateUpdate((match) => {
       latestMatch = match;
       stateUpdateReceived = true;
+    });
+
+    connection.onMoveUpdate((update) => {
+      latestMoveUpdate = update;
+      moveUpdateReceived = true;
+    });
+
+    connection.onMoveAccepted(() => {
+      moveAccepted = true;
+    });
+
+    connection.onMoveRejected((reason) => {
+      moveRejected = true;
+      moveRejectionReason = reason;
     });
 
     if (status === 'waiting') {
@@ -428,7 +506,7 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
           continue;
         }
 
-        // Apply move locally using engine
+        // OPTIMIZATION: Apply move locally using engine (for validation)
         const position = indexToPosition(moveInput.index);
         const newState = applyMove(localState, role as Player, position);
 
@@ -439,33 +517,55 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
           continue;
         }
 
+        // Save previous state for rollback
+        const previousState = localState;
+
+        // OPTIMIZATION: Optimistic update - show move immediately
         localState = newState;
+        console.log('⚡ Move applied locally (optimistic)');
 
         // Submit to backend
         try {
-          await submitMove(matchId, identity.playerId, localState);
-          console.log('✅ Move submitted');
-          
-          // Wait for state update
+          // OPTIMIZATION: Use WebSocket if available, fallback to HTTP
           if (connection.isUsingWebSocket()) {
-            // WebSocket will update automatically
-            stateUpdateReceived = false;
-            const startTime = Date.now();
-            while (!stateUpdateReceived && Date.now() - startTime < 3000) {
-              await sleep(100);
-            }
-            if (latestMatch) {
-              currentMatch = latestMatch;
+            // Send move via WebSocket
+            moveAccepted = false;
+            moveRejected = false;
+            const sent = connection.sendMove(position);
+
+            if (sent) {
+              // Wait for acceptance or rejection
+              const startTime = Date.now();
+              while (!moveAccepted && !moveRejected && Date.now() - startTime < 3000) {
+                await sleep(50);
+              }
+
+              if (moveRejected) {
+                // Rollback optimistic update
+                localState = previousState;
+                printInvalidMove(moveRejectionReason);
+                await sleep(1500);
+                continue;
+              }
+
+              if (moveAccepted) {
+                console.log('✅ Move accepted by server');
+              }
             } else {
-              // Fallback to polling if no update received
-              currentMatch = await getMatch(matchId);
+              // WebSocket not available, use HTTP fallback
+              await submitMove(matchId, identity.playerId, localState);
+              console.log('✅ Move submitted via HTTP');
             }
           } else {
-            // Polling fallback
+            // Polling mode - use HTTP
+            await submitMove(matchId, identity.playerId, localState);
+            console.log('✅ Move submitted via HTTP');
             await sleep(500);
             currentMatch = await getMatch(matchId);
           }
         } catch (error) {
+          // Rollback optimistic update on error
+          localState = previousState;
           console.error('❌ Failed to submit move:', (error as Error).message);
           await sleep(2000);
           continue;
@@ -474,21 +574,51 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
       } else {
         // Opponent's turn - wait for updates
         console.log(`\n⏳ Waiting for opponent (${currentMatch.currentPlayer}) to move...`);
-        
+
         let previousMoveCount = localState.currentTurn;
-        
+
         while (true) {
-          if (connection.isUsingWebSocket() && stateUpdateReceived && latestMatch) {
-            // WebSocket update received
+          // OPTIMIZATION: Handle delta MOVE_UPDATE events
+          if (connection.isUsingWebSocket() && moveUpdateReceived && latestMoveUpdate) {
+            moveUpdateReceived = false;
+            const update = latestMoveUpdate;
+
+            // Apply delta update to local state
+            if (update.position && update.player) {
+              // Update board with new move
+              localState.board[update.position.row][update.position.col] = update.player;
+
+              // Handle removed position (Mode 1 sliding)
+              if (update.removedPosition) {
+                localState.board[update.removedPosition.row][update.removedPosition.col] = null;
+              }
+
+              // Update move count and turn
+              localState.currentTurn = update.moveNumber;
+              currentMatch.currentPlayer = update.moveNumber % 2 === 0 ? 'X' : 'O';
+
+              // Update game over state
+              if (update.isGameOver) {
+                localState.winner = update.winner;
+                localState.winInfo = update.winInfo;
+                localState.isDraw = update.isDraw;
+              }
+
+              console.log('⚡ Opponent moved (delta update)!');
+              await sleep(1000);
+              break;
+            }
+          } else if (connection.isUsingWebSocket() && stateUpdateReceived && latestMatch) {
+            // Fallback to full state update if delta not available
             currentMatch = latestMatch;
             const serverState = currentMatch.gameState;
             stateUpdateReceived = false;
-            
+
             // Safety check for undefined state
             if (!serverState || !serverState.board) {
               continue;
             }
-            
+
             if (serverState.currentTurn > previousMoveCount) {
               localState = serverState;
               console.log('✅ Opponent moved!');
@@ -500,17 +630,17 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
               localState = serverState;
               break;
             }
-          } else {
+          } else if (!connection.isUsingWebSocket()) {
             // Polling fallback
-            await sleep(connection.isUsingWebSocket() ? 500 : POLL_INTERVAL);
+            await sleep(POLL_INTERVAL);
             currentMatch = await getMatch(matchId);
             const serverState = currentMatch.gameState;
-            
+
             // Safety check for undefined state
             if (!serverState || !serverState.board) {
               continue;
             }
-            
+
             if (serverState.currentTurn > previousMoveCount) {
               localState = serverState;
               console.log('✅ Opponent moved!');
@@ -523,6 +653,8 @@ export async function runOnlinePvP(identityManager: IdentityManager): Promise<vo
               break;
             }
           }
+
+          await sleep(100);
         }
       }
     }
