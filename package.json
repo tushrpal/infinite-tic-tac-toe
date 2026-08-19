@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "pnpm --filter @infinite-ttt/cli-runner dev",
     "backend": "pnpm --filter @infinite-ttt/backend dev",
+    "docker:up": "docker compose -f docker-compose.local.yml up -d",
+    "docker:down": "docker compose -f docker-compose.local.yml down",
+    "docker:logs": "docker compose -f docker-compose.local.yml logs -f",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -42,21 +42,23 @@ function toApiMode(mode: 'MODE_1' | 'MODE_2'): 'mode1' | 'mode2' {
 
 const DEFAULT_RATING = 1200;
 
-async function loadPlayerInfo(playerId: string): Promise<{ id: string; username: string; rating: number } | null> {
+async function loadPlayerInfo(playerId: string, mode: 'mode1' | 'mode2'): Promise<{ id: string; username: string; rating: number } | null> {
   const prisma = getPrismaClient();
   const player = await prisma.player.findUnique({
     where: { id: playerId },
-    select: { id: true, displayName: true, rating: true },
+    select: { id: true, displayName: true, ratingMode1: true, ratingMode2: true },
   });
 
   if (!player) {
     return null;
   }
 
+  const rating = mode === 'mode1' ? player.ratingMode1 : player.ratingMode2;
+
   return {
     id: player.id,
     username: player.displayName || player.id,
-    rating: player.rating ?? DEFAULT_RATING,
+    rating: rating ?? DEFAULT_RATING,
   };
 }
 
@@ -73,7 +75,7 @@ async function applyRankedRatingUpdate(matchResult: MatchResult): Promise<void> 
   const prisma = getPrismaClient();
   const players = await prisma.player.findMany({
     where: { id: { in: [playerA.id, playerB.id] } },
-    select: { id: true, rating: true },
+    select: { id: true, ratingMode1: true, ratingMode2: true },
   });
 
   const aRecord = players.find((player) => player.id === playerA.id);
@@ -82,6 +84,11 @@ async function applyRankedRatingUpdate(matchResult: MatchResult): Promise<void> 
   if (!aRecord || !bRecord) {
     return;
   }
+
+  // Determine which mode's rating to update
+  const isMode1 = matchResult.mode === 'mode1';
+  const aRating = isMode1 ? aRecord.ratingMode1 : aRecord.ratingMode2;
+  const bRating = isMode1 ? bRecord.ratingMode1 : bRecord.ratingMode2;
 
   let outcomeForA: MatchOutcome = 'draw';
   if (matchResult.winner === playerA.id) outcomeForA = 'win';
@@ -93,6 +100,7 @@ async function applyRankedRatingUpdate(matchResult: MatchResult): Promise<void> 
         playerId: playerA.id,
         match: {
           isRanked: true,
+          mode: matchResult.mode,
         },
       },
     }),
@@ -101,6 +109,7 @@ async function applyRankedRatingUpdate(matchResult: MatchResult): Promise<void> 
         playerId: playerB.id,
         match: {
           isRanked: true,
+          mode: matchResult.mode,
         },
       },
     }),
@@ -109,16 +118,22 @@ async function applyRankedRatingUpdate(matchResult: MatchResult): Promise<void> 
   const kFactorA = resolveKFactorByExperience(aRankedMatches);
   const kFactorB = resolveKFactorByExperience(bRankedMatches);
 
-  const { changeA, changeB } = calculateEloChange(aRecord.rating, bRecord.rating, outcomeForA, {
+  const { changeA, changeB } = calculateEloChange(aRating, bRating, outcomeForA, {
     kFactorA,
     kFactorB,
   });
-  const newARating = Math.max(0, aRecord.rating + changeA);
-  const newBRating = Math.max(0, bRecord.rating + changeB);
+  const newARating = Math.max(0, aRating + changeA);
+  const newBRating = Math.max(0, bRating + changeB);
 
   await prisma.$transaction(async (tx) => {
-    await tx.player.update({ where: { id: playerA.id }, data: { rating: newARating } });
-    await tx.player.update({ where: { id: playerB.id }, data: { rating: newBRating } });
+    // Update the mode-specific rating field
+    if (isMode1) {
+      await tx.player.update({ where: { id: playerA.id }, data: { ratingMode1: newARating } });
+      await tx.player.update({ where: { id: playerB.id }, data: { ratingMode1: newBRating } });
+    } else {
+      await tx.player.update({ where: { id: playerA.id }, data: { ratingMode2: newARating } });
+      await tx.player.update({ where: { id: playerB.id }, data: { ratingMode2: newBRating } });
+    }
     await tx.matchPlayer.updateMany({
       where: { matchId: matchResult.matchId, playerId: playerA.id },
       data: { ratingChange: changeA },
@@ -131,8 +146,8 @@ async function applyRankedRatingUpdate(matchResult: MatchResult): Promise<void> 
 
   const formattedAChange = `${changeA >= 0 ? '+' : ''}${changeA}`;
   const formattedBChange = `${changeB >= 0 ? '+' : ''}${changeB}`;
-  console.log(`Player ${playerA.id}: ${aRecord.rating} -> ${newARating} (${formattedAChange})`);
-  console.log(`Player ${playerB.id}: ${bRecord.rating} -> ${newBRating} (${formattedBChange})`);
+  console.log(`[${matchResult.mode}] Player ${playerA.id}: ${aRating} -> ${newARating} (${formattedAChange})`);
+  console.log(`[${matchResult.mode}] Player ${playerB.id}: ${bRating} -> ${newBRating} (${formattedBChange})`);
 }
 
 /**
@@ -170,7 +185,7 @@ router.post('/match', async (req, res) => {
 
     const backendMode = toBackendMode(mode);
 
-    const playerProfile = await loadPlayerInfo(playerId);
+    const playerProfile = await loadPlayerInfo(playerId, mode);
     if (!playerProfile) {
       return res.status(404).json({ error: 'Player not found' });
     }

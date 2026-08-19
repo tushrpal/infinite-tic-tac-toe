@@ -2,8 +2,11 @@ import { getPrismaClient } from '../storage/prismaClient';
 
 type PlayerProfileStats = {
   playerId: string;
+  username: string | null;
   displayName: string | null;
-  rating: number;
+  rating: number; // Combined rating (sum of both modes)
+  ratingMode1: number;
+  ratingMode2: number;
   createdAt: Date;
   matchesPlayed: number;
   wins: number;
@@ -27,8 +30,10 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerProfileS
     where: { id: playerId },
     select: {
       id: true,
+      username: true,
       displayName: true,
-      rating: true,
+      ratingMode1: true,
+      ratingMode2: true,
       createdAt: true,
     },
   });
@@ -68,8 +73,11 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerProfileS
 
   return {
     playerId: player.id,
+    username: player.username,
     displayName: player.displayName,
-    rating: player.rating,
+    rating: player.ratingMode1 + player.ratingMode2, // Combined rating
+    ratingMode1: player.ratingMode1,
+    ratingMode2: player.ratingMode2,
     createdAt: player.createdAt,
     matchesPlayed,
     wins,

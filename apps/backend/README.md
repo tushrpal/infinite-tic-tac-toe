@@ -244,6 +244,25 @@ Match data is stored in:
 
 Create an env file from `apps/backend/.env.example`.
 
+### Local Docker Setup
+
+From repository root:
+
+```bash
+pnpm docker:up
+```
+
+This starts:
+
+- PostgreSQL on `localhost:5433`
+- Redis on `localhost:6379`
+
+Run local migrations after containers are healthy:
+
+```bash
+pnpm --filter @infinite-ttt/backend prisma:migrate
+```
+
 ### Required Environment Variables
 
 - `DATABASE_URL` - PostgreSQL connection string used by Prisma runtime and migrations
@@ -251,13 +270,22 @@ Create an env file from `apps/backend/.env.example`.
 - `PORT` - HTTP server port (default `3000`)
 - `WS_URL` - Public WebSocket URL exposed for clients/health checks
 
-### Example
+### Cloud Example
 
 ```bash
 DATABASE_URL=postgresql://user:pass@db.example.com:5432/infinite_ttt
 REDIS_URL=redis://default:pass@redis.example.com:6379
 PORT=3000
 WS_URL=wss://api.example.com
+```
+
+### Local Docker Example
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/infinite_ttt?schema=public
+REDIS_URL=redis://localhost:6379
+PORT=3000
+WS_URL=wss://localhost:3000
 ```
 
 ### Local Override Example

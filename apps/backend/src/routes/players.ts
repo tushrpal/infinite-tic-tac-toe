@@ -10,6 +10,7 @@ import { randomUUID } from 'crypto';
 import { getPrismaClient } from '../storage/prismaClient';
 import { getPlayerProfile } from '../profile/playerProfileService';
 import { getPlayerMatches } from '../profile/matchHistoryService';
+import { isValidUsername, isValidDisplayName, sanitizeUsername } from '../utils/validation';
 
 const router = express.Router();
 
@@ -42,35 +43,69 @@ function parseMatchLimit(value: unknown): number {
  *
  * Create a new player identity with default rating.
  *
- * Request body (optional):
+ * Request body:
  * {
- *   displayName?: string;
+ *   username: string; // Required, unique, 3-20 chars, alphanumeric + underscore
+ *   displayName?: string; // Optional, 1-50 chars
  * }
  */
 router.post('/', async (req, res) => {
   try {
     const prisma = getPrismaClient();
-    const { displayName } = (req.body ?? {}) as { displayName?: string };
+    const { username, displayName } = (req.body ?? {}) as { username?: string; displayName?: string };
+
+    // Validate username (required)
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const sanitized = sanitizeUsername(username);
+
+    if (!isValidUsername(sanitized)) {
+      return res.status(400).json({
+        error: 'Invalid username. Must be 3-20 characters, alphanumeric and underscore only, cannot start/end with underscore'
+      });
+    }
+
+    // Validate displayName if provided
+    if (displayName && !isValidDisplayName(displayName)) {
+      return res.status(400).json({
+        error: 'Invalid display name. Must be 1-50 characters'
+      });
+    }
+
+    // Check if username already exists
+    const existing = await prisma.player.findUnique({
+      where: { username: sanitized },
+    });
+
+    if (existing) {
+      return res.status(409).json({ error: 'Username already taken' });
+    }
 
     const playerId = safeRandomUUID();
 
     const player = await prisma.player.create({
       data: {
         id: playerId,
+        username: sanitized,
         displayName: displayName?.trim() || null,
       },
       select: {
         id: true,
+        username: true,
         displayName: true,
-        rating: true,
+        ratingMode1: true,
+        ratingMode2: true,
         createdAt: true,
       },
     });
 
     res.status(201).json({
       playerId: player.id,
+      username: player.username,
       displayName: player.displayName,
-      rating: player.rating,
+      rating: player.ratingMode1 + player.ratingMode2,
       createdAt: player.createdAt,
     });
   } catch (error) {
@@ -95,8 +130,11 @@ router.get('/:playerId/profile', async (req, res) => {
 
     return res.status(200).json({
       playerId: profile.playerId,
+      username: profile.username,
       displayName: profile.displayName,
       rating: profile.rating,
+      ratingMode1: profile.ratingMode1,
+      ratingMode2: profile.ratingMode2,
       createdAt: profile.createdAt,
       matchesPlayed: profile.matchesPlayed,
       wins: profile.wins,
@@ -107,6 +145,69 @@ router.get('/:playerId/profile', async (req, res) => {
   } catch (error) {
     console.error('Error loading player profile:', error);
     return res.status(500).json({ error: 'Failed to load player profile' });
+  }
+});
+
+/**
+ * PATCH /players/:playerId
+ *
+ * Update player's display name.
+ *
+ * Request body:
+ * {
+ *   displayName: string;
+ * }
+ */
+router.patch('/:playerId', async (req, res) => {
+  try {
+    const { playerId } = req.params;
+    const { displayName } = (req.body ?? {}) as { displayName?: string };
+
+    if (!displayName) {
+      return res.status(400).json({ error: 'Display name is required' });
+    }
+
+    if (!isValidDisplayName(displayName)) {
+      return res.status(400).json({
+        error: 'Invalid display name. Must be 1-50 characters'
+      });
+    }
+
+    const prisma = getPrismaClient();
+
+    // Check if player exists
+    const existing = await prisma.player.findUnique({
+      where: { id: playerId },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    // Update display name
+    const updated = await prisma.player.update({
+      where: { id: playerId },
+      data: { displayName: displayName.trim() },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        ratingMode1: true,
+        ratingMode2: true,
+        updatedAt: true,
+      },
+    });
+
+    return res.status(200).json({
+      playerId: updated.id,
+      username: updated.username,
+      displayName: updated.displayName,
+      rating: updated.ratingMode1 + updated.ratingMode2,
+      updatedAt: updated.updatedAt,
+    });
+  } catch (error) {
+    console.error('Error updating player:', error);
+    return res.status(500).json({ error: 'Failed to update player' });
   }
 });
 
@@ -142,8 +243,10 @@ router.get('/:playerId', async (req, res) => {
       where: { id: playerId },
       select: {
         id: true,
+        username: true,
         displayName: true,
-        rating: true,
+        ratingMode1: true,
+        ratingMode2: true,
         createdAt: true,
       },
     });
@@ -154,8 +257,11 @@ router.get('/:playerId', async (req, res) => {
 
     res.status(200).json({
       playerId: player.id,
+      username: player.username,
       displayName: player.displayName,
-      rating: player.rating,
+      rating: player.ratingMode1 + player.ratingMode2,
+      ratingMode1: player.ratingMode1,
+      ratingMode2: player.ratingMode2,
       createdAt: player.createdAt,
     });
   } catch (error) {
@@ -177,7 +283,8 @@ router.get('/', async (req, res) => {
       select: {
         id: true,
         displayName: true,
-        rating: true,
+        ratingMode1: true,
+        ratingMode2: true,
         createdAt: true,
       },
     });
@@ -186,7 +293,7 @@ router.get('/', async (req, res) => {
       players: players.map((player) => ({
         playerId: player.id,
         displayName: player.displayName,
-        rating: player.rating,
+        rating: player.ratingMode1 + player.ratingMode2,
         createdAt: player.createdAt,
       })),
       count: players.length,

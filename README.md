@@ -66,6 +66,23 @@ infinite-ttt/
 pnpm install
 ```
 
+### Start Local Infra (Docker)
+
+```bash
+pnpm docker:up
+```
+
+This starts:
+
+- PostgreSQL at `localhost:5433`
+- Redis at `localhost:6379`
+
+Stop containers with:
+
+```bash
+pnpm docker:down
+```
+
 ### Build Packages
 
 ```bash

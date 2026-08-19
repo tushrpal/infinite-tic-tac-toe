@@ -92,7 +92,16 @@ export default function RankedPlayPage() {
     setQueueState("idle");
   }, [socket]);
 
-  const playerRating = player?.rating ?? RANKS.DEFAULT_RATING;
+  // Get mode-specific rating based on selected mode
+  const getModeRating = () => {
+    if (!player) return RANKS.DEFAULT_RATING;
+    if (selectedMode === "MODE_1") {
+      return player.ratingMode1 ?? RANKS.DEFAULT_RATING;
+    }
+    return player.ratingMode2 ?? RANKS.DEFAULT_RATING;
+  };
+
+  const playerRating = getModeRating();
   const playerRank = getRankFromRating(playerRating);
   const rankProgress = getRankProgress(playerRating);
 

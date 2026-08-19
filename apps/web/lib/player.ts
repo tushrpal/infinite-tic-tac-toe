@@ -3,15 +3,21 @@ import { apiRequest } from './api';
 
 export interface PlayerProfile {
   playerId: string;
+  username?: string | null;
   displayName?: string | null;
-  rating: number;
+  rating: number; // Combined rating (sum of both modes)
+  ratingMode1?: number;
+  ratingMode2?: number;
   createdAt?: string;
 }
 
 export type PlayerStatsProfile = {
   playerId: string;
+  username: string | null;
   displayName: string | null;
-  rating: number;
+  rating: number; // Combined rating
+  ratingMode1: number;
+  ratingMode2: number;
   createdAt: string;
   matchesPlayed: number;
   wins: number;
@@ -61,12 +67,11 @@ function getStoredDisplayName(): string | undefined {
   return name || undefined;
 }
 
-async function createPlayer(): Promise<PlayerProfile> {
-  const displayName = getStoredDisplayName();
-  const body = displayName ? { displayName } : undefined;
+async function createPlayer(username: string, displayName?: string): Promise<PlayerProfile> {
+  const body = { username, displayName: displayName || undefined };
   const player = await apiRequest<PlayerProfile>('/players', {
     method: 'POST',
-    body: body ? JSON.stringify(body) : undefined,
+    body: JSON.stringify(body),
   });
   setStoredPlayerId(player.playerId);
   return player;
@@ -76,7 +81,7 @@ async function fetchPlayer(playerId: string): Promise<PlayerProfile> {
   return apiRequest<PlayerProfile>(`/players/${playerId}`);
 }
 
-export async function ensurePlayer(): Promise<PlayerProfile> {
+export async function ensurePlayer(username?: string, displayName?: string): Promise<PlayerProfile> {
   if (cachedPlayer) return cachedPlayer;
   if (pendingPlayer) return pendingPlayer;
 
@@ -95,7 +100,12 @@ export async function ensurePlayer(): Promise<PlayerProfile> {
       }
     }
 
-    const created = await createPlayer();
+    // For new players, username is required
+    if (!username) {
+      throw new Error('Username required for new player registration');
+    }
+
+    const created = await createPlayer(username, displayName);
     cachedPlayer = created;
     return created;
   })();
@@ -107,6 +117,20 @@ export async function ensurePlayer(): Promise<PlayerProfile> {
   });
 
   return pendingPlayer;
+}
+
+export async function updateDisplayName(playerId: string, displayName: string): Promise<PlayerProfile> {
+  const player = await apiRequest<PlayerProfile>(`/players/${playerId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ displayName }),
+  });
+
+  // Update cache
+  if (cachedPlayer && cachedPlayer.playerId === playerId) {
+    cachedPlayer = player;
+  }
+
+  return player;
 }
 
 export async function fetchPlayerProfile(playerId: string): Promise<PlayerStatsProfile> {
@@ -123,4 +147,9 @@ export async function fetchPlayerMatches(playerId: string, limit: number = 20): 
 export function clearCachedPlayer(): void {
   cachedPlayer = null;
   pendingPlayer = null;
+}
+
+export async function refreshPlayer(): Promise<PlayerProfile> {
+  clearCachedPlayer();
+  return ensurePlayer();
 }
