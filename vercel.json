@@ -1,4 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm build"
+  "buildCommand": "pnpm --filter infinite-tictactoe-web build",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs"
 }
