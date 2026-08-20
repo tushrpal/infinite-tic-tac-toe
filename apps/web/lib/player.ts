@@ -8,6 +8,7 @@ export interface PlayerProfile {
   rating: number; // Combined rating (sum of both modes)
   ratingMode1?: number;
   ratingMode2?: number;
+  isAnonymous?: boolean;
   createdAt?: string;
 }
 
@@ -24,6 +25,8 @@ export type PlayerStatsProfile = {
   losses: number;
   draws: number;
   winRate: number;
+  isAnonymous?: boolean;
+  oauthProvider?: string | null;
 };
 
 export type PlayerMatchSummary = {
@@ -33,8 +36,44 @@ export type PlayerMatchSummary = {
   createdAt: number;
 };
 
+export type OAuthProvider = 'google' | 'discord';
+
+export interface OAuthCallbackResponse {
+  isNewUser: boolean;
+  playerId?: string;
+  username?: string;
+  displayName?: string;
+  rating?: number;
+  sessionToken?: string;
+  suggestedUsername?: string;
+  oauthData?: {
+    provider: string;
+    oauthId: string;
+    email: string;
+    name?: string;
+  };
+}
+
 let cachedPlayer: PlayerProfile | null = null;
 let pendingPlayer: Promise<PlayerProfile> | null = null;
+
+// Session token storage
+const SESSION_TOKEN_KEY = 'infinite-ttt-session-token';
+
+function getStoredSessionToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(SESSION_TOKEN_KEY);
+}
+
+export function setStoredSessionToken(token: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(SESSION_TOKEN_KEY, token);
+}
+
+export function clearStoredSessionToken(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(SESSION_TOKEN_KEY);
+}
 
 function getLegacyPlayerId(): string | null {
   if (typeof window === 'undefined') return null;
@@ -61,10 +100,56 @@ export function setStoredPlayerId(playerId: string): void {
   localStorage.removeItem('playerId');
 }
 
-function getStoredDisplayName(): string | undefined {
-  if (typeof window === 'undefined') return undefined;
-  const name = localStorage.getItem('username');
-  return name || undefined;
+export function clearStoredPlayerId(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(STORAGE_KEYS.PLAYER_ID);
+  localStorage.removeItem('playerId'); // Clear legacy key too
+}
+
+/**
+ * Try to login with session token (for authenticated users)
+ */
+async function loginWithSession(): Promise<PlayerProfile | null> {
+  const sessionToken = getStoredSessionToken();
+  if (!sessionToken) return null;
+
+  try {
+    const player = await apiRequest<PlayerProfile>('/auth/session', {
+      headers: {
+        Authorization: `Bearer ${sessionToken}`,
+      },
+    });
+
+    setStoredPlayerId(player.playerId);
+    cachedPlayer = player;
+    return player;
+  } catch (error) {
+    // Session expired or invalid - clean up
+    clearStoredSessionToken();
+    return null;
+  }
+}
+
+/**
+ * Check if username is available
+ * Returns { available: boolean, username?: string, reason?: string }
+ */
+export async function checkUsernameAvailability(username: string): Promise<{
+  available: boolean;
+  username?: string;
+  reason?: string;
+  message?: string;
+}> {
+  try {
+    return await apiRequest<{
+      available: boolean;
+      username?: string;
+      reason?: string;
+      message?: string;
+    }>(`/players/check-username/${encodeURIComponent(username)}`);
+  } catch (error) {
+    return { available: false, reason: 'error', message: 'Failed to check username' };
+  }
 }
 
 async function createPlayer(username: string, displayName?: string): Promise<PlayerProfile> {
@@ -86,6 +171,11 @@ export async function ensurePlayer(username?: string, displayName?: string): Pro
   if (pendingPlayer) return pendingPlayer;
 
   pendingPlayer = (async () => {
+    // Priority 1: Try session token (authenticated users)
+    const sessionPlayer = await loginWithSession();
+    if (sessionPlayer) return sessionPlayer;
+
+    // Priority 2: Try localStorage playerId (anonymous users)
     const storedId = getStoredPlayerId();
     if (storedId) {
       try {
@@ -100,7 +190,7 @@ export async function ensurePlayer(username?: string, displayName?: string): Pro
       }
     }
 
-    // For new players, username is required
+    // Priority 3: Create new player (requires username)
     if (!username) {
       throw new Error('Username required for new player registration');
     }
@@ -112,11 +202,91 @@ export async function ensurePlayer(username?: string, displayName?: string): Pro
 
   pendingPlayer.finally(() => {
     pendingPlayer = null;
-  }).catch(() => {
-    // Swallow rejection from the cleanup chain to avoid unhandled runtime errors.
-  });
+  }).catch(() => {});
 
   return pendingPlayer;
+}
+
+/**
+ * Handle OAuth callback
+ */
+export async function handleOAuthCallback(
+  provider: OAuthProvider,
+  oauthId: string,
+  email: string,
+  name?: string
+): Promise<OAuthCallbackResponse> {
+  return apiRequest<OAuthCallbackResponse>('/auth/oauth/callback', {
+    method: 'POST',
+    body: JSON.stringify({ provider, oauthId, email, name }),
+  });
+}
+
+/**
+ * Complete OAuth registration with username
+ */
+export async function registerWithOAuth(
+  provider: string,
+  oauthId: string,
+  email: string,
+  username: string,
+  displayName?: string
+): Promise<PlayerProfile> {
+  const response = await apiRequest<PlayerProfile & { sessionToken: string }>('/auth/oauth/register', {
+    method: 'POST',
+    body: JSON.stringify({ provider, oauthId, email, username, displayName }),
+  });
+
+  setStoredPlayerId(response.playerId);
+  setStoredSessionToken(response.sessionToken);
+  cachedPlayer = response;
+  return response;
+}
+
+/**
+ * Link anonymous account to OAuth
+ */
+export async function linkAccountToOAuth(
+  playerId: string,
+  provider: string,
+  oauthId: string,
+  email: string
+): Promise<{ success: boolean; sessionToken: string }> {
+  const response = await apiRequest<{ success: boolean; playerId: string; sessionToken: string }>(
+    '/auth/link-account',
+    {
+      method: 'POST',
+      body: JSON.stringify({ playerId, provider, oauthId, email }),
+    }
+  );
+
+  setStoredSessionToken(response.sessionToken);
+  return response;
+}
+
+/**
+ * Logout current session
+ */
+export async function logout(): Promise<void> {
+  const sessionToken = getStoredSessionToken();
+
+  try {
+    if (sessionToken) {
+      await apiRequest('/auth/logout', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    // Clear all stored data
+    clearStoredSessionToken();
+    clearStoredPlayerId();
+    clearCachedPlayer();
+  }
 }
 
 export async function updateDisplayName(playerId: string, displayName: string): Promise<PlayerProfile> {

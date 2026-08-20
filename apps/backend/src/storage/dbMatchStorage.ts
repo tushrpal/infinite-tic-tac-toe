@@ -13,7 +13,10 @@ export class DbMatchStorage implements MatchStorage {
         await tx.player.upsert({
           where: { id: player.id },
           update: {},
-          create: { id: player.id },
+          create: {
+            id: player.id,
+            username: player.id, // Fallback: use ID as username if player doesn't exist
+          },
         });
       }
 

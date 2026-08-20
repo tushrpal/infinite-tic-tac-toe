@@ -1095,9 +1095,9 @@ class WebSocketManager {
       if (oldMarks.length === 3 && newMarks.length === 3) {
         // Find the position that was removed
         const removed = oldMarks.find(pos =>
-          !newMarks.some(newPos => newPos.row === pos.row && newPos.col === pos.col)
+          !newMarks.some(newPos => newPos.position.row === pos.position.row && newPos.position.col === pos.position.col)
         );
-        removedPosition = removed;
+        removedPosition = removed?.position;
       }
     }
 

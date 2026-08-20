@@ -14,6 +14,45 @@ import { isValidUsername, isValidDisplayName, sanitizeUsername } from '../utils/
 
 const router = express.Router();
 
+/**
+ * GET /players/check-username/:username
+ *
+ * Check if username is available (for real-time validation).
+ * Returns availability status and sanitized username.
+ */
+router.get('/check-username/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const sanitized = sanitizeUsername(username);
+
+    // Check format validity
+    if (!isValidUsername(sanitized)) {
+      return res.status(200).json({
+        available: false,
+        reason: 'invalid_format',
+        message: 'Invalid username format',
+      });
+    }
+
+    const prisma = getPrismaClient();
+
+    // Check if username exists (optimized with select)
+    const existing = await prisma.player.findUnique({
+      where: { username: sanitized },
+      select: { username: true },
+    });
+
+    return res.status(200).json({
+      available: !existing,
+      username: sanitized,
+      reason: existing ? 'taken' : null,
+    });
+  } catch (error) {
+    console.error('Error checking username:', error);
+    return res.status(500).json({ error: 'Failed to check username' });
+  }
+});
+
 function safeRandomUUID(): string {
   if (typeof randomUUID === 'function') {
     return randomUUID();
@@ -128,6 +167,16 @@ router.get('/:playerId/profile', async (req, res) => {
       return res.status(404).json({ error: 'Player not found' });
     }
 
+    // Get OAuth connection info
+    const prisma = getPrismaClient();
+    const player = await prisma.player.findUnique({
+      where: { id: playerId },
+      select: {
+        isAnonymous: true,
+        oauthProvider: true,
+      },
+    });
+
     return res.status(200).json({
       playerId: profile.playerId,
       username: profile.username,
@@ -141,6 +190,8 @@ router.get('/:playerId/profile', async (req, res) => {
       losses: profile.losses,
       draws: profile.draws,
       winRate: profile.winRate,
+      isAnonymous: player?.isAnonymous ?? true,
+      oauthProvider: player?.oauthProvider ?? null,
     });
   } catch (error) {
     console.error('Error loading player profile:', error);

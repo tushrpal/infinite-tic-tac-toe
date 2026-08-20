@@ -7,18 +7,44 @@ datasource db {
 }
 
 model Player {
-    id          String        @id
-    username    String?       @unique
-    displayName String?
-    ratingMode1 Int           @default(1200)
-    ratingMode2 Int           @default(1200)
-    createdAt   DateTime      @default(now())
-    updatedAt   DateTime      @updatedAt
-    matches     MatchPlayer[]
+    id            String        @id
+    username      String        @unique
+    displayName   String?
 
+    // OAuth authentication
+    oauthProvider String?
+    oauthId       String?
+    oauthEmail    String?
+
+    // Account metadata
+    isAnonymous   Boolean       @default(true)
+    lastLoginAt   DateTime?
+
+    ratingMode1   Int           @default(1200)
+    ratingMode2   Int           @default(1200)
+    createdAt     DateTime      @default(now())
+    updatedAt     DateTime      @updatedAt
+    matches       MatchPlayer[]
+    sessions      Session[]
+
+    @@unique([oauthProvider, oauthId])
     @@index([ratingMode1])
     @@index([ratingMode2])
     @@index([username])
+    @@index([oauthProvider, oauthId])
+}
+
+model Session {
+    id        String   @id @default(cuid())
+    playerId  String
+    token     String   @unique
+    expiresAt DateTime
+    createdAt DateTime @default(now())
+    player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+    @@index([playerId])
+    @@index([token])
+    @@index([expiresAt])
 }
 
 model Match {

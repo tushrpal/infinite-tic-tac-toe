@@ -51,6 +51,7 @@ const config: Config = {
         mono: ['var(--font-mono)', 'monospace'],
       },
       animation: {
+        'spin': 'spin 1s linear infinite',
         'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
         'slide-in': 'slide-in 0.3s ease-out',
         'slide-out': 'slide-out 0.3s ease-in',
@@ -62,6 +63,10 @@ const config: Config = {
         'cell-remove': 'cell-remove 0.8s ease-in-out',
       },
       keyframes: {
+        'spin': {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
         'pulse-soft': {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.7' },
