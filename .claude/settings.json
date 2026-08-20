@@ -17,7 +17,13 @@
       "Bash(xargs grep -l \"useSession\\\\|getSession\")",
       "Bash(xargs grep -l \"Connected Accounts\\\\|GitHub\")",
       "Bash(netstat -ano)",
-      "PowerShell(taskkill /F /PID 10344)"
+      "PowerShell(taskkill /F /PID 10344)",
+      "Bash(git stash *)",
+      "Bash(corepack pnpm *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm test *)",
+      "Bash(node -e ' *)",
+      "PowerShell(npm test -- minimaxBot.test.ts --run)"
     ]
   }
 }

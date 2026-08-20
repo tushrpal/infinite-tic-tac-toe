@@ -263,12 +263,33 @@ Run local migrations after containers are healthy:
 pnpm --filter @infinite-ttt/backend prisma:migrate
 ```
 
+### Local Docker Setup
+
+From repository root:
+
+```bash
+pnpm docker:up
+```
+
+This starts:
+
+- PostgreSQL on `localhost:5433`
+- Redis on `localhost:6379`
+
+Run local migrations after containers are healthy:
+
+```bash
+pnpm --filter @infinite-ttt/backend prisma:migrate
+```
+
 ### Required Environment Variables
 
 - `DATABASE_URL` - PostgreSQL connection string used by Prisma runtime and migrations
 - `REDIS_URL` - Redis connection string for ranked queue and active match state
 - `PORT` - HTTP server port (default `3000`)
 - `WS_URL` - Public WebSocket URL exposed for clients/health checks
+
+### Cloud Example
 
 ### Cloud Example
 
