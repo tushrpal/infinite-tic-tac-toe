@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "@/styles/globals.css";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ToastProvider } from "@/components/ui/Toast";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 import { PlayerProvider } from "@/components/providers/PlayerProvider";
 import { Navigation } from "@/components/layout/Navigation";
 
@@ -49,16 +50,18 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-surface-base text-text-primary antialiased">
-        <ThemeProvider defaultThemeId="dark">
-          <ToastProvider>
-            <PlayerProvider>
-              <div className="flex flex-col min-h-screen">
-                <Navigation />
-                {children}
-              </div>
-            </PlayerProvider>
-          </ToastProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider defaultThemeId="dark">
+            <ToastProvider>
+              <PlayerProvider>
+                <div className="flex flex-col min-h-screen">
+                  <Navigation />
+                  {children}
+                </div>
+              </PlayerProvider>
+            </ToastProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

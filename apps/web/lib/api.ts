@@ -78,10 +78,25 @@ export async function apiRequest<T>(
     }
 
     if (!response.ok) {
+      let errorData: any = null;
       const errorText = await response.text();
-      const error = new Error(errorText || response.statusText);
-      (error as Error & { status?: number; baseUrl?: string }).status = response.status;
-      (error as Error & { status?: number; baseUrl?: string }).baseUrl = base;
+
+      // Try to parse JSON error response
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        // Not JSON, keep as text
+      }
+
+      const error = new Error(errorData?.error || errorText || response.statusText) as Error & {
+        status?: number;
+        baseUrl?: string;
+        data?: any;
+      };
+
+      error.status = response.status;
+      error.baseUrl = base;
+      error.data = errorData;
 
       const hasFallbackCandidates = index < baseCandidates.length - 1;
       if (hasFallbackCandidates && isLikelyFrontendRouteMiss(response)) {

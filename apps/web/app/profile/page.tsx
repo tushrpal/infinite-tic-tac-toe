@@ -14,6 +14,7 @@ import {
   type PlayerMatchSummary,
   type PlayerStatsProfile,
 } from "@/lib/player";
+import { AccountLinking } from "@/components/profile/AccountLinking";
 
 type Streak = {
   type: "win" | "loss" | "draw";
@@ -300,6 +301,18 @@ function ProfileContent() {
                 <span>{profile.losses}L</span>
               </div>
             </section>
+
+            {/* Account Linking - Only show on own profile */}
+            {viewingOwnProfile && (
+              <AccountLinking
+                playerId={profile.playerId}
+                isAnonymous={profile.isAnonymous ?? true}
+                linkedProviders={{
+                  google: profile.oauthProvider === 'google',
+                  discord: profile.oauthProvider === 'discord',
+                }}
+              />
+            )}
 
             {/* Performance Stats */}
             {matches.length > 0 && (

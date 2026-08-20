@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npx prisma *)",
+      "Bash(npx ts-node --transpile-only -e ' *)",
+      "PowerShell(cd src; npx tsx -e \"import { getPrismaClient } from './storage/prismaClient'; const prisma = getPrismaClient\\(\\); \\(async \\(\\) => { const total = await prisma.match.count\\(\\); console.log\\('Total matches:', total\\); const modes = await prisma.match.findMany\\({ select: { mode: true, isRanked: true }, take: 10 }\\); console.log\\('Sample matches:', JSON.stringify\\(modes, null, 2\\)\\); await prisma.\\\\`\\\\$disconnect\\(\\); }\\)\\(\\);\")",
+      "PowerShell(npx tsx --eval \"import { getPrismaClient } from './src/storage/prismaClient.js'; const prisma = getPrismaClient\\(\\); prisma.match.count\\(\\).then\\(c => console.log\\('Total matches:', c\\)\\); prisma.match.findMany\\({ select: { mode: true }, take: 5 }\\).then\\(m => console.log\\('Sample modes:', JSON.stringify\\(m\\)\\)\\);\")",
+      "PowerShell(cd apps/backend; node -e \"const { getPrismaClient } = require\\('./dist/storage/prismaClient.js'\\); \\(async \\(\\) => { const prisma = getPrismaClient\\(\\); const matches = await prisma.match.findMany\\({ where: { isRanked: true }, select: { id: true, mode: true, isRanked: true, players: { select: { playerId: true } } }, take: 5 }\\); console.log\\('Recent ranked matches:', JSON.stringify\\(matches, null, 2\\)\\); await prisma.\\\\$disconnect\\(\\); }\\)\\(\\);\")",
+      "Bash(git add *)",
+      "Bash(git push *)",
+      "Bash(pnpm build *)",
+      "Bash(npm install *)",
+      "PowerShell(npx prisma migrate resolve --rolled-back 20260819_add_oauth_and_sessions)",
+      "Read(//d/infinite-ttt/apps/web/app/api/auth/**)",
+      "PowerShell(npx prisma studio)",
+      "Bash(xargs grep -l \"useSession\\\\|getSession\")",
+      "Bash(xargs grep -l \"Connected Accounts\\\\|GitHub\")",
+      "Bash(netstat -ano)",
+      "PowerShell(taskkill /F /PID 10344)"
+    ]
+  }
+}
