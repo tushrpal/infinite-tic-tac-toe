@@ -13,6 +13,14 @@ import type {
 } from './types';
 import { EventEmitter, serializeEvent, deserializeEvent } from './events';
 import { getStoredPlayerId } from '@/lib/player';
+import {
+  exponentialBackoffStrategy,
+  fastRetryStrategy,
+  type ReconnectionStrategy,
+  ConnectionHealthMonitor,
+  SessionRecoveryManager,
+  shouldUseConservativeMode,
+} from './reconnection';
 
 // ============================================
 // Configuration
@@ -26,6 +34,9 @@ export interface SocketConfig {
   pingInterval: number;
   pingTimeout: number;
   debug: boolean;
+  reconnectionStrategy?: ReconnectionStrategy;
+  enableHealthMonitoring?: boolean;
+  enableSessionRecovery?: boolean;
 }
 
 const defaultConfig: SocketConfig = {
@@ -36,6 +47,9 @@ const defaultConfig: SocketConfig = {
   pingInterval: 30000,
   pingTimeout: 5000,
   debug: process.env.NODE_ENV === 'development',
+  reconnectionStrategy: shouldUseConservativeMode() ? exponentialBackoffStrategy : fastRetryStrategy,
+  enableHealthMonitoring: true,
+  enableSessionRecovery: true,
 };
 
 function normalizeWsUrl(url: string): string {
@@ -89,6 +103,9 @@ export class GameSocket {
   private eventEmitter: EventEmitter;
   private stateChangeCallbacks: Set<(state: ConnectionState) => void> = new Set();
   private activeMatchId: string | null = null;
+  private healthMonitor: ConnectionHealthMonitor;
+  private sessionRecovery: SessionRecoveryManager;
+  private reconnectionStrategy: ReconnectionStrategy;
 
   constructor(config: Partial<SocketConfig> = {}) {
     this.config = { ...defaultConfig, ...config };
@@ -101,6 +118,9 @@ export class GameSocket {
       lastConnectedAt: null,
       error: null,
     };
+    this.healthMonitor = new ConnectionHealthMonitor();
+    this.sessionRecovery = new SessionRecoveryManager();
+    this.reconnectionStrategy = this.config.reconnectionStrategy || exponentialBackoffStrategy;
   }
 
   // ============================================
@@ -158,6 +178,12 @@ export class GameSocket {
       this.log('Connected');
       this.wsUrlIndex = 0;
       const wasReconnecting = this.connectionState.reconnectAttempts > 0;
+
+      // Record successful connection
+      if (this.config.enableHealthMonitoring) {
+        this.healthMonitor.recordConnection();
+      }
+
       this.updateState({
         status: 'connected',
         reconnectAttempts: 0,
@@ -170,13 +196,23 @@ export class GameSocket {
       if (wasReconnecting) {
         this.attemptMatchReconnect();
       }
+
+      // Update session activity
+      if (this.config.enableSessionRecovery) {
+        this.sessionRecovery.updateActivity();
+      }
     };
 
     socket.onclose = (event) => {
       if (isStaleSocket()) return;
       this.log(`Disconnected: ${event.code} ${event.reason}`);
       this.clearTimers();
-      
+
+      // Record disconnection
+      if (this.config.enableHealthMonitoring) {
+        this.healthMonitor.recordDisconnection();
+      }
+
       if (event.code !== 1000) {
         this.attemptReconnect();
       } else {
@@ -196,24 +232,26 @@ export class GameSocket {
   }
 
   private attemptReconnect(): void {
-    if (this.connectionState.reconnectAttempts >= this.config.reconnectAttempts) {
+    const strategy = this.reconnectionStrategy;
+    const attempts = this.connectionState.reconnectAttempts;
+
+    // Check if we should retry based on strategy
+    if (!strategy.shouldRetry(attempts)) {
       this.updateState({
         status: 'error',
-        error: 'Maximum reconnection attempts reached',
+        error: `Maximum reconnection attempts reached (${attempts} attempts)`,
       });
+      this.log(`Reconnection failed after ${attempts} attempts`);
       return;
     }
 
-    const attempts = this.connectionState.reconnectAttempts + 1;
-    const delay = Math.min(
-      this.config.reconnectDelay * Math.pow(2, attempts - 1),
-      this.config.reconnectDelayMax
-    );
+    const nextAttempt = attempts + 1;
+    const delay = strategy.getDelay(attempts);
 
-    this.log(`Reconnecting in ${delay}ms (attempt ${attempts})`);
+    this.log(`Reconnecting in ${delay}ms (attempt ${nextAttempt} using ${strategy.name} strategy)`);
     this.updateState({
       status: 'reconnecting',
-      reconnectAttempts: attempts,
+      reconnectAttempts: nextAttempt,
     });
 
     this.advanceWsUrl();
@@ -301,6 +339,12 @@ export class GameSocket {
     }
 
     const latency = Date.now() - payload.timestamp;
+
+    // Record latency for health monitoring
+    if (this.config.enableHealthMonitoring) {
+      this.healthMonitor.recordPing(latency);
+    }
+
     this.updateState({ latency });
   }
 
@@ -453,10 +497,77 @@ export class GameSocket {
    */
   setActiveMatch(matchId: string | null): void {
     this.activeMatchId = matchId;
+
+    // Save to session recovery
+    if (this.config.enableSessionRecovery && matchId) {
+      const playerId = getStoredPlayerId();
+      if (playerId) {
+        this.sessionRecovery.saveSession({
+          playerId,
+          matchId,
+          queueState: 'not_in_queue',
+          lastActivity: Date.now(),
+        });
+      }
+    }
   }
 
   getActiveMatch(): string | null {
     return this.activeMatchId;
+  }
+
+  /**
+   * Get connection health metrics
+   */
+  getConnectionHealth() {
+    if (!this.config.enableHealthMonitoring) {
+      return null;
+    }
+    return this.healthMonitor.assessHealth();
+  }
+
+  /**
+   * Get average latency
+   */
+  getAverageLatency(): number {
+    if (!this.config.enableHealthMonitoring) {
+      return this.connectionState.latency;
+    }
+    return this.healthMonitor.getAverageLatency();
+  }
+
+  /**
+   * Reset connection health monitoring
+   */
+  resetHealthMonitoring(): void {
+    if (this.config.enableHealthMonitoring) {
+      this.healthMonitor.reset();
+    }
+  }
+
+  /**
+   * Load and recover session if available
+   */
+  recoverSession(): { playerId: string; matchId: string | null } | null {
+    if (!this.config.enableSessionRecovery) {
+      return null;
+    }
+
+    const session = this.sessionRecovery.loadSession();
+    if (session) {
+      this.log('Recovered session:', {
+        playerId: session.playerId.slice(0, 12),
+        matchId: session.matchId?.slice(0, 12),
+      });
+
+      this.activeMatchId = session.matchId;
+      return {
+        playerId: session.playerId,
+        matchId: session.matchId,
+      };
+    }
+
+    return null;
   }
 
   /**
@@ -523,9 +634,24 @@ export class GameSocket {
   private handleError(message: string, error: unknown): void {
     const errorMessage = error instanceof Error ? error.message : String(error);
     this.log(`Error: ${message}`, errorMessage);
+
+    // Determine if this is a connection error that should trigger reconnection
+    const isConnectionError =
+      message.includes('Connection failed') ||
+      message.includes('WebSocket error');
+
     this.updateState({
-      status: 'error',
+      status: isConnectionError ? 'error' : this.connectionState.status,
       error: `${message}: ${errorMessage}`,
+    });
+
+    // Emit error event for subscribers to handle
+    this.eventEmitter.emit({
+      type: 'ERROR',
+      payload: {
+        message: `${message}: ${errorMessage}`,
+        category: isConnectionError ? 'websocket' : 'unknown',
+      },
     });
   }
 

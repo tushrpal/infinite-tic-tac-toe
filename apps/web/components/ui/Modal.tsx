@@ -77,6 +77,9 @@ export function Modal({
     xl: "max-w-xl",
   };
 
+  // Full screen on mobile for better UX
+  const isMobileFullScreen = size === "lg" || size === "xl";
+
   return (
     <Fragment>
       {/* Overlay */}
@@ -96,6 +99,8 @@ export function Modal({
           "fixed inset-0 z-[201]",
           "flex items-center justify-center",
           "p-4 sm:p-6",
+          // Mobile: reduce padding for more space
+          "max-sm:p-2",
         )}
         onClick={handleOverlayClick}
       >
@@ -108,6 +113,11 @@ export function Modal({
             "rounded-xl shadow-2xl",
             "border border-board-grid",
             "animate-scale-in",
+            // Mobile: fullscreen for large modals
+            isMobileFullScreen && "max-sm:h-full max-sm:max-w-full max-sm:rounded-none",
+            // Better scrolling on mobile
+            "max-h-[90vh] sm:max-h-[85vh]",
+            "flex flex-col",
           )}
           role="dialog"
           aria-modal="true"
@@ -115,7 +125,7 @@ export function Modal({
         >
           {/* Header */}
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between p-4 border-b border-board-grid">
+            <div className="flex items-center justify-between p-4 border-b border-board-grid flex-shrink-0">
               {title && (
                 <h2
                   id="modal-title"
@@ -133,6 +143,8 @@ export function Modal({
                     "hover:bg-board-grid",
                     "transition-colors duration-150",
                     "focus:outline-none focus:ring-2 focus:ring-accent-primary",
+                    // Larger touch target on mobile
+                    "min-w-[44px] min-h-[44px] flex items-center justify-center",
                   )}
                   aria-label="Close modal"
                 >
@@ -142,12 +154,14 @@ export function Modal({
             </div>
           )}
 
-          {/* Body */}
-          <div className="p-4 sm:p-6">{children}</div>
+          {/* Body - Scrollable */}
+          <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+            {children}
+          </div>
 
           {/* Footer */}
           {footer && (
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-board-grid">
+            <div className="flex items-center justify-end gap-3 p-4 border-t border-board-grid flex-shrink-0">
               {footer}
             </div>
           )}

@@ -4,12 +4,14 @@
  * Cell Component
  * Individual cell on the game board
  * Pure renderer - no game logic
+ * Enhanced for mobile touch interactions
  */
 
-import { memo, type MouseEvent, type KeyboardEvent } from "react";
+import { memo, useState, useCallback, type MouseEvent, type KeyboardEvent, type TouchEvent } from "react";
 import { cn } from "@/lib/helpers";
 import type { Player } from "@/ws/types";
 import type { CellUIState } from "@/lib/adapters/gameAdapter";
+import { useTouchDevice } from "@/hooks/useResponsive";
 
 export interface CellProps {
   cell: CellUIState;
@@ -30,6 +32,9 @@ export const Cell = memo(function Cell({
   isHovered = false,
   hoverPreview = null,
 }: CellProps) {
+  const isTouch = useTouchDevice();
+  const [isTouchActive, setIsTouchActive] = useState(false);
+
   const handleClick = (e: MouseEvent) => {
     e.preventDefault();
     console.log("[Cell] clicked", {
@@ -50,6 +55,30 @@ export const Cell = memo(function Cell({
     }
   };
 
+  // Enhanced touch handling for mobile
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    if (cell.isPlayable) {
+      setIsTouchActive(true);
+      // Prevent default to avoid double-tap zoom on mobile
+      e.preventDefault();
+    }
+  }, [cell.isPlayable]);
+
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    setIsTouchActive(false);
+    // Handle the actual click on touch end
+    if (cell.isPlayable && onClick) {
+      e.preventDefault();
+      onClick(row, col);
+    }
+  }, [cell.isPlayable, onClick, row, col]);
+
+  const handleTouchCancel = useCallback(() => {
+    setIsTouchActive(false);
+  }, []);
+
+  const showPreview = (isHovered || (isTouch && isTouchActive)) && hoverPreview;
+
   return (
     <div
       className={cn(
@@ -64,23 +93,35 @@ export const Cell = memo(function Cell({
         cell.isAboutToBeRemoved && "cell--will-remove",
         cell.value === "X" && "cell--x",
         cell.value === "O" && "cell--o",
-        // Hover state
+        // Hover and touch states
         isHovered && cell.isPlayable && "bg-board-cellHover",
+        isTouch && isTouchActive && cell.isPlayable && "bg-board-cellHover scale-105",
+        // Touch optimization
+        isTouch && "touch-manipulation",
+        cell.isPlayable && "active:scale-95",
       )}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
       role="button"
       tabIndex={cell.isPlayable ? 0 : -1}
       aria-label={getCellAriaLabel(cell, row, col)}
       aria-disabled={!cell.isPlayable}
       data-row={row}
       data-col={col}
+      style={{
+        // Ensure minimum touch target size (48x48px recommended)
+        minWidth: isTouch ? "48px" : undefined,
+        minHeight: isTouch ? "48px" : undefined,
+      }}
     >
       {/* Actual mark */}
       {cell.value && <PlayerMark player={cell.value} isNew={cell.isLastMove} />}
 
-      {/* Hover preview */}
-      {!cell.value && isHovered && hoverPreview && (
+      {/* Hover/Touch preview */}
+      {!cell.value && showPreview && (
         <PlayerMark player={hoverPreview} isPreview />
       )}
 
@@ -94,6 +135,11 @@ export const Cell = memo(function Cell({
       {/* About to be removed warning indicator */}
       {cell.isAboutToBeRemoved && (
         <div className="absolute inset-0 bg-accent-warning/20 rounded-[inherit] animate-pulse-soft" />
+      )}
+
+      {/* Touch feedback ripple */}
+      {isTouch && isTouchActive && cell.isPlayable && (
+        <div className="absolute inset-0 bg-accent-primary/10 rounded-[inherit] animate-pulse" />
       )}
     </div>
   );

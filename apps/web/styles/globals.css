@@ -295,14 +295,33 @@ body {
    RESPONSIVE UTILITIES
    ================================================ */
 
+/* Mobile-first adjustments */
 @media (max-width: 640px) {
   :root {
     --board-gap: 2px;
     --cell-radius: 4px;
   }
-  
+
   .board-container {
     max-width: 95vw;
+  }
+
+  /* Larger touch targets on mobile */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better text sizes for readability */
+  body {
+    font-size: 16px; /* Prevents iOS zoom on input focus */
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .board-container {
+    max-width: 80vw;
   }
 }
 
@@ -310,6 +329,29 @@ body {
   :root {
     --board-gap: 6px;
     --cell-radius: 10px;
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-width: 900px) and (orientation: landscape) {
+  .board-container {
+    max-height: 70vh;
+  }
+}
+
+/* Safe area support for notched devices */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .sticky-top {
+    top: env(safe-area-inset-top);
+  }
+
+  .sticky-bottom {
+    bottom: env(safe-area-inset-bottom);
   }
 }
 

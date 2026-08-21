@@ -74,6 +74,10 @@ export async function apiRequest<T>(
       });
     } catch (error) {
       lastNetworkError = error;
+      // Check if this is a network error (offline, DNS failure, etc.)
+      if (error instanceof TypeError) {
+        console.error(`[API] Network error on ${base}${path}:`, error.message);
+      }
       continue;
     }
 
@@ -104,6 +108,13 @@ export async function apiRequest<T>(
         continue;
       }
 
+      // Log detailed error information
+      console.error(`[API] HTTP ${response.status} on ${base}${path}:`, {
+        status: response.status,
+        error: error.message,
+        data: errorData,
+      });
+
       throw error;
     }
 
@@ -114,10 +125,18 @@ export async function apiRequest<T>(
     throw lastHttpError;
   }
 
+  // Network failure - all candidates failed
   const wrapped = new Error(
     `API request failed for ${path}. Tried: ${baseCandidates.join(', ')}`
   );
   (wrapped as Error & { cause?: unknown; status?: number }).cause = lastNetworkError;
   (wrapped as Error & { cause?: unknown; status?: number }).status = 0;
+
+  console.error('[API] All endpoints failed:', {
+    path,
+    candidates: baseCandidates,
+    lastError: lastNetworkError,
+  });
+
   throw wrapped;
 }
