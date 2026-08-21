@@ -6,7 +6,8 @@
     "paths": {
       "@infinite-ttt/game-engine": ["../../packages/game-engine/dist/index.d.ts"],
       "@infinite-ttt/shared": ["../../packages/shared/dist/index.d.ts"],
-      "@infinite-ttt/identity": ["../../packages/identity/dist/index.d.ts"]
+      "@infinite-ttt/identity": ["../../packages/identity/dist/index.d.ts"],
+      "@infinite-ttt/bots": ["../../packages/bots/dist/index.d.ts"]
     },
     "outDir": "dist",
     "rootDir": "src",
@@ -14,5 +15,5 @@
     "esModuleInterop": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "prisma", "prisma.config.ts"]
+  "exclude": ["node_modules", "dist", "prisma", "prisma.config.ts", "**/*.test.ts", "**/*.spec.ts"]
 }
