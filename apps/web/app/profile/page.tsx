@@ -352,10 +352,21 @@ function ProfileContent() {
                       key={match.matchId}
                       className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-board-grid/30 px-4 py-3"
                     >
-                      <div>
-                        <div className="font-medium">{match.matchId}</div>
-                        <div className="text-xs text-text-muted">
-                          {formatRelativeTime(match.createdAt)}
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{match.matchId}</span>
+                            {match.isBotMatch && (
+                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                🤖 {match.botDifficulty && (
+                                  <span className="capitalize">{match.botDifficulty}</span>
+                                )}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-text-muted">
+                            {formatRelativeTime(match.createdAt)}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-6">

@@ -9,7 +9,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useWebSocket, useSocketEvent } from './useWebSocket';
 import { adaptMatchState, adaptMatchResult, type MatchUIState, type MatchResultUIState } from '@/lib/adapters/gameAdapter';
 import { getStoredPlayerId } from '@/lib/player';
-import type { MatchState, Player, Position, GameState, MatchResult } from '@/ws/types';
+import type { MatchState, Player, Position, GameState, MatchResult, Move } from '@/ws/types';
 
 interface UseGameStateOptions {
   matchId: string;
@@ -125,6 +125,49 @@ export function useGameState(options: UseGameStateOptions): UseGameStateReturn {
         return {
           ...prev,
           gameState: payload.gameState,
+        };
+      });
+    }
+  }, [matchId]);
+
+  // Handle move updates (delta updates for performance)
+  useSocketEvent('MOVE_UPDATE', (payload) => {
+    if (payload.matchId === matchId) {
+      setRawMatchState((prev) => {
+        if (!prev) return prev;
+
+        // Apply move to board
+        const newBoard = prev.gameState.board.map(row => [...row]);
+        newBoard[payload.position.row][payload.position.col] = payload.player;
+
+        // Handle removed position (for sliding rule)
+        if (payload.removedPosition) {
+          newBoard[payload.removedPosition.row][payload.removedPosition.col] = null;
+        }
+
+        // Create move entry
+        const newMove: Move = {
+          position: payload.position,
+          player: payload.player,
+          timestamp: Date.now(),
+          moveNumber: payload.moveNumber,
+          removedPosition: payload.removedPosition,
+        };
+
+        // Update game state
+        return {
+          ...prev,
+          gameState: {
+            ...prev.gameState,
+            board: newBoard,
+            currentPlayer: payload.player === 'X' ? 'O' : 'X', // Toggle player
+            moveHistory: [...prev.gameState.moveHistory, newMove],
+            moveCount: payload.moveNumber,
+            isGameOver: payload.isGameOver,
+            winner: payload.winner,
+            winInfo: payload.winInfo,
+            isDraw: payload.isDraw,
+          },
         };
       });
     }

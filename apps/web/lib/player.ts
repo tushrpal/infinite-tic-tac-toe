@@ -34,6 +34,8 @@ export type PlayerMatchSummary = {
   result: 'win' | 'loss' | 'draw';
   ratingChange: number;
   createdAt: number;
+  isBotMatch?: boolean;
+  botDifficulty?: 'easy' | 'medium' | 'hard';
 };
 
 export type OAuthProvider = 'google' | 'discord';

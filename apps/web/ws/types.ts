@@ -57,6 +57,9 @@ export interface PlayerInfo {
   rank?: string;
   avatar?: string;
   isConnected: boolean;
+  isBot?: boolean;
+  botType?: 'random' | 'heuristic' | 'minimax';
+  botDifficulty?: 'easy' | 'medium' | 'hard';
 }
 
 export interface MatchResult {
@@ -90,6 +93,9 @@ export interface MatchState {
   startedAt: number | null;
   turnTimeLimit?: number;
   turnStartedAt?: number;
+  isBotMatch?: boolean;
+  botPlayer?: Player;
+  botMultiplier?: number;
 }
 
 // ============================================
@@ -120,6 +126,7 @@ export type ServerEventType =
   | 'MATCH_FOUND'
   | 'MATCH_JOINED'
   | 'GAME_STATE_UPDATE'
+  | 'MOVE_UPDATE'
   | 'MOVE_ACCEPTED'
   | 'MOVE_REJECTED'
   | 'MATCH_END'
@@ -297,8 +304,13 @@ export interface MatchFoundEvent {
   payload: {
     matchId: string;
     matchState: MatchState;
-    opponent: { username: string };
+    opponent: {
+      username: string;
+      isBot?: boolean;
+      botDifficulty?: 'easy' | 'medium' | 'hard';
+    };
     yourPlayer: Player;
+    isBotMatch?: boolean;
   };
 }
 
@@ -316,6 +328,21 @@ export interface GameStateUpdateEvent {
     matchId: string;
     gameState: GameState;
     lastMove?: Move;
+  };
+}
+
+export interface MoveUpdateEvent {
+  type: 'MOVE_UPDATE';
+  payload: {
+    matchId: string;
+    position: Position;
+    player: Player;
+    moveNumber: number;
+    removedPosition?: Position;
+    isGameOver: boolean;
+    winner: Player | null;
+    winInfo: WinInfo | null;
+    isDraw: boolean;
   };
 }
 
@@ -436,6 +463,7 @@ export type ServerEvent =
   | MatchFoundEvent
   | MatchJoinedEvent
   | GameStateUpdateEvent
+  | MoveUpdateEvent
   | MoveAcceptedEvent
   | MoveRejectedEvent
   | MatchEndEvent

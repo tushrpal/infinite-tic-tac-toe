@@ -53,6 +53,7 @@ const config: Config = {
       animation: {
         'spin': 'spin 1s linear infinite',
         'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
+        'bounce-subtle': 'bounce-subtle 1s ease-in-out infinite',
         'slide-in': 'slide-in 0.3s ease-out',
         'slide-out': 'slide-out 0.3s ease-in',
         'fade-in': 'fade-in 0.2s ease-out',
@@ -70,6 +71,10 @@ const config: Config = {
         'pulse-soft': {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.7' },
+        },
+        'bounce-subtle': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-3px)' },
         },
         'slide-in': {
           '0%': { transform: 'translateY(-10px)', opacity: '0' },

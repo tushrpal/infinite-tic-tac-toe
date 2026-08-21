@@ -111,17 +111,28 @@ function PlayerCard({
             You
           </span>
         )}
+        {info.isBot && (
+          <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
+            🤖 Bot
+          </span>
+        )}
       </div>
 
-      {/* Rank badge */}
-      {info.rank && info.rating && (
+      {/* Bot difficulty badge (replaces rank for bots) */}
+      {info.isBot && info.botDifficulty ? (
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-surface-base">
+          <span className="text-xs font-medium text-text-secondary capitalize">
+            {info.botDifficulty}
+          </span>
+        </div>
+      ) : info.rank && info.rating ? (
         <RankBadge
           rank={info.rank.name}
           color={info.rank.color}
           rating={info.rating}
           size="sm"
         />
-      )}
+      ) : null}
 
       {/* Connection status */}
       <div className="flex items-center gap-1.5">

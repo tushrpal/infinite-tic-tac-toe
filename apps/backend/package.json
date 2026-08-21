@@ -8,6 +8,7 @@
     "dev": "nodemon",
     "start": "node dist/index.js",
     "build": "tsc",
+    "test": "vitest",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
@@ -15,6 +16,7 @@
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.0",
+    "@infinite-ttt/bots": "workspace:*",
     "@infinite-ttt/game-engine": "workspace:*",
     "@infinite-ttt/identity": "workspace:*",
     "@infinite-ttt/shared": "workspace:*",
@@ -36,6 +38,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "vitest": "^2.0.0"
   }
 }

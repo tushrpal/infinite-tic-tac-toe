@@ -43,6 +43,9 @@ export interface PlayerInfo {
   rank?: string;
   avatar?: string;
   isConnected: boolean;
+  isBot?: boolean;
+  botType?: 'random' | 'heuristic' | 'minimax';
+  botDifficulty?: 'easy' | 'medium' | 'hard';
 }
 
 export interface MatchState {
@@ -59,6 +62,9 @@ export interface MatchState {
   spectatorCount: number;
   startedAt: number | null;
   rematchRequestedBy?: Player | null;
+  isBotMatch?: boolean;
+  botPlayer?: Player;
+  botMultiplier?: number;
 }
 
 type EngineState = Infinite3x3State | ExpandingBoardState;

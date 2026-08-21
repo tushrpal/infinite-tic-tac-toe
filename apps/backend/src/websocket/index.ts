@@ -27,6 +27,8 @@ import {
   type RankedMatchFoundEvent,
 } from '../matchmaking/matchmakingService';
 import { calculateEloChange, resolveKFactorByExperience, type MatchOutcome } from '../rating/elo';
+import { botController } from '../bots/botController';
+import { positionToIndex, indexToPosition } from '@infinite-ttt/bots';
 
 // ============================================
 // Types
@@ -81,6 +83,9 @@ interface MatchState {
   spectatorCount: number;
   startedAt: number | null;
   rematchRequestedBy?: Player | null;
+  isBotMatch?: boolean;
+  botPlayer?: Player;
+  botMultiplier?: number;
 }
 
 interface PlayerInfo {
@@ -90,6 +95,9 @@ interface PlayerInfo {
   rank?: string;
   avatar?: string;
   isConnected: boolean;
+  isBot?: boolean;
+  botType?: 'random' | 'heuristic' | 'minimax';
+  botDifficulty?: 'easy' | 'medium' | 'hard';
 }
 
 // Client -> Server events
@@ -696,8 +704,13 @@ class WebSocketManager {
         payload: {
           matchId,
           yourPlayer: 'X',
-          opponent: { username: playerO.username },
+          opponent: {
+            username: playerO.username,
+            isBot: matchState.players.O?.isBot,
+            botDifficulty: matchState.players.O?.botDifficulty,
+          },
           matchState,
+          isBotMatch: matchState.isBotMatch,
         },
       });
     }
@@ -708,8 +721,13 @@ class WebSocketManager {
         payload: {
           matchId,
           yourPlayer: 'O',
-          opponent: { username: playerX.username },
+          opponent: {
+            username: playerX.username,
+            isBot: matchState.players.X?.isBot,
+            botDifficulty: matchState.players.X?.botDifficulty,
+          },
           matchState,
+          isBotMatch: matchState.isBotMatch,
         },
       });
     }
@@ -717,8 +735,13 @@ class WebSocketManager {
 
   private handleRankedMatchFound(event: RankedMatchFoundEvent) {
     const { matchId, matchState, engineState, playerX, playerO } = event;
-    this.matches.set(matchId, matchState as MatchState);
+
+    // Store match state with all properties (including bot flags)
+    this.matches.set(matchId, matchState);
     this.engineStates.set(matchId, engineState);
+
+    console.log(`🎮 Ranked match found: ${matchId.slice(0, 16)}`);
+    console.log(`   isBotMatch: ${matchState.isBotMatch}, botPlayer: ${matchState.botPlayer}`);
 
     const clientX = this.clients.get(playerX.playerId);
     const clientO = this.clients.get(playerO.playerId);
@@ -739,8 +762,13 @@ class WebSocketManager {
         payload: {
           matchId,
           yourPlayer: 'X',
-          opponent: { username: playerO.username },
+          opponent: {
+            username: playerO.username,
+            isBot: matchState.players.O?.isBot,
+            botDifficulty: matchState.players.O?.botDifficulty,
+          },
           matchState,
+          isBotMatch: matchState.isBotMatch,
         },
       });
     }
@@ -751,8 +779,13 @@ class WebSocketManager {
         payload: {
           matchId,
           yourPlayer: 'O',
-          opponent: { username: playerX.username },
+          opponent: {
+            username: playerX.username,
+            isBot: matchState.players.X?.isBot,
+            botDifficulty: matchState.players.X?.botDifficulty,
+          },
           matchState,
+          isBotMatch: matchState.isBotMatch,
         },
       });
     }
@@ -770,9 +803,17 @@ class WebSocketManager {
     setClientId: (id: string) => void
   ) {
     const { matchId, playerId } = payload;
-    const recovered = await this.matchManager.recoverMatch(matchId);
-    const match = recovered?.matchState as MatchState | undefined;
-    const engineState = recovered?.engineState;
+
+    // Check in-memory state first (fresher than Redis for new matches)
+    let match = this.matches.get(matchId);
+    let engineState = this.engineStates.get(matchId);
+
+    // Only recover from Redis if not in memory
+    if (!match || !engineState) {
+      const recovered = await this.matchManager.recoverMatch(matchId);
+      match = recovered?.matchState;
+      engineState = recovered?.engineState;
+    }
 
     if (!match || !engineState) {
       this.send(ws, { type: 'ERROR', payload: { message: 'Match not found' } });
@@ -1139,7 +1180,152 @@ class WebSocketManager {
     // Check if game ended
     if (match.gameState.isGameOver) {
       const endReason = match.gameState.isDraw ? 'draw' : 'win';
+      console.log(`🏁 Player move ended game: winner=${match.gameState.winner}, isDraw=${match.gameState.isDraw}`);
       await this.finalizeMatch(match, match.gameState.winner, endReason);
+    } else if (match.isBotMatch && match.botPlayer) {
+      // If it's a bot match and game is not over, check if it's bot's turn
+      const currentPlayer = getNextPlayer(
+        isMode1(newEngineState) ? newEngineState.currentTurn : (newEngineState as ExpandingBoardState).currentTurn
+      );
+
+      console.log(`🤖 Bot match check: currentPlayer=${currentPlayer}, botPlayer=${match.botPlayer}, isBotMatch=${match.isBotMatch}`);
+
+      if (currentPlayer === match.botPlayer) {
+        console.log(`🤖 Triggering bot move for ${match.botPlayer} in match ${matchId.slice(0, 12)}`);
+        // Bot's turn - trigger bot move after a small delay for natural feel
+        setTimeout(() => {
+          void this.executeBotMove(matchId);
+        }, 300 + Math.random() * 200); // 300-500ms delay
+      }
+    } else {
+      console.log(`⚠️ Not triggering bot move: isBotMatch=${match.isBotMatch}, botPlayer=${match.botPlayer}`);
+    }
+  }
+
+  /**
+   * Execute a bot move
+   * Called automatically when it's the bot's turn
+   */
+  private async executeBotMove(matchId: string): Promise<void> {
+    try {
+      // Get current match state
+      let match = this.matches.get(matchId);
+      let engineState = this.engineStates.get(matchId);
+
+      if (!match || !engineState) {
+        // Recover from Redis if not in memory
+        const recovered = await this.matchManager.recoverMatch(matchId);
+        match = recovered?.matchState as MatchState | undefined;
+        engineState = recovered?.engineState;
+
+        if (!match || !engineState) {
+          console.error(`❌ Bot move failed: match ${matchId.slice(0, 12)} not found`);
+          return;
+        }
+
+        this.matches.set(matchId, match);
+        this.engineStates.set(matchId, engineState);
+      }
+
+      // Verify it's still the bot's turn and game is not over
+      if (match.gameState.isGameOver) {
+        return;
+      }
+
+      if (!match.isBotMatch || !match.botPlayer) {
+        console.error(`❌ executeBotMove called on non-bot match ${matchId.slice(0, 12)}`);
+        return;
+      }
+
+      const currentPlayer = getNextPlayer(
+        isMode1(engineState) ? engineState.currentTurn : (engineState as ExpandingBoardState).currentTurn
+      );
+
+      if (currentPlayer !== match.botPlayer) {
+        console.error(`❌ Bot move triggered but it's not bot's turn in match ${matchId.slice(0, 12)}`);
+        return;
+      }
+
+      // Convert engine state to bot GameState format
+      const botGameState = {
+        board: match.gameState.board,
+        currentTurn: isMode1(engineState) ? engineState.currentTurn : (engineState as ExpandingBoardState).currentTurn,
+        winner: match.gameState.winner,
+        moveHistory: match.gameState.moveHistory,
+      };
+
+      // Compute bot move
+      const moveIndex = await botController.computeMove(matchId, botGameState);
+      const boardSize = match.gameState.boardSize;
+      const position = indexToPosition(moveIndex, boardSize);
+
+      console.log(`🤖 Bot ${match.botPlayer} playing at (${position.row},${position.col}) in match ${matchId.slice(0, 12)}`);
+
+      // Validate bot move
+      if (!validateMove(engineState, match.mode, position, match.botPlayer)) {
+        console.error(`❌ Bot returned invalid move: ${moveIndex} -> (${position.row},${position.col})`);
+        return;
+      }
+
+      // Store old state
+      const oldEngineState = engineState;
+
+      // Apply bot move
+      const newEngineState = executeMove(engineState, match.mode, match.botPlayer, position);
+
+      // Calculate removed position for Mode 1
+      let removedPosition: Position | undefined;
+      if (isMode1(newEngineState) && isMode1(oldEngineState) && match.botPlayer) {
+        const botPlayer = match.botPlayer;
+        const oldMarks = oldEngineState.playerMarks[botPlayer];
+        const newMarks = newEngineState.playerMarks[botPlayer];
+
+        if (oldMarks.length === 3 && newMarks.length === 3) {
+          const removed = oldMarks.find((pos: { position: Position }) =>
+            !newMarks.some((newPos: { position: Position }) =>
+              newPos.position.row === pos.position.row && newPos.position.col === pos.position.col
+            )
+          );
+          removedPosition = removed?.position;
+        }
+      }
+
+      // Update in-memory state
+      this.engineStates.set(matchId, newEngineState);
+      match.gameState = engineToWireState(newEngineState, match.mode);
+
+      // Broadcast bot move to all clients
+      this.broadcastToMatch(matchId, {
+        type: 'MOVE_UPDATE',
+        payload: {
+          matchId,
+          position,
+          player: match.botPlayer,
+          moveNumber: isMode1(newEngineState) ? newEngineState.currentTurn : (newEngineState as ExpandingBoardState).currentTurn,
+          removedPosition,
+          isGameOver: match.gameState.isGameOver,
+          winner: match.gameState.winner,
+          winInfo: match.gameState.winInfo,
+          isDraw: match.gameState.isDraw,
+        },
+      });
+
+      // Persist asynchronously
+      this.matchManager.applyMove(matchId, { matchState: match, engineState: newEngineState })
+        .catch(err => {
+          console.error(`❌ Failed to persist bot move for match ${matchId.slice(0, 12)}:`, err);
+        });
+
+      // Check if bot's move ended the game
+      if (match.gameState.isGameOver) {
+        const endReason = match.gameState.isDraw ? 'draw' : 'win';
+        console.log(`🏁 Bot move ended game: winner=${match.gameState.winner}, isDraw=${match.gameState.isDraw}`);
+        await this.finalizeMatch(match, match.gameState.winner, endReason);
+      } else {
+        console.log(`✅ Bot move complete, game continues. Current player: ${match.gameState.currentPlayer}`);
+      }
+    } catch (error) {
+      console.error(`❌ Bot move execution failed for match ${matchId.slice(0, 12)}:`, error);
     }
   }
 
@@ -1758,6 +1944,12 @@ class WebSocketManager {
     await this.persistCompletedMatch(match, ratingUpdate?.ratingChanges);
     await this.matchManager.endMatch(match.matchId);
 
+    // Cleanup bot instance if this is a bot match
+    if (match.isBotMatch) {
+      botController.cleanup(match.matchId);
+      console.log(`🤖 Cleaned up bot for match ${match.matchId.slice(0, 12)}`);
+    }
+
     setTimeout(() => {
       void this.cleanupMatch(match.matchId);
     }, 60000);
@@ -1799,49 +1991,75 @@ class WebSocketManager {
       return null;
     }
 
+    // For bot matches, only update the human player's rating
+    const isBotMatch = match.isBotMatch;
+    const botMultiplier = match.botMultiplier || 1.0;
+
     const prisma = getPrismaClient();
+
+    // Filter out bot IDs (they start with "bot-")
+    const humanPlayerIds = [xId, oId].filter(id => !id.startsWith('bot-'));
+
+    if (humanPlayerIds.length === 0) {
+      return null; // No human players to update
+    }
+
     const players = await prisma.player.findMany({
-      where: { id: { in: [xId, oId] } },
+      where: { id: { in: humanPlayerIds } },
       select: { id: true, ratingMode1: true, ratingMode2: true },
     });
 
     const playerX = players.find((player) => player.id === xId);
     const playerO = players.find((player) => player.id === oId);
 
-    if (!playerX || !playerO) {
-      return null;
-    }
-
-    // Determine which mode's rating to update
+    // For bot matches, use the human player's rating for both sides
+    // (bots are assigned the same rating as their opponent for fair ELO calc)
     const isMode1 = match.mode === 'MODE_1';
     const mode = isMode1 ? 'mode1' : 'mode2';
-    const xRating = isMode1 ? playerX.ratingMode1 : playerX.ratingMode2;
-    const oRating = isMode1 ? playerO.ratingMode1 : playerO.ratingMode2;
+
+    let xRating: number = 1200; // Default rating
+    let oRating: number = 1200; // Default rating
+
+    if (playerX && playerO) {
+      // PvP match - both players found
+      xRating = isMode1 ? playerX.ratingMode1 : playerX.ratingMode2;
+      oRating = isMode1 ? playerO.ratingMode1 : playerO.ratingMode2;
+    } else if (playerX && !playerO) {
+      // X is human, O is bot
+      xRating = isMode1 ? playerX.ratingMode1 : playerX.ratingMode2;
+      oRating = match.players.O?.rating || xRating; // Bot's rating from match state
+    } else if (!playerX && playerO) {
+      // X is bot, O is human
+      xRating = match.players.X?.rating || oRating; // Bot's rating from match state
+      oRating = isMode1 ? playerO.ratingMode1 : playerO.ratingMode2;
+    } else {
+      return null; // Both are bots (shouldn't happen)
+    }
 
     let outcomeForX: MatchOutcome = 'draw';
     if (winner === 'X') outcomeForX = 'win';
     if (winner === 'O') outcomeForX = 'loss';
 
-    const [xRankedMatches, oRankedMatches] = await Promise.all([
-      prisma.matchPlayer.count({
-        where: {
-          playerId: xId,
-          match: {
-            isRanked: true,
-            mode: mode,
-          },
+    // Get match counts for K-factor (only for human players)
+    const xRankedMatches = playerX ? await prisma.matchPlayer.count({
+      where: {
+        playerId: xId,
+        match: {
+          isRanked: true,
+          mode: mode,
         },
-      }),
-      prisma.matchPlayer.count({
-        where: {
-          playerId: oId,
-          match: {
-            isRanked: true,
-            mode: mode,
-          },
+      },
+    }) : 0;
+
+    const oRankedMatches = playerO ? await prisma.matchPlayer.count({
+      where: {
+        playerId: oId,
+        match: {
+          isRanked: true,
+          mode: mode,
         },
-      }),
-    ]);
+      },
+    }) : 0;
 
     const kFactorX = resolveKFactorByExperience(xRankedMatches);
     const kFactorO = resolveKFactorByExperience(oRankedMatches);
@@ -1850,27 +2068,49 @@ class WebSocketManager {
       kFactorA: kFactorX,
       kFactorB: kFactorO,
     });
-    const newXRating = Math.max(0, xRating + changeA);
-    const newORating = Math.max(0, oRating + changeB);
 
+    // Apply bot multiplier if it's a bot match
+    const finalChangeA = isBotMatch ? Math.round(changeA * botMultiplier) : changeA;
+    const finalChangeB = isBotMatch ? Math.round(changeB * botMultiplier) : changeB;
+
+    const newXRating = Math.max(0, xRating + finalChangeA);
+    const newORating = Math.max(0, oRating + finalChangeB);
+
+    // Update only human players in database
     await prisma.$transaction(async (tx) => {
-      // Update the mode-specific rating field
-      if (isMode1) {
-        await tx.player.update({ where: { id: xId }, data: { ratingMode1: newXRating } });
-        await tx.player.update({ where: { id: oId }, data: { ratingMode1: newORating } });
-      } else {
-        await tx.player.update({ where: { id: xId }, data: { ratingMode2: newXRating } });
-        await tx.player.update({ where: { id: oId }, data: { ratingMode2: newORating } });
+      if (playerX) {
+        if (isMode1) {
+          await tx.player.update({ where: { id: xId }, data: { ratingMode1: newXRating } });
+        } else {
+          await tx.player.update({ where: { id: xId }, data: { ratingMode2: newXRating } });
+        }
+      }
+
+      if (playerO) {
+        if (isMode1) {
+          await tx.player.update({ where: { id: oId }, data: { ratingMode1: newORating } });
+        } else {
+          await tx.player.update({ where: { id: oId }, data: { ratingMode2: newORating } });
+        }
       }
     });
 
-    const formattedXChange = `${changeA >= 0 ? '+' : ''}${changeA}`;
-    const formattedOChange = `${changeB >= 0 ? '+' : ''}${changeB}`;
-    console.log(`[${mode}] Player ${xId}: ${xRating} -> ${newXRating} (${formattedXChange})`);
-    console.log(`[${mode}] Player ${oId}: ${oRating} -> ${newORating} (${formattedOChange})`);
+    const formattedXChange = `${finalChangeA >= 0 ? '+' : ''}${finalChangeA}`;
+    const formattedOChange = `${finalChangeB >= 0 ? '+' : ''}${finalChangeB}`;
+
+    if (isBotMatch) {
+      console.log(`[${mode}] Bot Match (${botMultiplier}x multiplier)`);
+    }
+
+    if (playerX) {
+      console.log(`[${mode}] Player ${xId}: ${xRating} -> ${newXRating} (${formattedXChange})`);
+    }
+    if (playerO) {
+      console.log(`[${mode}] Player ${oId}: ${oRating} -> ${newORating} (${formattedOChange})`);
+    }
 
     return {
-      ratingChanges: { X: changeA, O: changeB },
+      ratingChanges: { X: finalChangeA, O: finalChangeB },
       updatedRatings: { X: newXRating, O: newORating },
     };
   }

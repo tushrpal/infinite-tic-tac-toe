@@ -1,6 +1,9 @@
 import { Modes, getNextPlayer, type ExpandingBoardState, type Infinite3x3State } from '@infinite-ttt/game-engine';
 import { matchManager, type MatchState, type PlayerInfo } from '../match/matchManager';
 import { getRedisClient } from '../redis/redisClient';
+import { resolveForRank, getBotDisplayName } from '@infinite-ttt/bots';
+import { botController } from '../bots/botController';
+import { v4 as uuidv4 } from 'uuid';
 
 type Player = 'X' | 'O';
 type GameMode = 'MODE_1' | 'MODE_2';
@@ -71,6 +74,8 @@ const BASE_RATING_THRESHOLD = 100;
 const MAX_RATING_THRESHOLD = 700;
 const THRESHOLD_STEP = 50;
 const THRESHOLD_STEP_MS = 15_000;
+const BOT_FALLBACK_TIMEOUT_MS = 30_000; // 30 seconds
+const BOT_RATING_MULTIPLIER = 0.6;
 
 function queueModeSegment(mode: GameMode): string {
   return mode === 'MODE_1' ? 'mode1' : 'mode2';
@@ -299,6 +304,29 @@ export class MatchmakingService {
   async processQueue(mode: GameMode): Promise<number> {
     let matchesCreated = 0;
 
+    // Check for bot fallback opportunities first
+    const queue = await this.readQueue(mode);
+    const now = Date.now();
+
+    for (const entry of queue) {
+      const waitTime = now - entry.joinedAt;
+      if (waitTime >= BOT_FALLBACK_TIMEOUT_MS) {
+        // Player has waited long enough, create bot match
+        const removed = await this.tryRemoveSingle(mode, entry.playerId);
+        if (removed) {
+          try {
+            await this.createBotMatch(mode, entry);
+            matchesCreated += 1;
+            console.log(`✅ Created bot match for ${entry.username} after ${Math.round(waitTime / 1000)}s wait`);
+          } catch (error) {
+            console.error('❌ Failed to create bot match, re-queueing player', error);
+            await this.joinQueue(entry.playerId, mode, { username: entry.username, rating: entry.rating });
+          }
+        }
+      }
+    }
+
+    // Then try to match remaining players with each other
     for (let i = 0; i < 50; i++) {
       const queue = await this.readQueue(mode);
       const pair = chooseClosestPair(queue);
@@ -325,6 +353,93 @@ export class MatchmakingService {
     }
 
     return matchesCreated;
+  }
+
+  private async createBotMatch(mode: GameMode, player: RankedQueueEntry): Promise<void> {
+    // Resolve bot difficulty based on player rating
+    const botSelection = resolveForRank(player.rating);
+
+    const matchId = `match_bot_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    const initialEngineState = initEngineState(mode);
+
+    // Player is always X, bot is always O
+    const xInfo: PlayerInfo = {
+      id: player.playerId,
+      username: player.username,
+      rating: player.rating,
+      isConnected: true,
+    };
+
+    const botId = `bot-${uuidv4()}`;
+    const oInfo: PlayerInfo = {
+      id: botId,
+      username: getBotDisplayName(botSelection.botType, botSelection.difficulty),
+      rating: player.rating, // Bot matches player rating for ELO calc
+      isConnected: true,
+      isBot: true,
+      botType: botSelection.botType,
+      botDifficulty: botSelection.difficulty,
+    };
+
+    const matchState: MatchState = {
+      matchId,
+      status: 'active',
+      mode,
+      isRanked: true,
+      players: {
+        X: xInfo,
+        O: oInfo,
+      },
+      gameState: engineToWireState(initialEngineState, mode),
+      spectators: [],
+      spectatorCount: 0,
+      startedAt: Date.now(),
+      isBotMatch: true,
+      botPlayer: 'O',
+      botMultiplier: BOT_RATING_MULTIPLIER,
+    };
+
+    await matchManager.createMatch(matchState, initialEngineState);
+
+    // Register bot instance with bot controller
+    botController.registerBot(matchId, botSelection.instance);
+
+    this.onMatchFound?.({
+      matchId,
+      matchState,
+      engineState: initialEngineState,
+      playerX: player,
+      playerO: {
+        playerId: botId,
+        mode,
+        rating: player.rating,
+        joinedAt: Date.now(),
+        username: oInfo.username,
+      },
+    });
+  }
+
+  private async tryRemoveSingle(mode: GameMode, playerId: string): Promise<boolean> {
+    const qKey = queueKey(mode);
+    const qDataKey = queueDataKey(mode);
+
+    await this.redis.watch(qKey, qDataKey);
+
+    const score = await this.redis.zscore(qKey, playerId);
+
+    if (!score) {
+      await this.redis.unwatch();
+      return false;
+    }
+
+    const result = await this.redis
+      .multi()
+      .zrem(qKey, playerId)
+      .hdel(qDataKey, playerId)
+      .del(playerIndexKey(playerId))
+      .exec();
+
+    return Array.isArray(result);
   }
 
   private async createRankedMatch(mode: GameMode, first: RankedQueueEntry, second: RankedQueueEntry): Promise<void> {

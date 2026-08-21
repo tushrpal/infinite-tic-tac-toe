@@ -1,6 +1,6 @@
 /**
  * Public exports for the bots package
- * 
+ *
  * This is the main entry point for bot implementations.
  */
 
@@ -16,6 +16,15 @@ export { MinimaxBot, createMinimaxBot } from './minimax/minimaxBot.js';
 
 // Difficulty configuration
 export { getConfig, MEDIUM_CONFIG, HARD_CONFIG, DEFAULT_CONFIG } from './heuristic/config.js';
+
+// Bot difficulty resolver (NEW for matchmaking integration)
+export type { BotSelection, BotType } from './core/botResolver.js';
+export {
+  resolveForRank,
+  createBotInstance,
+  getBotDisplayName,
+  BOT_DIFFICULTY_CONFIG
+} from './core/botResolver.js';
 
 // Utility types (for advanced users)
 export type { RandomGenerator } from './random/randomBot.js';

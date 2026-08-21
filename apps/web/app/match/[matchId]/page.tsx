@@ -13,11 +13,13 @@ import { GameBoard } from "@/components/board/GameBoard";
 import { TurnIndicator } from "@/components/hud/TurnIndicator";
 import { ScorePanel } from "@/components/hud/ScorePanel";
 import { MatchTimer } from "@/components/hud/MatchTimer";
+import { BotThinkingIndicator } from "@/components/hud/BotThinkingIndicator";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { useGameState } from "@/hooks/useGameState";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { useBotMatch } from "@/hooks/useBotMatch";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/helpers";
 import type { MatchResultUIState } from "@/lib/adapters/gameAdapter";
@@ -114,6 +116,9 @@ export default function MatchPage() {
     onRematchStarting: handleRematchStarting,
   });
 
+  // Bot match info
+  const botInfo = useBotMatch({ matchState, yourPlayer });
+
   // Handle cell click
   const handleCellClick = useCallback(
     (row: number, col: number) => {
@@ -205,6 +210,11 @@ export default function MatchPage() {
         <div className="flex items-center justify-between">
           <div className="text-sm text-text-muted">
             Match ID: {matchId.slice(0, 8)}...
+            {botInfo.isBotMatch && (
+              <span className="ml-2 text-purple-400">
+                🤖 Bot Match
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-4 text-sm">
             <Link
@@ -220,6 +230,11 @@ export default function MatchPage() {
             </span>
           </div>
         </div>
+
+        {/* Bot Thinking Indicator */}
+        {botInfo.isBotThinking && (
+          <BotThinkingIndicator botDifficulty={botInfo.botDifficulty || 'medium'} />
+        )}
 
         {/* Score Panel */}
         <ScorePanel
@@ -343,10 +358,14 @@ export default function MatchPage() {
 
           <p className="text-lg text-text-secondary mb-6">
             {matchState.winner === yourPlayer
-              ? "Congratulations! You played brilliantly!"
+              ? botInfo.isBotMatch
+                ? `You defeated the ${botInfo.botDifficulty} bot!`
+                : "Congratulations! You played brilliantly!"
               : matchState.isDraw
                 ? "A well-fought battle!"
-                : "Better luck next time!"}
+                : botInfo.isBotMatch
+                  ? `The ${botInfo.botDifficulty} bot won this time. Try again!`
+                  : "Better luck next time!"}
           </p>
 
           {/* Match Stats */}
@@ -374,8 +393,17 @@ export default function MatchPage() {
             </div>
           </div>
 
-          {/* Rematch UI */}
-          {opponentRequestedRematch ? (
+          {/* Bot Match Info */}
+          {botInfo.isBotMatch && (
+            <div className="mb-6 p-3 rounded-lg bg-purple-500/10 border border-purple-500/30 text-center">
+              <p className="text-sm text-purple-400">
+                🤖 Bot match rating changes are reduced (0.6x multiplier)
+              </p>
+            </div>
+          )}
+
+          {/* Rematch UI - Hidden for bot matches */}
+          {!botInfo.isBotMatch && !matchState.isBotMatch && opponentRequestedRematch ? (
             <div className="mb-6 p-4 rounded-xl bg-accent-primary/10 border-2 border-accent-primary animate-pulse">
               <p className="text-lg font-semibold mb-3">
                 🎮 Opponent wants a rematch!
@@ -389,7 +417,7 @@ export default function MatchPage() {
                 </Button>
               </div>
             </div>
-          ) : rematchRequested ? (
+          ) : !botInfo.isBotMatch && !matchState.isBotMatch && rematchRequested ? (
             <div className="mb-6 p-4 rounded-xl bg-surface-elevated">
               <div className="flex items-center justify-center gap-2">
                 <div className="w-5 h-5 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" />
@@ -402,7 +430,7 @@ export default function MatchPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {!rematchRequested && !opponentRequestedRematch && (
+            {!botInfo.isBotMatch && !matchState.isBotMatch && !rematchRequested && !opponentRequestedRematch && (
               <Button
                 size="lg"
                 onClick={requestRematch}
@@ -411,7 +439,7 @@ export default function MatchPage() {
                 🔄 Request Rematch
               </Button>
             )}
-            <Link href={ROUTES.PLAY_ONLINE}>
+            <Link href={matchState.isRanked ? ROUTES.PLAY_RANKED : ROUTES.PLAY_ONLINE}>
               <Button
                 variant="secondary"
                 size="lg"

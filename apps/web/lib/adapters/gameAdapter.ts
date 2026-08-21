@@ -48,12 +48,18 @@ export interface ScoreUIState {
     rating?: number;
     rank?: { name: string; color: string };
     isConnected: boolean;
+    isBot?: boolean;
+    botType?: 'random' | 'heuristic' | 'minimax';
+    botDifficulty?: 'easy' | 'medium' | 'hard';
   };
   playerO: {
     name: string;
     rating?: number;
     rank?: { name: string; color: string };
     isConnected: boolean;
+    isBot?: boolean;
+    botType?: 'random' | 'heuristic' | 'minimax';
+    botDifficulty?: 'easy' | 'medium' | 'hard';
   };
 }
 
@@ -167,6 +173,9 @@ export function adaptScore(matchState: MatchState): ScoreUIState {
         rating: undefined,
         rank: undefined,
         isConnected: false,
+        isBot: undefined,
+        botType: undefined,
+        botDifficulty: undefined,
       };
     }
 
@@ -176,6 +185,9 @@ export function adaptScore(matchState: MatchState): ScoreUIState {
       rating: info.rating,
       rank: rank ? { name: rank.name, color: rank.color } : undefined,
       isConnected: info.isConnected,
+      isBot: info.isBot,
+      botType: info.botType,
+      botDifficulty: info.botDifficulty,
     };
   };
 
