@@ -12,12 +12,21 @@ export function usePlayer() {
     setIsLoading(true);
     setError(null);
 
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      setIsLoading(false);
+      setError('Player data loading timed out');
+    }, 5000); // 5 second timeout
+
     refreshPlayer()
       .then((profile) => {
+        clearTimeout(timeoutId);
         setPlayer(profile);
         setIsLoading(false);
       })
       .catch((err) => {
+        clearTimeout(timeoutId);
+        console.error('[usePlayer] Error:', err);
         setError(err instanceof Error ? err.message : String(err));
         setIsLoading(false);
       });

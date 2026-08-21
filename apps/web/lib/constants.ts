@@ -128,6 +128,7 @@ export const ROUTES = {
   REPLAY: (matchId: string) => `/replay/${matchId}` as const,
   LEADERBOARD: '/leaderboard',
   PROFILE: '/profile',
+  HOW_TO_PLAY: '/how-to-play',
 } as const;
 
 // ============================================

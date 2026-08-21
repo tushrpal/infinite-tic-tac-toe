@@ -6,6 +6,8 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { PlayerProvider } from "@/components/providers/PlayerProvider";
 import { Navigation } from "@/components/layout/Navigation";
+import { ErrorBoundary } from "@/components/errors/ErrorBoundary";
+import { OnboardingProvider } from "@/components/onboarding/OnboardingModal";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -50,18 +52,24 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-surface-base text-text-primary antialiased">
-        <AuthProvider>
-          <ThemeProvider defaultThemeId="dark">
-            <ToastProvider>
-              <PlayerProvider>
-                <div className="flex flex-col min-h-screen">
-                  <Navigation />
-                  {children}
-                </div>
-              </PlayerProvider>
-            </ToastProvider>
-          </ThemeProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <ThemeProvider defaultThemeId="dark">
+              <ToastProvider>
+                <PlayerProvider>
+                  <div className="flex flex-col min-h-screen">
+                    <Navigation />
+                    {children}
+                  </div>
+                  {/* Onboarding loads after main content */}
+                  <OnboardingProvider>
+                    {null}
+                  </OnboardingProvider>
+                </PlayerProvider>
+              </ToastProvider>
+            </ThemeProvider>
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
