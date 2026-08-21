@@ -53,6 +53,12 @@ importers:
       pg:
         specifier: ^8.13.1
         version: 8.23.0
+      prisma:
+        specifier: ^7.0.0
+        version: 7.9.1(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
       uuid:
         specifier: ^9.0.0
         version: 9.0.1
@@ -75,15 +81,9 @@ importers:
       nodemon:
         specifier: ^3.0.2
         version: 3.1.14
-      prisma:
-        specifier: ^7.0.0
-        version: 7.9.1(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@20.19.43)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.3.3
-        version: 5.9.3
 
   apps/cli-runner:
     dependencies:
