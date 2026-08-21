@@ -172,16 +172,17 @@ export async function readPlayerSymbol(): Promise<'X' | 'O' | null> {
 }
 
 /**
- * Read bot choice (1 or 2)
+ * Read bot choice (1, 2, or 3)
  */
-export async function readBotChoice(): Promise<1 | 2 | null> {
+export async function readBotChoice(): Promise<1 | 2 | 3 | null> {
   const input = await readLine();
   const trimmed = input.trim();
-  
+
   if (trimmed === '1') return 1;
   if (trimmed === '2') return 2;
-  
-  console.log('❌ Invalid choice. Please enter 1 or 2.\n');
+  if (trimmed === '3') return 3;
+
+  console.log('❌ Invalid choice. Please enter 1, 2, or 3.\n');
   return null;
 }
 

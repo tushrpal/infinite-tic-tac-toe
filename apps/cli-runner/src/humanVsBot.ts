@@ -7,7 +7,7 @@
 
 import { Modes } from '@infinite-ttt/game-engine';
 import type { Infinite3x3State } from '@infinite-ttt/game-engine';
-import { createRandomBot, createHeuristicBot, Difficulty, getConfig } from '@infinite-ttt/bots';
+import { createRandomBot, createHeuristicBot, createMinimaxBot, Difficulty, getConfig } from '@infinite-ttt/bots';
 import type { Bot } from '@infinite-ttt/bots';
 import type { Player, Move } from '@infinite-ttt/shared';
 import { printBoard } from './printer.js';
@@ -271,7 +271,7 @@ async function runGame(
 }
 
 /**
- * Game setup - choose symbol and difficulty
+ * Game setup - choose symbol and bot type
  */
 async function setupGame(): Promise<{
   humanSymbol: 'X' | 'O';
@@ -282,7 +282,7 @@ async function setupGame(): Promise<{
   // Choose symbol
   promptPlayerSymbol();
   process.stdout.write('> ');
-  
+
   let humanSymbol: 'X' | 'O' | null = null;
   while (humanSymbol === null) {
     humanSymbol = await readPlayerSymbol();
@@ -290,47 +290,63 @@ async function setupGame(): Promise<{
       process.stdout.write('> ');
     }
   }
-  
-  // Choose difficulty
-  promptDifficulty();
+
+  // Choose bot type
+  promptBotChoice();
   process.stdout.write('> ');
-  
-  let difficultyChoice: 1 | 2 | 3 | null = null;
-  while (difficultyChoice === null) {
-    difficultyChoice = await readDifficulty();
-    if (difficultyChoice === null) {
+
+  let botChoice: 1 | 2 | 3 | null = null;
+  while (botChoice === null) {
+    botChoice = await readBotChoice();
+    if (botChoice === null) {
       process.stdout.write('> ');
     }
   }
-  
-  // Map difficulty choice to Difficulty enum and create appropriate bot
-  let difficulty: Difficulty;
+
   let bot: Bot;
   let botType: string;
   let difficultyLabel: string;
-  
-  if (difficultyChoice === 1) {
-    // Easy - Random Bot
-    difficulty = Difficulty.Easy;
+
+  if (botChoice === 1) {
+    // Random Bot (Easy)
     bot = createRandomBot();
     botType = 'Random Bot';
     difficultyLabel = 'Easy';
-  } else if (difficultyChoice === 2) {
-    // Medium - Heuristic Bot with default config
-    difficulty = Difficulty.Medium;
+  } else if (botChoice === 2) {
+    // Heuristic Bot - ask for difficulty
+    promptDifficulty();
+    process.stdout.write('> ');
+
+    let difficultyChoice: 1 | 2 | 3 | null = null;
+    while (difficultyChoice === null) {
+      difficultyChoice = await readDifficulty();
+      if (difficultyChoice === null) {
+        process.stdout.write('> ');
+      }
+    }
+
+    let difficulty: Difficulty;
+    if (difficultyChoice === 1) {
+      difficulty = Difficulty.Easy;
+      difficultyLabel = 'Easy';
+    } else if (difficultyChoice === 2) {
+      difficulty = Difficulty.Medium;
+      difficultyLabel = 'Medium';
+    } else {
+      difficulty = Difficulty.Hard;
+      difficultyLabel = 'Hard';
+    }
+
     const config = getConfig(difficulty);
     bot = createHeuristicBot(config!);
     botType = 'Heuristic Bot';
-    difficultyLabel = 'Medium';
   } else {
-    // Hard - Heuristic Bot with hard config
-    difficulty = Difficulty.Hard;
-    const config = getConfig(difficulty);
-    bot = createHeuristicBot(config!);
-    botType = 'Heuristic Bot';
-    difficultyLabel = 'Hard';
+    // Minimax Bot (Perfect Play)
+    bot = createMinimaxBot(9); // Full depth for 3x3 board
+    botType = 'Minimax Bot';
+    difficultyLabel = 'Perfect Play';
   }
-  
+
   return { humanSymbol, bot, botType, difficulty: difficultyLabel };
 }
 

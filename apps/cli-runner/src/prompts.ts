@@ -35,7 +35,8 @@ export function promptPlayerSymbol(): void {
 export function promptBotChoice(): void {
   console.log('\nChoose your opponent:');
   console.log('  1 - Random Bot (Easy)');
-  console.log('  2 - Heuristic Bot (Medium)');
+  console.log('  2 - Heuristic Bot (Medium/Hard)');
+  console.log('  3 - Minimax Bot (Perfect Play)');
   console.log();
 }
 
