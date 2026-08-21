@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useCallback, useMemo } from 'react';
-import { performanceMonitor } from './performance';
+import { performanceMonitor } from '@/lib/performance';
 
 // ============================================
 // useRenderCount Hook
