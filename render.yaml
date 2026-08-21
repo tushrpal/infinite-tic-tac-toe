@@ -6,7 +6,7 @@ services:
     region: singapore
     healthCheckPath: /health
     autoDeploy: true
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @infinite-ttt/shared exec tsc --build tsconfig.json --force && pnpm --filter @infinite-ttt/game-engine exec tsc --build tsconfig.json --force && pnpm --filter @infinite-ttt/identity exec tsc --build tsconfig.json --force && pnpm --filter @infinite-ttt/backend prisma:generate && pnpm --filter @infinite-ttt/backend build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @infinite-ttt/shared exec tsc --build tsconfig.json --force && pnpm --filter @infinite-ttt/game-engine exec tsc --build tsconfig.json --force && pnpm --filter @infinite-ttt/identity exec tsc --build tsconfig.json --force && pnpm --filter @infinite-ttt/backend prisma:generate && pnpm --filter @infinite-ttt/backend build
     startCommand: pnpm --filter @infinite-ttt/backend prisma:migrate:deploy && pnpm --filter @infinite-ttt/backend start
     envVars:
       - key: NODE_ENV
