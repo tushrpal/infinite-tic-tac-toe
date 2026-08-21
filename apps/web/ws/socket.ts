@@ -649,8 +649,8 @@ export class GameSocket {
     this.eventEmitter.emit({
       type: 'ERROR',
       payload: {
+        code: isConnectionError ? 'websocket' : 'unknown',
         message: `${message}: ${errorMessage}`,
-        category: isConnectionError ? 'websocket' : 'unknown',
       },
     });
   }

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/helpers";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { Route } from "next";
 
 export function OnboardingModal() {
   const {
@@ -33,7 +34,7 @@ export function OnboardingModal() {
   const handleComplete = () => {
     complete();
     if (currentStep?.action?.href) {
-      router.push(currentStep.action.href);
+      router.push(currentStep.action.href as Route);
     }
   };
 

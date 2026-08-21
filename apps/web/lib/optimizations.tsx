@@ -18,18 +18,13 @@ interface LazyLoadOptions {
 export function lazyLoad<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
   options: LazyLoadOptions = {}
-): T {
-  const { fallback = null, onError } = options;
+): any {
+  const { fallback = null } = options;
 
   const LazyComponent = reactLazy(factory);
 
-  const WrappedComponent = (props: any) => (
-    <Suspense fallback={fallback}>
-      <LazyComponent {...props} />
-    </Suspense>
-  );
-
-  return WrappedComponent as unknown as T;
+  return (props: any) =>
+    React.createElement(Suspense, { fallback }, React.createElement(LazyComponent, props));
 }
 
 // ============================================

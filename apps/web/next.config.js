@@ -32,7 +32,6 @@ const nextConfig = {
   // Experimental features
   experimental: {
     typedRoutes: true,
-    optimizeCss: true,
     optimizePackageImports: [
       '@/components',
       '@/hooks',
