@@ -403,7 +403,7 @@ export default function MatchPage() {
           )}
 
           {/* Rematch UI - Hidden for bot matches */}
-          {!botInfo.isBotMatch && !matchState.isBotMatch && opponentRequestedRematch ? (
+          {!botInfo.isBotMatch && opponentRequestedRematch ? (
             <div className="mb-6 p-4 rounded-xl bg-accent-primary/10 border-2 border-accent-primary animate-pulse">
               <p className="text-lg font-semibold mb-3">
                 🎮 Opponent wants a rematch!
@@ -417,7 +417,7 @@ export default function MatchPage() {
                 </Button>
               </div>
             </div>
-          ) : !botInfo.isBotMatch && !matchState.isBotMatch && rematchRequested ? (
+          ) : !botInfo.isBotMatch && rematchRequested ? (
             <div className="mb-6 p-4 rounded-xl bg-surface-elevated">
               <div className="flex items-center justify-center gap-2">
                 <div className="w-5 h-5 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" />
@@ -430,7 +430,7 @@ export default function MatchPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {!botInfo.isBotMatch && !matchState.isBotMatch && !rematchRequested && !opponentRequestedRematch && (
+            {!botInfo.isBotMatch && !rematchRequested && !opponentRequestedRematch && (
               <Button
                 size="lg"
                 onClick={requestRematch}
@@ -439,7 +439,7 @@ export default function MatchPage() {
                 🔄 Request Rematch
               </Button>
             )}
-            <Link href={matchState.isRanked ? ROUTES.PLAY_RANKED : ROUTES.PLAY_ONLINE}>
+            <Link href={ROUTES.PLAY}>
               <Button
                 variant="secondary"
                 size="lg"
