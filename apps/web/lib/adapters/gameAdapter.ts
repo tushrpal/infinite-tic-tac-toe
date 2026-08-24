@@ -75,6 +75,10 @@ export interface MatchUIState {
   winInfo: WinInfo | null;
   spectatorCount: number;
   yourPlayer: Player | null;
+  isRanked?: boolean;
+  isBotMatch?: boolean;
+  botPlayer?: Player | null;
+  botMultiplier?: number;
 }
 
 export interface MatchResultUIState {
@@ -218,6 +222,10 @@ export function adaptMatchState(matchState: MatchState, yourPlayer: Player | nul
     winInfo: matchState.gameState.winInfo ?? null,
     spectatorCount: matchState.spectatorCount ?? 0,
     yourPlayer,
+    isRanked: matchState.isRanked,
+    isBotMatch: matchState.isBotMatch ?? false,
+    botPlayer: matchState.botPlayer ?? null,
+    botMultiplier: matchState.botMultiplier ?? undefined,
   };
 }
 

@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { RankBadge } from "@/components/hud/RankBadge";
+import { BotMatchOfferModal } from "@/components/modals/BotMatchOfferModal";
 import { useWebSocket, useSocketEvent } from "@/hooks/useWebSocket";
 import { usePlayer } from "@/hooks/usePlayer";
 import { ROUTES, RANKS } from "@/lib/constants";
@@ -27,6 +28,15 @@ export default function RankedPlayPage() {
   const [queueState, setQueueState] = useState<QueueState>("idle");
   const [queueTime, setQueueTime] = useState(0);
   const [matchId, setMatchId] = useState<string | null>(null);
+
+  // Bot offer modal state
+  const [showBotOffer, setShowBotOffer] = useState(false);
+  const [botOfferData, setBotOfferData] = useState<{
+    botDifficulty: 'easy' | 'medium' | 'hard';
+    botType: 'random' | 'heuristic' | 'minimax';
+    waitedSeconds: number;
+    offerCount: number;
+  } | null>(null);
 
   // Queue timer
   useEffect(() => {
@@ -63,6 +73,8 @@ export default function RankedPlayPage() {
     (payload) => {
       setQueueState("match-found");
       setMatchId(payload.matchId);
+      // Close bot offer modal if open
+      setShowBotOffer(false);
       // Store match data for the match page to retrieve
       socket.setPendingMatch({
         matchId: payload.matchId,
@@ -74,6 +86,17 @@ export default function RankedPlayPage() {
       }, 1500);
     },
     [router, socket],
+  );
+
+  // Handle bot match offer
+  useSocketEvent(
+    "BOT_MATCH_OFFER",
+    (payload) => {
+      console.log("🤖 Bot offer received:", payload);
+      setBotOfferData(payload);
+      setShowBotOffer(true);
+    },
+    [],
   );
 
   const joinQueue = useCallback(() => {
@@ -90,6 +113,21 @@ export default function RankedPlayPage() {
   const leaveQueue = useCallback(() => {
     socket.leaveQueue();
     setQueueState("idle");
+    setShowBotOffer(false);
+  }, [socket]);
+
+  const acceptBotMatch = useCallback(() => {
+    console.log("✅ Player accepted bot match");
+    socket.send({ type: "ACCEPT_BOT_MATCH" });
+    setShowBotOffer(false);
+    // Match will be created, then MATCH_FOUND event fires
+  }, [socket]);
+
+  const declineBotMatch = useCallback(() => {
+    console.log("⏳ Player declined bot match, continuing to wait");
+    socket.send({ type: "DECLINE_BOT_MATCH" });
+    setShowBotOffer(false);
+    // Player stays in queue, will get another offer in 30s
   }, [socket]);
 
   // Get mode-specific rating based on selected mode
@@ -266,6 +304,19 @@ export default function RankedPlayPage() {
           )}
         </div>
       </div>
+
+      {/* Bot Match Offer Modal */}
+      {botOfferData && (
+        <BotMatchOfferModal
+          isOpen={showBotOffer}
+          botDifficulty={botOfferData.botDifficulty}
+          botType={botOfferData.botType}
+          waitedSeconds={botOfferData.waitedSeconds}
+          offerCount={botOfferData.offerCount}
+          onAccept={acceptBotMatch}
+          onDecline={declineBotMatch}
+        />
+      )}
     </main>
   );
 }

@@ -47,6 +47,7 @@ interface RankedQueueEntry {
   rating: number;
   joinedAt: number;
   username: string;
+  lastBotOfferAt?: number; // Track when we last offered a bot match
 }
 
 interface QueueJoinOptions {
@@ -67,7 +68,17 @@ interface RankedMatchFoundEvent {
   playerO: RankedQueueEntry;
 }
 
+interface BotMatchOfferEvent {
+  playerId: string;
+  mode: GameMode;
+  botDifficulty: 'easy' | 'medium' | 'hard';
+  botType: 'random' | 'heuristic' | 'minimax';
+  waitedMs: number;
+  offerCount: number;
+}
+
 type MatchFoundHandler = (event: RankedMatchFoundEvent) => void;
+type BotOfferHandler = (event: BotMatchOfferEvent) => void;
 
 const DEFAULT_RATING = 1200;
 const BASE_RATING_THRESHOLD = 100;
@@ -252,9 +263,14 @@ function chooseClosestPair(queue: RankedQueueEntry[]): [RankedQueueEntry, Ranked
 export class MatchmakingService {
   private readonly redis = getRedisClient();
   private onMatchFound: MatchFoundHandler | null = null;
+  private onBotOffer: BotOfferHandler | null = null;
 
   setMatchFoundHandler(handler: MatchFoundHandler): void {
     this.onMatchFound = handler;
+  }
+
+  setBotOfferHandler(handler: BotOfferHandler): void {
+    this.onBotOffer = handler;
   }
 
   async joinQueue(playerId: string, mode: GameMode, options?: QueueJoinOptions): Promise<QueueJoinResult> {
@@ -304,25 +320,35 @@ export class MatchmakingService {
   async processQueue(mode: GameMode): Promise<number> {
     let matchesCreated = 0;
 
-    // Check for bot fallback opportunities first
+    // Check for bot offer opportunities first
     const queue = await this.readQueue(mode);
     const now = Date.now();
 
     for (const entry of queue) {
       const waitTime = now - entry.joinedAt;
-      if (waitTime >= BOT_FALLBACK_TIMEOUT_MS) {
-        // Player has waited long enough, create bot match
-        const removed = await this.tryRemoveSingle(mode, entry.playerId);
-        if (removed) {
-          try {
-            await this.createBotMatch(mode, entry);
-            matchesCreated += 1;
-            console.log(`✅ Created bot match for ${entry.username} after ${Math.round(waitTime / 1000)}s wait`);
-          } catch (error) {
-            console.error('❌ Failed to create bot match, re-queueing player', error);
-            await this.joinQueue(entry.playerId, mode, { username: entry.username, rating: entry.rating });
-          }
-        }
+      const timeSinceLastOffer = entry.lastBotOfferAt ? now - entry.lastBotOfferAt : Number.POSITIVE_INFINITY;
+
+      // Send bot offer every 30s (first at 30s, then 60s, 90s, etc.)
+      if (waitTime >= BOT_FALLBACK_TIMEOUT_MS && timeSinceLastOffer >= BOT_FALLBACK_TIMEOUT_MS) {
+        // Send bot offer to player
+        const botSelection = resolveForRank(entry.rating);
+        const offerCount = Math.floor(waitTime / BOT_FALLBACK_TIMEOUT_MS);
+
+        this.onBotOffer?.({
+          playerId: entry.playerId,
+          mode: entry.mode,
+          botDifficulty: botSelection.difficulty,
+          botType: botSelection.botType,
+          waitedMs: waitTime,
+          offerCount,
+        });
+
+        // Update lastBotOfferAt in queue entry
+        entry.lastBotOfferAt = now;
+        const qDataKey = queueDataKey(mode);
+        await this.redis.hset(qDataKey, entry.playerId, JSON.stringify(entry));
+
+        console.log(`🤖 Sent bot offer #${offerCount} to ${entry.username} (${botSelection.difficulty})`);
       }
     }
 
@@ -353,6 +379,44 @@ export class MatchmakingService {
     }
 
     return matchesCreated;
+  }
+
+  /**
+   * Accept bot match offer and create the match
+   * Called when player explicitly accepts bot match from offer modal
+   */
+  async acceptBotMatchOffer(playerId: string): Promise<void> {
+    // Find player in queue
+    const indexedMode = await this.redis.get(playerIndexKey(playerId));
+    if (indexedMode !== 'MODE_1' && indexedMode !== 'MODE_2') {
+      throw new Error('Player not in queue');
+    }
+
+    const mode = indexedMode as GameMode;
+    const qDataKey = queueDataKey(mode);
+    const entryJson = await this.redis.hget(qDataKey, playerId);
+
+    if (!entryJson) {
+      throw new Error('Queue entry not found');
+    }
+
+    const entry: RankedQueueEntry = JSON.parse(entryJson);
+
+    // Remove from queue
+    const removed = await this.tryRemoveSingle(mode, playerId);
+    if (!removed) {
+      throw new Error('Failed to remove player from queue');
+    }
+
+    // Create bot match
+    try {
+      await this.createBotMatch(mode, entry);
+      console.log(`✅ Player ${entry.username} accepted bot match offer`);
+    } catch (error) {
+      console.error('❌ Failed to create bot match after acceptance, re-queueing', error);
+      await this.joinQueue(playerId, mode, { username: entry.username, rating: entry.rating });
+      throw error;
+    }
   }
 
   private async createBotMatch(mode: GameMode, player: RankedQueueEntry): Promise<void> {

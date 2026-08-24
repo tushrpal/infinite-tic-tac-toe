@@ -115,6 +115,9 @@ type ClientEventType =
   | 'REMATCH_ACCEPT'
   | 'REMATCH_DECLINE'
   | 'RECONNECT'
+  | 'ACCEPT_BOT_MATCH'
+  | 'DECLINE_BOT_MATCH'
+  | 'CREATE_PRACTICE_MATCH'
   | 'PING';
 
 interface ClientEvent {
@@ -129,6 +132,7 @@ type ServerEventType =
   | 'QUEUE_STATUS'
   | 'MATCH_FOUND'
   | 'MATCH_JOINED'
+  | 'BOT_MATCH_OFFER'
   | 'GAME_STATE_UPDATE'
   | 'MOVE_UPDATE'
   | 'SPECTATOR_JOINED'
@@ -361,6 +365,9 @@ class WebSocketManager {
     this.matchmakingService.setMatchFoundHandler((event) => {
       this.handleRankedMatchFound(event);
     });
+    this.matchmakingService.setBotOfferHandler((event) => {
+      this.handleBotMatchOffer(event);
+    });
   }
 
   /**
@@ -451,6 +458,18 @@ class WebSocketManager {
 
       case 'LEAVE_QUEUE':
         void this.handleLeaveQueue(clientId);
+        break;
+
+      case 'ACCEPT_BOT_MATCH':
+        void this.handleAcceptBotMatch(clientId);
+        break;
+
+      case 'DECLINE_BOT_MATCH':
+        void this.handleDeclineBotMatch(clientId);
+        break;
+
+      case 'CREATE_PRACTICE_MATCH':
+        void this.handleCreatePracticeMatch(ws, event.payload, setClientId);
         break;
 
       case 'JOIN_MATCH':
@@ -640,6 +659,42 @@ class WebSocketManager {
   }
 
   /**
+   * Handle player accepting a bot match offer
+   */
+  private async handleAcceptBotMatch(playerId: string) {
+    const client = this.clients.get(playerId);
+    if (!client?.ws) {
+      return;
+    }
+
+    try {
+      console.log(`✅ Player ${playerId.slice(0, 8)} accepted bot match offer`);
+      await this.matchmakingService.acceptBotMatchOffer(playerId);
+      // Match creation triggers the normal MATCH_FOUND flow
+    } catch (error) {
+      console.error('❌ Failed to accept bot match', error);
+      this.send(client.ws, {
+        type: 'ERROR',
+        payload: { message: 'Failed to create bot match. Please try again.' },
+      });
+    }
+  }
+
+  /**
+   * Handle player declining a bot match offer
+   */
+  private async handleDeclineBotMatch(playerId: string) {
+    const client = this.clients.get(playerId);
+    if (!client?.ws) {
+      return;
+    }
+
+    console.log(`⏳ Player ${playerId.slice(0, 8)} declined bot match offer, continuing to wait`);
+    // Player stays in queue, will get another offer in 30s
+    // No action needed - they just dismiss the modal
+  }
+
+  /**
    * Try to match players in a queue
    */
   private tryMatch(queueKey: string) {
@@ -792,6 +847,36 @@ class WebSocketManager {
 
     console.log(`🏆 Ranked match created: ${matchId.slice(0, 16)}`);
     console.log(`   X: ${playerX.username} (${playerX.rating}) vs O: ${playerO.username} (${playerO.rating})`);
+  }
+
+  /**
+   * Handle bot match offer event from matchmaking service
+   * Sends offer modal to player who's been waiting 30s+
+   */
+  private handleBotMatchOffer(event: {
+    playerId: string;
+    mode: GameMode;
+    botDifficulty: 'easy' | 'medium' | 'hard';
+    botType: 'random' | 'heuristic' | 'minimax';
+    waitedMs: number;
+    offerCount: number;
+  }) {
+    const client = this.clients.get(event.playerId);
+    if (!client?.ws) {
+      return;
+    }
+
+    console.log(`🤖 Sending bot offer #${event.offerCount} to ${event.playerId.slice(0, 8)} (${event.botDifficulty})`);
+
+    this.send(client.ws, {
+      type: 'BOT_MATCH_OFFER',
+      payload: {
+        botDifficulty: event.botDifficulty,
+        botType: event.botType,
+        waitedSeconds: Math.round(event.waitedMs / 1000),
+        offerCount: event.offerCount,
+      },
+    });
   }
 
   /**
@@ -1370,10 +1455,19 @@ class WebSocketManager {
     }
 
     const match = this.matches.get(payload.matchId);
-    
+
     if (!match || match.status !== 'completed') {
       if (client?.ws) {
         this.send(client.ws, { type: 'ERROR', payload: { message: 'Match not found or not completed' } });
+      }
+      return;
+    }
+
+    // Reject rematch requests for bot matches
+    if (match.isBotMatch) {
+      console.log(`❌ Rematch rejected: ${playerId.slice(0, 8)} tried to rematch a bot match`);
+      if (client?.ws) {
+        this.send(client.ws, { type: 'ERROR', payload: { message: 'Cannot rematch against bots. Please find a new match.' } });
       }
       return;
     }

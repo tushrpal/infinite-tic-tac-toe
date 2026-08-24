@@ -299,6 +299,16 @@ export interface QueueStatusEvent {
   };
 }
 
+export interface BotMatchOfferEvent {
+  type: 'BOT_MATCH_OFFER';
+  payload: {
+    botDifficulty: 'easy' | 'medium' | 'hard';
+    botType: 'random' | 'heuristic' | 'minimax';
+    waitedSeconds: number;
+    offerCount: number;
+  };
+}
+
 export interface MatchFoundEvent {
   type: 'MATCH_FOUND';
   payload: {
@@ -460,6 +470,7 @@ export type ServerEvent =
   | QueueJoinedEvent
   | QueueLeftEvent
   | QueueStatusEvent
+  | BotMatchOfferEvent
   | MatchFoundEvent
   | MatchJoinedEvent
   | GameStateUpdateEvent
