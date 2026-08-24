@@ -123,6 +123,7 @@ export const ROUTES = {
   PLAY_LOCAL: '/play/local',
   PLAY_ONLINE: '/play/online',
   PLAY_RANKED: '/play/ranked',
+  PLAY_PRACTICE: '/play/practice',
   MATCH: (matchId: string) => `/match/${matchId}` as const,
   WATCH: (matchId: string) => `/watch/${matchId}` as const,
   REPLAY: (matchId: string) => `/replay/${matchId}` as const,
@@ -161,13 +162,13 @@ export const API_ENDPOINTS = {
 
 export const RANKS = {
   TIERS: [
-    { name: 'Bronze', minRating: 0, color: '#cd7f32' },
-    { name: 'Silver', minRating: 1000, color: '#c0c0c0' },
-    { name: 'Gold', minRating: 1200, color: '#ffd700' },
+    { name: 'Bronze', minRating: 400, color: '#cd7f32' },
+    { name: 'Silver', minRating: 800, color: '#c0c0c0' },
+    { name: 'Gold', minRating: 1000, color: '#ffd700' },
     { name: 'Platinum', minRating: 1400, color: '#e5e4e2' },
-    { name: 'Diamond', minRating: 1600, color: '#b9f2ff' },
-    { name: 'Master', minRating: 1800, color: '#9966cc' },
-    { name: 'Grandmaster', minRating: 2000, color: '#ff4444' },
+    { name: 'Diamond', minRating: 1800, color: '#b9f2ff' },
+    { name: 'Master', minRating: 2200, color: '#9966cc' },
+    { name: 'Grandmaster', minRating: 3000, color: '#ff4444' },
   ],
-  DEFAULT_RATING: 1000,
+  DEFAULT_RATING: 200,
 } as const;

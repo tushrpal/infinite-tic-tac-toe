@@ -20,8 +20,8 @@ model Player {
     isAnonymous   Boolean       @default(true)
     lastLoginAt   DateTime?
 
-    ratingMode1   Int           @default(1200)
-    ratingMode2   Int           @default(1200)
+    ratingMode1   Int           @default(200)
+    ratingMode2   Int           @default(200)
     createdAt     DateTime      @default(now())
     updatedAt     DateTime      @updatedAt
     matches       MatchPlayer[]

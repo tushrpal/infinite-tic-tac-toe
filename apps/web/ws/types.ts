@@ -84,6 +84,7 @@ export interface MatchState {
   matchId: string;
   status: MatchStatus;
   mode: GameMode;
+  isRanked: boolean;
   players: {
     X: PlayerInfo | null;
     O: PlayerInfo | null;
@@ -105,6 +106,9 @@ export interface MatchState {
 export type ClientEventType =
   | 'JOIN_QUEUE'
   | 'LEAVE_QUEUE'
+  | 'ACCEPT_BOT_MATCH'
+  | 'DECLINE_BOT_MATCH'
+  | 'CREATE_PRACTICE_MATCH'
   | 'JOIN_MATCH'
   | 'JOIN_AS_SPECTATOR'
   | 'LEAVE_MATCH'
@@ -123,6 +127,7 @@ export type ServerEventType =
   | 'QUEUE_JOINED'
   | 'QUEUE_LEFT'
   | 'QUEUE_STATUS'
+  | 'BOT_MATCH_OFFER'
   | 'MATCH_FOUND'
   | 'MATCH_JOINED'
   | 'GAME_STATE_UPDATE'
@@ -255,9 +260,32 @@ export interface ReconnectEvent {
   };
 }
 
+export interface AcceptBotMatchEvent {
+  type: 'ACCEPT_BOT_MATCH';
+  payload?: object;
+}
+
+export interface DeclineBotMatchEvent {
+  type: 'DECLINE_BOT_MATCH';
+  payload?: object;
+}
+
+export interface CreatePracticeMatchEvent {
+  type: 'CREATE_PRACTICE_MATCH';
+  payload: {
+    playerId: string;
+    username?: string;
+    mode: GameMode;
+    botDifficulty: 'easy' | 'medium' | 'hard';
+  };
+}
+
 export type ClientEvent =
   | JoinQueueEvent
   | LeaveQueueEvent
+  | AcceptBotMatchEvent
+  | DeclineBotMatchEvent
+  | CreatePracticeMatchEvent
   | JoinMatchEvent
   | LeaveMatchEvent
   | MakeMoveEvent

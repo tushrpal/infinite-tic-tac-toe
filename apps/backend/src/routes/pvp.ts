@@ -40,7 +40,7 @@ function toApiMode(mode: 'MODE_1' | 'MODE_2'): 'mode1' | 'mode2' {
   return mode === 'MODE_1' ? 'mode1' : 'mode2';
 }
 
-const DEFAULT_RATING = 1200;
+const DEFAULT_RATING = 200;
 
 async function loadPlayerInfo(playerId: string, mode: 'mode1' | 'mode2'): Promise<{ id: string; username: string; rating: number } | null> {
   const prisma = getPrismaClient();

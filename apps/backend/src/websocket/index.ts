@@ -354,7 +354,7 @@ class WebSocketManager {
   // Disconnect timeout duration (60 seconds)
   private readonly DISCONNECT_TIMEOUT = 60000;
   private readonly MATCHMAKING_TICK_MS = 3000;
-  private readonly DEFAULT_RATING = 1200;
+  private readonly DEFAULT_RATING = 200;
   private matchmakingTick: ReturnType<typeof setInterval> | null = null;
   
   // Match ID counter
@@ -400,7 +400,10 @@ class WebSocketManager {
       });
 
       ws.on('close', () => {
-        void this.handleDisconnect(clientId);
+        // Ensure cleanup completes before allowing next operations
+        this.handleDisconnect(clientId).catch((err) => {
+          console.error(`❌ Error during disconnect cleanup for ${clientId.slice(0, 8)}:`, err);
+        });
       });
 
       ws.on('error', (error) => {
@@ -695,6 +698,171 @@ class WebSocketManager {
   }
 
   /**
+   * Handle CREATE_PRACTICE_MATCH
+   * Creates an instant unranked bot match with chosen difficulty
+   */
+  private async handleCreatePracticeMatch(
+    ws: WebSocket,
+    payload: { playerId: string; username?: string; mode: GameMode; botDifficulty: 'easy' | 'medium' | 'hard' },
+    setClientId: (id: string) => void
+  ): Promise<void> {
+    const { playerId, username = 'Player', mode = 'MODE_1', botDifficulty = 'medium' } = payload;
+
+    try {
+      const playerProfile = await this.loadPlayerProfile(playerId);
+      if (!playerProfile) {
+        this.send(ws, {
+          type: 'ERROR',
+          payload: { message: 'Player not found. Create a player before starting practice mode.' },
+        });
+        return;
+      }
+
+      const resolvedUsername = playerProfile.displayName || username || 'Player';
+      const resolvedRating = playerProfile.rating ?? this.DEFAULT_RATING;
+
+      const existingClient = this.clients.get(playerId);
+      if (existingClient?.matchId && existingClient.role === 'spectator') {
+        await this.removeSpectatorFromMatch(existingClient.matchId, playerId, true);
+      }
+
+      // Register client
+      setClientId(playerId);
+      this.clients.set(playerId, {
+        ws,
+        playerId,
+        username: resolvedUsername,
+        matchId: null,
+        inQueue: false,
+        role: 'player',
+      });
+
+      // Map difficulty to bot type
+      const botTypeMap: Record<'easy' | 'medium' | 'hard', 'random' | 'heuristic' | 'minimax'> = {
+        easy: 'random',
+        medium: 'heuristic',
+        hard: 'minimax',
+      };
+      const botType = botTypeMap[botDifficulty];
+
+      // Create instant unranked bot match
+      const matchId = `match_practice_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      const initialEngineState = initEngineState(mode);
+
+      // Player is always X, bot is always O
+      const xInfo: PlayerInfo = {
+        id: playerId,
+        username: resolvedUsername,
+        rating: resolvedRating,
+        isConnected: true,
+      };
+
+      const botId = `bot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const botDisplayName = this.getBotDisplayName(botType, botDifficulty);
+
+      const oInfo: PlayerInfo = {
+        id: botId,
+        username: botDisplayName,
+        rating: resolvedRating, // Bot matches player rating
+        isConnected: true,
+        isBot: true,
+        botType: botType,
+        botDifficulty: botDifficulty,
+      };
+
+      const matchState: MatchState = {
+        matchId,
+        status: 'active',
+        mode,
+        isRanked: false, // Practice matches are UNRANKED
+        players: {
+          X: xInfo,
+          O: oInfo,
+        },
+        gameState: engineToWireState(initialEngineState, mode),
+        spectators: [],
+        spectatorCount: 0,
+        startedAt: Date.now(),
+        isBotMatch: true,
+        botPlayer: 'O',
+        // No botMultiplier since it's unranked - ratings won't change anyway
+      };
+
+      this.matches.set(matchId, matchState);
+      this.engineStates.set(matchId, initialEngineState);
+      await this.matchManager.createMatch(matchState, initialEngineState);
+
+      // Register bot instance with bot controller
+      const botInstance = this.createBotInstance(botType, botDifficulty);
+      botController.registerBot(matchId, botInstance);
+
+      // Update client state
+      const client = this.clients.get(playerId);
+      if (client) {
+        client.matchId = matchId;
+        client.inQueue = false;
+      }
+
+      console.log(`🎮 Practice match created: ${matchId.slice(0, 16)} (${botDifficulty} bot)`);
+      console.log(`   X: ${resolvedUsername} vs O: ${botDisplayName}`);
+
+      // Send MATCH_FOUND to player
+      this.send(ws, {
+        type: 'MATCH_FOUND',
+        payload: {
+          matchId,
+          yourPlayer: 'X',
+          opponent: {
+            username: botDisplayName,
+            isBot: true,
+            botDifficulty: botDifficulty,
+          },
+          matchState,
+          isBotMatch: true,
+        },
+      });
+    } catch (error) {
+      console.error('❌ Failed to create practice match', error);
+      this.send(ws, {
+        type: 'ERROR',
+        payload: { message: 'Failed to create practice match. Please try again.' },
+      });
+    }
+  }
+
+  /**
+   * Get bot display name based on type and difficulty
+   */
+  private getBotDisplayName(botType: 'random' | 'heuristic' | 'minimax', difficulty: 'easy' | 'medium' | 'hard'): string {
+    const nameMap = {
+      random: 'Random Bot',
+      heuristic: 'Tactical Bot',
+      minimax: 'Strategic Bot',
+    };
+    const difficultyLabel = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+    return `${nameMap[botType]} (${difficultyLabel})`;
+  }
+
+  /**
+   * Create bot instance based on type and difficulty
+   */
+  private createBotInstance(botType: 'random' | 'heuristic' | 'minimax', difficulty: 'easy' | 'medium' | 'hard'): any {
+    // Import bot classes
+    const { RandomBot, HeuristicBot, MinimaxBot } = require('@infinite-ttt/bots');
+
+    switch (botType) {
+      case 'random':
+        return new RandomBot();
+      case 'heuristic':
+        return new HeuristicBot();
+      case 'minimax':
+        return new MinimaxBot();
+      default:
+        return new RandomBot();
+    }
+  }
+
+  /**
    * Try to match players in a queue
    */
   private tryMatch(queueKey: string) {
@@ -862,7 +1030,10 @@ class WebSocketManager {
     offerCount: number;
   }) {
     const client = this.clients.get(event.playerId);
-    if (!client?.ws) {
+
+    // Check if client exists, has active WebSocket, is in queue, and socket is open
+    if (!client?.ws || !client.inQueue || client.ws.readyState !== WebSocket.OPEN) {
+      console.log(`⏭️  Skipping bot offer #${event.offerCount} for ${event.playerId.slice(0, 8)} - client disconnected or not in queue`);
       return;
     }
 
@@ -1677,10 +1848,14 @@ class WebSocketManager {
         queue.splice(index, 1);
       }
     }
-    await this.matchmakingService.leaveQueue(playerId);
 
-    // Mark socket as null (player may reconnect)
+    console.log(`🗑️ Removing ${playerId.slice(0, 8)} from ranked queue...`);
+    await this.matchmakingService.leaveQueue(playerId);
+    console.log(`✅ Successfully removed ${playerId.slice(0, 8)} from ranked queue`);
+
+    // Mark socket as null and clear queue flag (player may reconnect)
     client.ws = null;
+    client.inQueue = false;
 
     if (client.matchId && client.role === 'spectator') {
       const matchId = client.matchId;

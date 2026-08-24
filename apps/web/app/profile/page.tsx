@@ -352,19 +352,51 @@ function ProfileContent() {
                       key={match.matchId}
                       className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-board-grid/30 px-4 py-3"
                     >
-                      <div className="flex items-center gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{match.matchId}</span>
-                            {match.isBotMatch && (
-                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                                🤖 {match.botDifficulty && (
-                                  <span className="capitalize">{match.botDifficulty}</span>
-                                )}
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {/* Opponent info */}
+                            <div className="flex flex-col min-w-0">
+                              {match.isBotMatch ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">vs Bot</span>
+                                  {match.botDifficulty && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 capitalize">
+                                      {match.botDifficulty}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <>
+                                  <span className="font-medium truncate">
+                                    vs {match.opponentDisplayName || match.opponentUsername || 'Unknown Player'}
+                                  </span>
+                                  {match.opponentUsername && match.opponentDisplayName && (
+                                    <span className="text-xs text-text-muted">
+                                      @{match.opponentUsername}
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+
+                            {/* Match type badges */}
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {match.isRanked ? (
+                                <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-accent-primary/20 text-accent-primary border border-accent-primary/30">
+                                  Ranked
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-board-grid text-text-muted">
+                                  {match.isBotMatch ? 'Practice' : 'Casual'}
+                                </span>
+                              )}
+                              <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-board-grid/60 text-text-secondary">
+                                {match.mode === 'mode1' ? 'Mode 1' : 'Mode 2'}
                               </span>
-                            )}
+                            </div>
                           </div>
-                          <div className="text-xs text-text-muted">
+                          <div className="text-xs text-text-muted mt-0.5">
                             {formatRelativeTime(match.createdAt)}
                           </div>
                         </div>

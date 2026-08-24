@@ -7,6 +7,12 @@ type PlayerMatchSummary = {
   result: MatchResultSummary;
   ratingChange: number;
   createdAt: number;
+  mode: string;
+  isRanked: boolean;
+  isBotMatch: boolean;
+  botDifficulty?: 'easy' | 'medium' | 'hard';
+  opponentUsername?: string;
+  opponentDisplayName?: string;
 };
 
 const DEFAULT_LIMIT = 20;
@@ -29,10 +35,26 @@ export async function getPlayerMatches(playerId: string, limit?: number): Promis
     select: {
       matchId: true,
       ratingChange: true,
+      playerType: true,
       match: {
         select: {
           winner: true,
           createdAtMs: true,
+          mode: true,
+          isRanked: true,
+          difficulty: true,
+          players: {
+            select: {
+              playerId: true,
+              playerType: true,
+              player: {
+                select: {
+                  username: true,
+                  displayName: true,
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -52,11 +74,28 @@ export async function getPlayerMatches(playerId: string, limit?: number): Promis
       result = winnerId === playerId ? 'win' : 'loss';
     }
 
+    // Find opponent (the other player in the match)
+    const opponent = matchPlayer.match?.players?.find(
+      (p) => p.playerId !== playerId
+    );
+
+    // Detect bot matches: check playerType OR username pattern
+    const isBotMatch = opponent?.playerType === 'bot' ||
+                       (opponent?.player?.username?.startsWith('bot-') ?? false);
+    const difficulty = matchPlayer.match?.difficulty;
+    const botDifficulty = isBotMatch && difficulty ? (difficulty as 'easy' | 'medium' | 'hard') : undefined;
+
     return {
       matchId: matchPlayer.matchId,
       result,
       ratingChange: matchPlayer.ratingChange ?? 0,
       createdAt: Number(matchPlayer.match?.createdAtMs ?? 0n),
+      mode: matchPlayer.match?.mode ?? 'mode1',
+      isRanked: matchPlayer.match?.isRanked ?? false,
+      isBotMatch,
+      botDifficulty,
+      opponentUsername: opponent?.player?.username,
+      opponentDisplayName: opponent?.player?.displayName ?? undefined,
     };
   });
 }

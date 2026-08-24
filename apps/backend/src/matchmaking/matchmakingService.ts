@@ -80,7 +80,7 @@ interface BotMatchOfferEvent {
 type MatchFoundHandler = (event: RankedMatchFoundEvent) => void;
 type BotOfferHandler = (event: BotMatchOfferEvent) => void;
 
-const DEFAULT_RATING = 1200;
+const DEFAULT_RATING = 200;
 const BASE_RATING_THRESHOLD = 100;
 const MAX_RATING_THRESHOLD = 700;
 const THRESHOLD_STEP = 50;
@@ -330,6 +330,15 @@ export class MatchmakingService {
 
       // Send bot offer every 30s (first at 30s, then 60s, 90s, etc.)
       if (waitTime >= BOT_FALLBACK_TIMEOUT_MS && timeSinceLastOffer >= BOT_FALLBACK_TIMEOUT_MS) {
+        // Verify player is still in queue before sending offer (prevents race condition on disconnect)
+        const qKey = queueKey(mode);
+        const stillInQueue = await this.redis.zscore(qKey, entry.playerId);
+
+        if (!stillInQueue) {
+          // Player left queue (disconnected) - skip offer
+          continue;
+        }
+
         // Send bot offer to player
         const botSelection = resolveForRank(entry.rating);
         const offerCount = Math.floor(waitTime / BOT_FALLBACK_TIMEOUT_MS);
@@ -347,8 +356,6 @@ export class MatchmakingService {
         entry.lastBotOfferAt = now;
         const qDataKey = queueDataKey(mode);
         await this.redis.hset(qDataKey, entry.playerId, JSON.stringify(entry));
-
-        console.log(`🤖 Sent bot offer #${offerCount} to ${entry.username} (${botSelection.difficulty})`);
       }
     }
 
