@@ -4,6 +4,8 @@ import { createServer as createHttpServer } from 'http';
 import { wsManager } from './websocket';
 import { getPrismaClient } from './storage/prismaClient';
 import { getRedisClient } from './redis/redisClient';
+import { startChallengeExpiryJob, stopChallengeExpiryJob } from './jobs/challengeExpiry';
+import { startPrivateMatchExpiryJob, stopPrivateMatchExpiryJob } from './jobs/privateMatchExpiry';
 
 const DEFAULT_PORT = 3000;
 
@@ -52,6 +54,10 @@ void bootstrapDependencies()
     httpServer.listen(PORT, () => {
       console.log(`Backend running on http://localhost:${PORT}`);
       console.log(`WebSocket endpoint: ${WS_URL}`);
+
+      // Start background jobs
+      startChallengeExpiryJob();
+      startPrivateMatchExpiryJob();
     });
   })
   .catch(() => {
@@ -75,6 +81,10 @@ process.on('uncaughtException', (error) => {
 process.on('SIGTERM', () => {
   const prisma = getPrismaClient();
   const redis = getRedisClient();
+
+  // Stop background jobs
+  stopChallengeExpiryJob();
+  stopPrivateMatchExpiryJob();
 
   httpServer.close(async () => {
     try {

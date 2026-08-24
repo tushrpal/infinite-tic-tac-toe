@@ -8,6 +8,7 @@
 import { Fragment, useEffect, useCallback, type ReactNode } from "react";
 import { cn } from "@/lib/helpers";
 import { UI } from "@/lib/constants";
+import { useFocusTrap, useFocusReturn } from "@/lib/accessibility";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -32,6 +33,10 @@ export function Modal({
   showCloseButton = true,
   footer,
 }: ModalProps) {
+  // Accessibility: trap focus within modal and return focus on close
+  const modalRef = useFocusTrap(isOpen);
+  useFocusReturn(isOpen);
+
   // Handle escape key
   useEffect(() => {
     if (!closeOnEscape || !isOpen) return;
@@ -106,6 +111,7 @@ export function Modal({
       >
         {/* Modal Content */}
         <div
+          ref={modalRef as React.RefObject<HTMLDivElement>}
           className={cn(
             "relative w-full",
             sizeStyles[size],
@@ -122,6 +128,7 @@ export function Modal({
           role="dialog"
           aria-modal="true"
           aria-labelledby={title ? "modal-title" : undefined}
+          aria-describedby="modal-description"
         >
           {/* Header */}
           {(title || showCloseButton) && (

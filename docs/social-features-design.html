@@ -1,0 +1,1285 @@
+<title>Social Features: Technical Design</title>
+
+<style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --border: #e5e5e5;
+  --text-primary: #171717;
+  --text-secondary: #525252;
+  --text-tertiary: #737373;
+  --accent: #2563eb;
+  --accent-dim: #dbeafe;
+  --code-bg: #f5f5f5;
+  --success: #16a34a;
+  --warning: #ea580c;
+  --critical: #dc2626;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0a0a;
+    --surface: #171717;
+    --border: #262626;
+    --text-primary: #fafafa;
+    --text-secondary: #a3a3a3;
+    --text-tertiary: #737373;
+    --accent: #60a5fa;
+    --accent-dim: #1e3a8a;
+    --code-bg: #262626;
+    --success: #22c55e;
+    --warning: #fb923c;
+    --critical: #ef4444;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --surface: #171717;
+  --border: #262626;
+  --text-primary: #fafafa;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #737373;
+  --accent: #60a5fa;
+  --accent-dim: #1e3a8a;
+  --code-bg: #262626;
+  --success: #22c55e;
+  --warning: #fb923c;
+  --critical: #ef4444;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+header {
+  margin-bottom: 48px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+h1 {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 12px;
+  text-wrap: balance;
+}
+
+.subtitle {
+  font-size: 17px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 48px 0 16px;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 32px 0 12px;
+  color: var(--text-primary);
+}
+
+h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 24px 0 8px;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  font-size: 13px;
+}
+
+p {
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+}
+
+ul, ol {
+  margin: 16px 0;
+  padding-left: 24px;
+}
+
+li {
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+
+code {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+pre {
+  background: var(--code-bg);
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 16px 0;
+  border: 1px solid var(--border);
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 16px 0;
+}
+
+.schema {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  margin: 16px 0;
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 13px;
+}
+
+.schema-title {
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: 160px 120px 1fr;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.field:last-child {
+  border-bottom: none;
+}
+
+.field-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.field-type {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.field-desc {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.endpoint {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  margin: 12px 0;
+}
+
+.endpoint-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.method {
+  font-weight: 700;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
+.method.get { background: var(--success); color: white; }
+.method.post { background: var(--accent); color: white; }
+.method.delete { background: var(--critical); color: white; }
+.method.ws { background: var(--warning); color: white; }
+
+.endpoint-path {
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.endpoint-desc {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-right: 8px;
+  margin-bottom: 8px;
+}
+
+.badge.high { background: var(--critical); color: white; }
+.badge.medium { background: var(--warning); color: white; }
+.badge.low { background: var(--accent-dim); color: var(--accent); }
+
+.flow {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 20px;
+  margin: 16px 0;
+}
+
+.flow-step {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+
+.flow-step:last-child {
+  margin-bottom: 0;
+}
+
+.flow-number {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.flow-content {
+  flex: 1;
+}
+
+.flow-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.flow-desc {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 14px;
+}
+
+thead {
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+}
+
+th {
+  text-align: left;
+  padding: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 24px 0;
+}
+
+.toc-title {
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.toc a {
+  color: var(--accent);
+  text-decoration: none;
+  display: block;
+  padding: 6px 0;
+}
+
+.toc a:hover {
+  text-decoration: underline;
+}
+
+.highlight {
+  background: var(--accent-dim);
+  padding: 16px;
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+  margin: 16px 0;
+}
+
+.highlight-title {
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .field {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .endpoint-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>
+
+<div class="container">
+  <header>
+    <h1>Social Features: Technical Design</h1>
+    <p class="subtitle">Friend system, challenges, private matches, and recent opponents for Infinite Tic-Tac-Toe</p>
+  </header>
+
+  <div class="toc">
+    <div class="toc-title">Contents</div>
+    <a href="#overview">Overview</a>
+    <a href="#schema">Database Schema</a>
+    <a href="#api">REST API Endpoints</a>
+    <a href="#websocket">WebSocket Events</a>
+    <a href="#features">Feature Specifications</a>
+    <a href="#ux">UX Flows</a>
+    <a href="#implementation">Implementation Plan</a>
+    <a href="#security">Security Considerations</a>
+  </div>
+
+  <section id="overview">
+    <h2>Overview</h2>
+    <p>This document specifies the design and implementation of four interconnected social features that will increase player retention and engagement:</p>
+
+    <div class="card">
+      <h3>Friend System</h3>
+      <p>Players can send friend requests, accept/decline invitations, view their friends list, and remove friends. Online status indicators show which friends are currently active.</p>
+    </div>
+
+    <div class="card">
+      <h3>Challenge System</h3>
+      <p>Players can challenge specific friends to matches. Challenges support game mode selection (mode1/mode2) and can be accepted, declined, or expire after 5 minutes.</p>
+    </div>
+
+    <div class="card">
+      <h3>Private Matches</h3>
+      <p>Players can create shareable match links that friends can join directly, bypassing the matchmaking queue. Supports custom game modes and spectator access.</p>
+    </div>
+
+    <div class="card">
+      <h3>Recent Opponents</h3>
+      <p>Automatically tracks the last 20 opponents for each player, with quick actions to add as friend or challenge to rematch.</p>
+    </div>
+  </section>
+
+  <section id="schema">
+    <h2>Database Schema</h2>
+    <p>New Prisma schema additions to <code>apps/backend/prisma/schema.prisma</code>:</p>
+
+    <div class="schema">
+      <div class="schema-title">Friendship</div>
+      <div class="field">
+        <div class="field-name">id</div>
+        <div class="field-type">String @id</div>
+        <div class="field-desc">UUID primary key</div>
+      </div>
+      <div class="field">
+        <div class="field-name">requesterId</div>
+        <div class="field-type">String</div>
+        <div class="field-desc">Player who sent request</div>
+      </div>
+      <div class="field">
+        <div class="field-name">addresseeId</div>
+        <div class="field-type">String</div>
+        <div class="field-desc">Player who received request</div>
+      </div>
+      <div class="field">
+        <div class="field-name">status</div>
+        <div class="field-type">FriendStatus</div>
+        <div class="field-desc">PENDING | ACCEPTED | DECLINED | BLOCKED</div>
+      </div>
+      <div class="field">
+        <div class="field-name">createdAt</div>
+        <div class="field-type">DateTime</div>
+        <div class="field-desc">Request timestamp</div>
+      </div>
+      <div class="field">
+        <div class="field-name">respondedAt</div>
+        <div class="field-type">DateTime?</div>
+        <div class="field-desc">Accept/decline timestamp</div>
+      </div>
+    </div>
+
+    <div class="schema">
+      <div class="schema-title">Challenge</div>
+      <div class="field">
+        <div class="field-name">id</div>
+        <div class="field-type">String @id</div>
+        <div class="field-desc">UUID primary key</div>
+      </div>
+      <div class="field">
+        <div class="field-name">challengerId</div>
+        <div class="field-type">String</div>
+        <div class="field-desc">Player issuing challenge</div>
+      </div>
+      <div class="field">
+        <div class="field-name">challengedId</div>
+        <div class="field-type">String</div>
+        <div class="field-desc">Player being challenged</div>
+      </div>
+      <div class="field">
+        <div class="field-name">mode</div>
+        <div class="field-type">Int</div>
+        <div class="field-desc">1 or 2 (game mode)</div>
+      </div>
+      <div class="field">
+        <div class="field-name">status</div>
+        <div class="field-type">ChallengeStatus</div>
+        <div class="field-desc">PENDING | ACCEPTED | DECLINED | EXPIRED | CANCELLED</div>
+      </div>
+      <div class="field">
+        <div class="field-name">matchId</div>
+        <div class="field-type">String?</div>
+        <div class="field-desc">Created match ID (once accepted)</div>
+      </div>
+      <div class="field">
+        <div class="field-name">expiresAt</div>
+        <div class="field-type">DateTime</div>
+        <div class="field-desc">Auto-expire after 5 minutes</div>
+      </div>
+      <div class="field">
+        <div class="field-name">createdAt</div>
+        <div class="field-type">DateTime</div>
+        <div class="field-desc">Challenge timestamp</div>
+      </div>
+    </div>
+
+    <div class="schema">
+      <div class="schema-title">PrivateMatch</div>
+      <div class="field">
+        <div class="field-name">id</div>
+        <div class="field-type">String @id</div>
+        <div class="field-desc">Short code (6 chars, alphanumeric)</div>
+      </div>
+      <div class="field">
+        <div class="field-name">creatorId</div>
+        <div class="field-type">String</div>
+        <div class="field-desc">Player who created the private match</div>
+      </div>
+      <div class="field">
+        <div class="field-name">mode</div>
+        <div class="field-type">Int</div>
+        <div class="field-desc">1 or 2 (game mode)</div>
+      </div>
+      <div class="field">
+        <div class="field-name">matchId</div>
+        <div class="field-type">String?</div>
+        <div class="field-desc">Actual match ID once opponent joins</div>
+      </div>
+      <div class="field">
+        <div class="field-name">status</div>
+        <div class="field-type">PrivateMatchStatus</div>
+        <div class="field-desc">WAITING | ACTIVE | EXPIRED</div>
+      </div>
+      <div class="field">
+        <div class="field-name">expiresAt</div>
+        <div class="field-type">DateTime</div>
+        <div class="field-desc">Link expires after 15 minutes</div>
+      </div>
+      <div class="field">
+        <div class="field-name">createdAt</div>
+        <div class="field-type">DateTime</div>
+        <div class="field-desc">Creation timestamp</div>
+      </div>
+    </div>
+
+    <div class="schema">
+      <div class="schema-title">RecentOpponent</div>
+      <div class="field">
+        <div class="field-name">id</div>
+        <div class="field-type">String @id</div>
+        <div class="field-desc">UUID primary key</div>
+      </div>
+      <div class="field">
+        <div class="field-name">playerId</div>
+        <div class="field-type">String</div>
+        <div class="field-desc">Player whose history this is</div>
+      </div>
+      <div class="field">
+        <div class="field-name">opponentId</div>
+        <div class="field-type">String</div>
+        <div class="field-desc">The opponent player</div>
+      </div>
+      <div class="field">
+        <div class="field-name">matchId</div>
+        <div class="field-type">String</div>
+        <div class="field-desc">Reference to the match</div>
+      </div>
+      <div class="field">
+        <div class="field-name">lastPlayedAt</div>
+        <div class="field-type">DateTime</div>
+        <div class="field-desc">Most recent match timestamp</div>
+      </div>
+    </div>
+
+    <div class="highlight">
+      <div class="highlight-title">Migration Notes</div>
+      <p>Add unique constraints: <code>@@unique([requesterId, addresseeId])</code> on Friendship to prevent duplicate friend requests, and <code>@@unique([playerId, opponentId])</code> on RecentOpponent to prevent duplicate entries.</p>
+    </div>
+  </section>
+
+  <section id="api">
+    <h2>REST API Endpoints</h2>
+
+    <h3>Friend System</h3>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/friends/request</span>
+      </div>
+      <div class="endpoint-desc">Send a friend request to another player</div>
+      <pre><code>{
+  "addresseeId": "player-uuid"
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/friends</span>
+      </div>
+      <div class="endpoint-desc">Get current player's friends list (status=ACCEPTED only)</div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/friends/requests</span>
+      </div>
+      <div class="endpoint-desc">Get pending friend requests (incoming and outgoing)</div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/friends/respond</span>
+      </div>
+      <div class="endpoint-desc">Accept or decline a friend request</div>
+      <pre><code>{
+  "friendshipId": "friendship-uuid",
+  "action": "ACCEPT" | "DECLINE"
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method delete">DELETE</span>
+        <span class="endpoint-path">/friends/:friendshipId</span>
+      </div>
+      <div class="endpoint-desc">Remove a friend or cancel a pending request</div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/friends/block</span>
+      </div>
+      <div class="endpoint-desc">Block a player (prevents friend requests and challenges)</div>
+      <pre><code>{
+  "blockedId": "player-uuid"
+}</code></pre>
+    </div>
+
+    <h3>Challenge System</h3>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/challenges/create</span>
+      </div>
+      <div class="endpoint-desc">Challenge a friend to a match</div>
+      <pre><code>{
+  "challengedId": "player-uuid",
+  "mode": 1 | 2
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/challenges</span>
+      </div>
+      <div class="endpoint-desc">Get active challenges (sent and received, status=PENDING)</div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/challenges/respond</span>
+      </div>
+      <div class="endpoint-desc">Accept or decline a challenge</div>
+      <pre><code>{
+  "challengeId": "challenge-uuid",
+  "action": "ACCEPT" | "DECLINE"
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method delete">DELETE</span>
+        <span class="endpoint-path">/challenges/:challengeId</span>
+      </div>
+      <div class="endpoint-desc">Cancel a pending challenge (challenger only)</div>
+    </div>
+
+    <h3>Private Matches</h3>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/private-matches/create</span>
+      </div>
+      <div class="endpoint-desc">Create a private match with shareable link</div>
+      <pre><code>{
+  "mode": 1 | 2
+}</code></pre>
+      <p style="margin-top:12px; font-size:13px; color:var(--text-secondary);">Returns: <code>{ code: "ABC123", url: "/join/ABC123" }</code></p>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/private-matches/join/:code</span>
+      </div>
+      <div class="endpoint-desc">Join a private match using the 6-character code</div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/private-matches/:code</span>
+      </div>
+      <div class="endpoint-desc">Get private match details (for validation before joining)</div>
+    </div>
+
+    <h3>Recent Opponents</h3>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/recent-opponents</span>
+      </div>
+      <div class="endpoint-desc">Get last 20 unique opponents with match details</div>
+      <p style="margin-top:12px; font-size:13px; color:var(--text-secondary);">Returns array sorted by lastPlayedAt DESC, includes opponent profile and match outcome</p>
+    </div>
+  </section>
+
+  <section id="websocket">
+    <h2>WebSocket Events</h2>
+
+    <h3>Client → Server</h3>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method ws">WS</span>
+        <span class="endpoint-path">FRIEND_REQUEST</span>
+      </div>
+      <div class="endpoint-desc">Alternative real-time friend request (also triggers notification)</div>
+      <pre><code>{
+  "addresseeId": "player-uuid"
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method ws">WS</span>
+        <span class="endpoint-path">CHALLENGE_CREATE</span>
+      </div>
+      <div class="endpoint-desc">Send challenge via WebSocket for instant notification</div>
+      <pre><code>{
+  "challengedId": "player-uuid",
+  "mode": 1 | 2
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method ws">WS</span>
+        <span class="endpoint-path">CHALLENGE_RESPOND</span>
+      </div>
+      <div class="endpoint-desc">Accept/decline challenge via WebSocket</div>
+      <pre><code>{
+  "challengeId": "challenge-uuid",
+  "action": "ACCEPT" | "DECLINE"
+}</code></pre>
+    </div>
+
+    <h3>Server → Client</h3>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method ws">WS</span>
+        <span class="endpoint-path">FRIEND_REQUEST_RECEIVED</span>
+      </div>
+      <div class="endpoint-desc">Notify player of incoming friend request</div>
+      <pre><code>{
+  "friendship": {
+    "id": "friendship-uuid",
+    "requester": { "id": "...", "username": "...", "displayName": "..." }
+  }
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method ws">WS</span>
+        <span class="endpoint-path">FRIEND_REQUEST_ACCEPTED</span>
+      </div>
+      <div class="endpoint-desc">Notify requester that their friend request was accepted</div>
+      <pre><code>{
+  "friendship": {
+    "id": "friendship-uuid",
+    "friend": { "id": "...", "username": "...", "displayName": "..." }
+  }
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method ws">WS</span>
+        <span class="endpoint-path">FRIEND_ONLINE</span>
+      </div>
+      <div class="endpoint-desc">Notify when a friend comes online</div>
+      <pre><code>{
+  "friendId": "player-uuid"
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method ws">WS</span>
+        <span class="endpoint-path">FRIEND_OFFLINE</span>
+      </div>
+      <div class="endpoint-desc">Notify when a friend goes offline</div>
+      <pre><code>{
+  "friendId": "player-uuid"
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method ws">WS</span>
+        <span class="endpoint-path">CHALLENGE_RECEIVED</span>
+      </div>
+      <div class="endpoint-desc">Notify player of incoming challenge</div>
+      <pre><code>{
+  "challenge": {
+    "id": "challenge-uuid",
+    "challenger": { "id": "...", "username": "...", "displayName": "..." },
+    "mode": 1 | 2,
+    "expiresAt": "2026-08-24T12:05:00Z"
+  }
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method ws">WS</span>
+        <span class="endpoint-path">CHALLENGE_ACCEPTED</span>
+      </div>
+      <div class="endpoint-desc">Notify challenger that challenge was accepted + match created</div>
+      <pre><code>{
+  "challengeId": "challenge-uuid",
+  "matchId": "match-uuid"
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method ws">WS</span>
+        <span class="endpoint-path">CHALLENGE_DECLINED</span>
+      </div>
+      <div class="endpoint-desc">Notify challenger that challenge was declined</div>
+      <pre><code>{
+  "challengeId": "challenge-uuid"
+}</code></pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method ws">WS</span>
+        <span class="endpoint-path">CHALLENGE_EXPIRED</span>
+      </div>
+      <div class="endpoint-desc">Notify both players that challenge expired (5 min timeout)</div>
+      <pre><code>{
+  "challengeId": "challenge-uuid"
+}</code></pre>
+    </div>
+  </section>
+
+  <section id="features">
+    <h2>Feature Specifications</h2>
+
+    <h3>Friend System</h3>
+
+    <div class="card">
+      <h4>Requirements</h4>
+      <ul>
+        <li>Bidirectional friendship (both players must be friends to see each other)</li>
+        <li>Friend request must be sent → pending → accepted by addressee</li>
+        <li>Players can only send one friend request per addressee at a time</li>
+        <li>Friend limit: 200 friends per player</li>
+        <li>Anonymous players can have friends, but cannot send requests to OAuth players</li>
+        <li>Online status indicators (green dot) for friends currently connected via WebSocket</li>
+        <li>Display friend count badge in navbar</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h4>Business Rules</h4>
+      <ul>
+        <li>Cannot send friend request to yourself</li>
+        <li>Cannot send friend request if already friends or request is pending</li>
+        <li>Cannot send friend request to blocked player</li>
+        <li>Removing a friend deletes the Friendship record (not soft delete)</li>
+        <li>Friend requests never expire (player must manually decline)</li>
+        <li>When player blocks another, all existing friendships and pending requests are deleted</li>
+      </ul>
+    </div>
+
+    <h3>Challenge System</h3>
+
+    <div class="card">
+      <h4>Requirements</h4>
+      <ul>
+        <li>Can only challenge players who are friends (status=ACCEPTED)</li>
+        <li>Challenge includes game mode selection (mode1 or mode2)</li>
+        <li>Challenges expire after 5 minutes if not accepted</li>
+        <li>Challenger can cancel challenge before it's accepted</li>
+        <li>Challenged player receives real-time notification via WebSocket</li>
+        <li>Accepting creates match immediately (bypasses matchmaking queue)</li>
+        <li>Players can have max 3 pending outgoing challenges at once</li>
+        <li>Show challenge notification toast with accept/decline buttons</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h4>Business Rules</h4>
+      <ul>
+        <li>Cannot challenge offline friends (must check online status first)</li>
+        <li>Cannot challenge friend who is currently in a match</li>
+        <li>Cannot challenge same friend if challenge is already pending</li>
+        <li>Accepting challenge removes both players from any matchmaking queues</li>
+        <li>Created match is always unranked (ranked matches only via queue)</li>
+        <li>Background job expires challenges every 30 seconds (check expiresAt)</li>
+      </ul>
+    </div>
+
+    <h3>Private Matches</h3>
+
+    <div class="card">
+      <h4>Requirements</h4>
+      <ul>
+        <li>Creator selects game mode when creating link</li>
+        <li>Generate 6-character alphanumeric code (e.g., "A3X9K2")</li>
+        <li>Link format: <code>https://yourdomain.com/join/A3X9K2</code></li>
+        <li>Links expire after 15 minutes of creation</li>
+        <li>Only one player can join (first come first serve)</li>
+        <li>Creator can share link via copy button or social share</li>
+        <li>Display "Waiting for opponent..." UI while link is active</li>
+        <li>Allow spectators to join via same link after match starts</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h4>Business Rules</h4>
+      <ul>
+        <li>Private matches are always unranked</li>
+        <li>Cannot join your own private match link</li>
+        <li>Anonymous players can create and join private matches</li>
+        <li>Creator can cancel link before opponent joins (transitions to EXPIRED)</li>
+        <li>Once match starts, link remains valid for spectators only</li>
+        <li>Background job expires links every 60 seconds (check expiresAt)</li>
+      </ul>
+    </div>
+
+    <h3>Recent Opponents</h3>
+
+    <div class="card">
+      <h4>Requirements</h4>
+      <ul>
+        <li>Automatically track last 20 unique opponents per player</li>
+        <li>Update after each match completion (not when match starts)</li>
+        <li>Show opponent profile, rating, last played timestamp, match outcome</li>
+        <li>Quick actions: "Add Friend" button, "Challenge" button</li>
+        <li>Display in sidebar or dedicated "Recent" tab</li>
+        <li>Sort by lastPlayedAt DESC (most recent first)</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h4>Business Rules</h4>
+      <ul>
+        <li>Bot opponents are NOT tracked (only real players)</li>
+        <li>Playing same opponent multiple times updates lastPlayedAt (no duplicate entries)</li>
+        <li>Oldest opponent is removed when 21st unique opponent is added</li>
+        <li>Practice matches and private matches both count toward recent opponents</li>
+        <li>If opponent deletes account, show "[Deleted User]" placeholder</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="ux">
+    <h2>UX Flows</h2>
+
+    <h3>Friend Request Flow</h3>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-number">1</div>
+        <div class="flow-content">
+          <div class="flow-title">Player A searches for Player B</div>
+          <div class="flow-desc">Via leaderboard, recent opponents, or dedicated player search</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">2</div>
+        <div class="flow-content">
+          <div class="flow-title">Player A clicks "Add Friend" button</div>
+          <div class="flow-desc">POST /friends/request with Player B's ID</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">3</div>
+        <div class="flow-content">
+          <div class="flow-title">Player B receives notification</div>
+          <div class="flow-desc">WebSocket FRIEND_REQUEST_RECEIVED + red badge on friends icon</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">4</div>
+        <div class="flow-content">
+          <div class="flow-title">Player B reviews request in friends panel</div>
+          <div class="flow-desc">Shows Player A's profile, rating, win rate, mutual friends count</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">5</div>
+        <div class="flow-content">
+          <div class="flow-title">Player B accepts or declines</div>
+          <div class="flow-desc">POST /friends/respond → status updates to ACCEPTED or DECLINED</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">6</div>
+        <div class="flow-content">
+          <div class="flow-title">Player A receives acceptance notification</div>
+          <div class="flow-desc">WebSocket FRIEND_REQUEST_ACCEPTED → both players now see each other in friends list</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Challenge Flow</h3>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-number">1</div>
+        <div class="flow-content">
+          <div class="flow-title">Player A opens friends list</div>
+          <div class="flow-desc">Green dot indicates Player B is online and available</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">2</div>
+        <div class="flow-content">
+          <div class="flow-title">Player A clicks "Challenge" on Player B</div>
+          <div class="flow-desc">Modal opens: select game mode (mode1 or mode2) + confirm</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">3</div>
+        <div class="flow-content">
+          <div class="flow-title">Challenge sent</div>
+          <div class="flow-desc">POST /challenges/create → Challenge record created with PENDING status</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">4</div>
+        <div class="flow-content">
+          <div class="flow-title">Player B receives toast notification</div>
+          <div class="flow-desc">WebSocket CHALLENGE_RECEIVED → "PlayerA challenged you to Mode 1!" with Accept/Decline buttons</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">5</div>
+        <div class="flow-content">
+          <div class="flow-title">Player B clicks Accept</div>
+          <div class="flow-desc">POST /challenges/respond → Match created immediately, both players redirected</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">6</div>
+        <div class="flow-content">
+          <div class="flow-title">Match starts</div>
+          <div class="flow-desc">WebSocket MATCH_FOUND → both players load game board, challenge status → ACCEPTED</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Private Match Flow</h3>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-number">1</div>
+        <div class="flow-content">
+          <div class="flow-title">Player A clicks "Create Private Match"</div>
+          <div class="flow-desc">Modal opens: select game mode + generate link</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">2</div>
+        <div class="flow-content">
+          <div class="flow-title">Link generated</div>
+          <div class="flow-desc">POST /private-matches/create → returns code "A3X9K2" and full URL</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">3</div>
+        <div class="flow-content">
+          <div class="flow-title">Player A shares link</div>
+          <div class="flow-desc">Copy button or share to Discord/Slack/Twitter. Player A sees "Waiting for opponent..." screen</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">4</div>
+        <div class="flow-content">
+          <div class="flow-title">Player B opens link</div>
+          <div class="flow-desc">GET /private-matches/A3X9K2 → validates code, shows creator info + mode</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">5</div>
+        <div class="flow-content">
+          <div class="flow-title">Player B clicks "Join Match"</div>
+          <div class="flow-desc">POST /private-matches/join/A3X9K2 → creates match, assigns X/O, updates status to ACTIVE</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">6</div>
+        <div class="flow-content">
+          <div class="flow-title">Match starts</div>
+          <div class="flow-desc">Both players redirected to game board via WebSocket MATCH_FOUND</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="implementation">
+    <h2>Implementation Plan</h2>
+
+    <h3>Phase 1: Database &amp; Backend Foundation</h3>
+    <span class="badge high">Week 1</span>
+    <ul>
+      <li>Add Prisma schema models (Friendship, Challenge, PrivateMatch, RecentOpponent)</li>
+      <li>Create and run database migration</li>
+      <li>Implement friend system REST endpoints (6 routes)</li>
+      <li>Implement challenge system REST endpoints (4 routes)</li>
+      <li>Implement private match REST endpoints (3 routes)</li>
+      <li>Implement recent opponents endpoint (1 route)</li>
+      <li>Add validation middleware (friend limit, rate limiting, block checks)</li>
+      <li>Unit tests for all new endpoints</li>
+    </ul>
+
+    <h3>Phase 2: WebSocket Integration</h3>
+    <span class="badge high">Week 2</span>
+    <ul>
+      <li>Extend WebSocket manager with 8 new events (client → server)</li>
+      <li>Extend WebSocket manager with 10 new events (server → client)</li>
+      <li>Implement online status tracking (connected players Set in Redis)</li>
+      <li>Implement friend online/offline broadcast logic</li>
+      <li>Implement challenge expiry background job (every 30s)</li>
+      <li>Implement private match expiry background job (every 60s)</li>
+      <li>Update match completion handler to record recent opponents</li>
+      <li>Integration tests for WebSocket events</li>
+    </ul>
+
+    <h3>Phase 3: Frontend UI - Friends</h3>
+    <span class="badge medium">Week 3</span>
+    <ul>
+      <li>Create FriendsPanel component (sidebar or modal)</li>
+      <li>Create FriendsList component with online indicators</li>
+      <li>Create FriendRequests component (incoming/outgoing tabs)</li>
+      <li>Add "Add Friend" button to player profiles</li>
+      <li>Add friend count badge to navbar</li>
+      <li>Add player search modal/page</li>
+      <li>Implement WebSocket listeners for friend events</li>
+      <li>Add toast notifications for friend requests</li>
+    </ul>
+
+    <h3>Phase 4: Frontend UI - Challenges &amp; Private Matches</h3>
+    <span class="badge medium">Week 4</span>
+    <ul>
+      <li>Add "Challenge" button to friend list items</li>
+      <li>Create ChallengeModal component (mode selection)</li>
+      <li>Create incoming challenge toast with accept/decline buttons</li>
+      <li>Add challenge expiry countdown timer</li>
+      <li>Create "Create Private Match" button in navbar</li>
+      <li>Create PrivateMatchModal component (mode select + link display)</li>
+      <li>Create PrivateMatchJoin page (/join/:code route)</li>
+      <li>Add "Waiting for opponent..." loading state</li>
+      <li>Add copy link button with clipboard API</li>
+      <li>Add social share buttons (Discord, Twitter, etc.)</li>
+    </ul>
+
+    <h3>Phase 5: Frontend UI - Recent Opponents</h3>
+    <span class="badge low">Week 5</span>
+    <ul>
+      <li>Create RecentOpponents component (list view)</li>
+      <li>Add to sidebar or dedicated "Recent" tab</li>
+      <li>Display opponent card: avatar, name, rating, last played time</li>
+      <li>Add "Add Friend" and "Challenge" quick action buttons</li>
+      <li>Add match outcome badge (Won/Lost/Draw)</li>
+      <li>Add "View Profile" link</li>
+      <li>Handle deleted user placeholder</li>
+    </ul>
+
+    <h3>Phase 6: Polish &amp; Testing</h3>
+    <span class="badge low">Week 6</span>
+    <ul>
+      <li>E2E tests for complete friend request flow</li>
+      <li>E2E tests for challenge flow</li>
+      <li>E2E tests for private match flow</li>
+      <li>Performance testing (friends list with 200 friends)</li>
+      <li>Mobile responsive design for all new components</li>
+      <li>Accessibility audit (keyboard navigation, screen readers)</li>
+      <li>Error handling and edge cases (network failures, expired links)</li>
+      <li>Add analytics events for all social interactions</li>
+      <li>Documentation and deployment</li>
+    </ul>
+  </section>
+
+  <section id="security">
+    <h2>Security Considerations</h2>
+
+    <div class="card">
+      <h4>Authentication &amp; Authorization</h4>
+      <ul>
+        <li>All endpoints require valid session token (middleware: <code>requireAuth</code>)</li>
+        <li>Players can only access their own friends list and requests</li>
+        <li>Players can only respond to challenges addressed to them</li>
+        <li>Players can only cancel their own challenges and private matches</li>
+        <li>Blocked players cannot send requests or challenges (check both directions)</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h4>Rate Limiting</h4>
+      <ul>
+        <li>Friend requests: 10 per hour per player</li>
+        <li>Challenges: 20 per hour per player</li>
+        <li>Private match creation: 30 per hour per player</li>
+        <li>Implement using Redis with sliding window counter</li>
+        <li>Return 429 Too Many Requests with Retry-After header</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h4>Input Validation</h4>
+      <ul>
+        <li>Validate all player IDs are valid UUIDs</li>
+        <li>Validate mode is 1 or 2 only</li>
+        <li>Validate private match codes are 6 alphanumeric chars</li>
+        <li>Sanitize all user-facing strings (displayName, username)</li>
+        <li>Prevent SQL injection via Prisma parameterized queries</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h4>Privacy &amp; Spam Prevention</h4>
+      <ul>
+        <li>Players can block others to prevent all interactions</li>
+        <li>Anonymous players cannot see OAuth player emails</li>
+        <li>Private match codes are cryptographically random (use crypto.randomBytes)</li>
+        <li>Challenge and friend request notifications can be muted (user preference)</li>
+        <li>Prevent friend request spam: cannot resend to same player for 24h after decline</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h4>Data Retention</h4>
+      <ul>
+        <li>Expired challenges: soft delete (keep for analytics), purge after 30 days</li>
+        <li>Expired private matches: soft delete, purge after 7 days</li>
+        <li>Declined friend requests: delete immediately (no history)</li>
+        <li>Removed friendships: hard delete (GDPR compliance)</li>
+        <li>Recent opponents: keep indefinitely (only 20 per player)</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="highlight">
+    <div class="highlight-title">Next Steps</div>
+    <p>This document provides the complete specification for implementing social features. Start with Phase 1 (Database & Backend Foundation) and proceed sequentially. Each phase is designed to be independently testable and deployable.</p>
+    <p style="margin-top:8px;">Estimated total implementation time: <strong>6 weeks</strong> (1 backend developer + 1 frontend developer working in parallel)</p>
+  </div>
+</div>

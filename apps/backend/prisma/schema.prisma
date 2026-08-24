@@ -6,6 +6,27 @@ datasource db {
     provider = "postgresql"
 }
 
+enum FriendStatus {
+    PENDING
+    ACCEPTED
+    DECLINED
+    BLOCKED
+}
+
+enum ChallengeStatus {
+    PENDING
+    ACCEPTED
+    DECLINED
+    EXPIRED
+    CANCELLED
+}
+
+enum PrivateMatchStatus {
+    WAITING
+    ACTIVE
+    EXPIRED
+}
+
 model Player {
     id            String        @id
     username      String        @unique
@@ -26,6 +47,15 @@ model Player {
     updatedAt     DateTime      @updatedAt
     matches       MatchPlayer[]
     sessions      Session[]
+
+    // Social features
+    friendshipsRequested  Friendship[]     @relation("FriendshipRequester")
+    friendshipsReceived   Friendship[]     @relation("FriendshipAddressee")
+    challengesSent        Challenge[]      @relation("ChallengeChallenger")
+    challengesReceived    Challenge[]      @relation("ChallengeChallenged")
+    privateMatchesCreated PrivateMatch[]   @relation("PrivateMatchCreator")
+    recentOpponents       RecentOpponent[] @relation("RecentOpponentPlayer")
+    recentOpponentsOf     RecentOpponent[] @relation("RecentOpponentOpponent")
 
     @@unique([oauthProvider, oauthId])
     @@index([ratingMode1])
@@ -61,6 +91,7 @@ model Match {
     persistedAt  DateTime      @default(now())
     players      MatchPlayer[]
     moves        Move[]
+    recentOpponents RecentOpponent[]
 }
 
 model MatchPlayer {
@@ -93,4 +124,69 @@ model Move {
     match          Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
     @@index([matchId, gameIndex, turn])
+}
+
+model Friendship {
+    id           String       @id @default(cuid())
+    requesterId  String
+    addresseeId  String
+    status       FriendStatus @default(PENDING)
+    createdAt    DateTime     @default(now())
+    respondedAt  DateTime?
+
+    requester Player @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+    addressee Player @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+    @@unique([requesterId, addresseeId])
+    @@index([requesterId, status])
+    @@index([addresseeId, status])
+    @@index([createdAt])
+}
+
+model Challenge {
+    id           String          @id @default(cuid())
+    challengerId String
+    challengedId String
+    mode         Int
+    status       ChallengeStatus @default(PENDING)
+    matchId      String?
+    expiresAt    DateTime
+    createdAt    DateTime        @default(now())
+
+    challenger Player @relation("ChallengeChallenger", fields: [challengerId], references: [id], onDelete: Cascade)
+    challenged Player @relation("ChallengeChallenged", fields: [challengedId], references: [id], onDelete: Cascade)
+
+    @@index([challengerId, status])
+    @@index([challengedId, status])
+    @@index([expiresAt])
+}
+
+model PrivateMatch {
+    id        String             @id
+    creatorId String
+    mode      Int
+    matchId   String?
+    status    PrivateMatchStatus @default(WAITING)
+    expiresAt DateTime
+    createdAt DateTime           @default(now())
+
+    creator Player @relation("PrivateMatchCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+    @@index([creatorId, status])
+    @@index([expiresAt])
+}
+
+model RecentOpponent {
+    id           String   @id @default(cuid())
+    playerId     String
+    opponentId   String
+    matchId      String
+    lastPlayedAt DateTime @default(now())
+
+    player   Player @relation("RecentOpponentPlayer", fields: [playerId], references: [id], onDelete: Cascade)
+    opponent Player @relation("RecentOpponentOpponent", fields: [opponentId], references: [id], onDelete: Cascade)
+    match    Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+    @@unique([playerId, opponentId])
+    @@index([playerId, lastPlayedAt])
 }

@@ -15,11 +15,11 @@
     "prisma:migrate:status": "prisma migrate status"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.0.0",
     "@infinite-ttt/bots": "workspace:*",
     "@infinite-ttt/game-engine": "workspace:*",
     "@infinite-ttt/identity": "workspace:*",
     "@infinite-ttt/shared": "workspace:*",
+    "@prisma/adapter-pg": "^7.0.0",
     "@prisma/client": "^7.0.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
@@ -32,6 +32,7 @@
     "ioredis": "^5.4.1",
     "pg": "^8.13.1",
     "prisma": "^7.0.0",
+    "rate-limiter-flexible": "^11.2.0",
     "typescript": "^5.3.3",
     "uuid": "^9.0.0",
     "ws": "^8.19.0"

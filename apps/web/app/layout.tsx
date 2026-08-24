@@ -5,9 +5,12 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { ToastProvider } from "@/components/ui/Toast";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { PlayerProvider } from "@/components/providers/PlayerProvider";
+import { FriendsProvider } from "@/components/providers/FriendsProvider";
+import { ChallengesProvider } from "@/components/providers/ChallengesProvider";
 import { Navigation } from "@/components/layout/Navigation";
 import { ErrorBoundary } from "@/components/errors/ErrorBoundary";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingModal";
+import { ChallengeNotificationContainer } from "@/components/challenges/ChallengeNotification";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -57,14 +60,26 @@ export default function RootLayout({
             <ThemeProvider defaultThemeId="dark">
               <ToastProvider>
                 <PlayerProvider>
-                  <div className="flex flex-col min-h-screen">
-                    <Navigation />
-                    {children}
-                  </div>
-                  {/* Onboarding loads after main content */}
-                  <OnboardingProvider>
-                    {null}
-                  </OnboardingProvider>
+                  <FriendsProvider>
+                    <ChallengesProvider>
+                      <div className="flex flex-col min-h-screen">
+                        <Navigation />
+                        {children}
+                      </div>
+                      {/* Challenge Notifications */}
+                      <ChallengeNotificationContainer
+                        onNavigateToMatch={(matchId) => {
+                          if (typeof window !== 'undefined') {
+                            window.location.href = `/match/${matchId}`;
+                          }
+                        }}
+                      />
+                      {/* Onboarding loads after main content */}
+                      <OnboardingProvider>
+                        {null}
+                      </OnboardingProvider>
+                    </ChallengesProvider>
+                  </FriendsProvider>
                 </PlayerProvider>
               </ToastProvider>
             </ThemeProvider>

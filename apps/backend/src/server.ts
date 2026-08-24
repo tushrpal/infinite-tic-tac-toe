@@ -5,6 +5,10 @@ import playersRouter from './routes/players';
 import pvpRouter from './routes/pvp';
 import leaderboardRouter from './routes/leaderboard';
 import authRouter from './routes/auth';
+import friendsRouter from './routes/friends';
+import challengesRouter from './routes/challenges';
+import privateMatchesRouter from './routes/private-matches';
+import recentOpponentsRouter from './routes/recent-opponents';
 import { createMatchStorage } from './storage/createMatchStorage';
 
 export function createServer() {
@@ -19,6 +23,10 @@ export function createServer() {
   app.use('/pvp', pvpRouter);
   app.use('/leaderboard', leaderboardRouter);
   app.use('/auth', authRouter);
+  app.use('/friends', friendsRouter);
+  app.use('/challenges', challengesRouter);
+  app.use('/private-matches', privateMatchesRouter);
+  app.use('/recent-opponents', recentOpponentsRouter);
 
   app.get('/health', (_, res) => {
     const wsUrl = process.env.WS_URL?.trim() || null;

@@ -29,6 +29,7 @@ import {
 import { calculateEloChange, resolveKFactorByExperience, type MatchOutcome } from '../rating/elo';
 import { botController } from '../bots/botController';
 import { positionToIndex, indexToPosition } from '@infinite-ttt/bots';
+import { getRedisClient } from '../storage/redisClient';
 
 // ============================================
 // Types
@@ -118,6 +119,9 @@ type ClientEventType =
   | 'ACCEPT_BOT_MATCH'
   | 'DECLINE_BOT_MATCH'
   | 'CREATE_PRACTICE_MATCH'
+  | 'FRIEND_REQUEST'
+  | 'CHALLENGE_CREATE'
+  | 'CHALLENGE_RESPOND'
   | 'PING';
 
 interface ClientEvent {
@@ -146,6 +150,19 @@ type ServerEventType =
   | 'REMATCH_REQUESTED'
   | 'REMATCH_STARTING'
   | 'REMATCH_DECLINED'
+  | 'FRIEND_REQUEST_RECEIVED'
+  | 'FRIEND_REQUEST_ACCEPTED'
+  | 'FRIEND_REQUEST_DECLINED'
+  | 'FRIEND_REMOVED'
+  | 'FRIEND_ONLINE'
+  | 'FRIEND_OFFLINE'
+  | 'CHALLENGE_RECEIVED'
+  | 'CHALLENGE_ACCEPTED'
+  | 'CHALLENGE_DECLINED'
+  | 'CHALLENGE_CANCELLED'
+  | 'CHALLENGE_EXPIRED'
+  | 'PRIVATE_MATCH_JOINED'
+  | 'PRIVATE_MATCH_EXPIRED'
   | 'ERROR'
   | 'PONG';
 
@@ -527,6 +544,18 @@ class WebSocketManager {
         this.send(ws, { type: 'PONG', payload: { timestamp: Date.now() } });
         break;
 
+      case 'FRIEND_REQUEST':
+        void this.handleFriendRequest(clientId, event.payload);
+        break;
+
+      case 'CHALLENGE_CREATE':
+        void this.handleChallengeCreate(clientId, event.payload);
+        break;
+
+      case 'CHALLENGE_RESPOND':
+        void this.handleChallengeRespond(clientId, event.payload);
+        break;
+
       default:
         this.send(ws, { type: 'ERROR', payload: { message: `Unknown event type: ${event.type}` } });
     }
@@ -570,6 +599,9 @@ class WebSocketManager {
         inQueue: true,
         role: 'player',
       });
+
+      // Update online status
+      await this.updateOnlineStatus(playerId, true);
 
       if (isRanked) {
         const joined = await this.matchmakingService.joinQueue(playerId, mode, {
@@ -1841,6 +1873,9 @@ class WebSocketManager {
 
     console.log(`🔌 Client disconnected: ${playerId.slice(0, 8)}`);
 
+    // Update online status
+    await this.updateOnlineStatus(playerId, false);
+
     // Remove from queues
     for (const [, queue] of this.queues.entries()) {
       const index = queue.findIndex((e) => e.playerId === playerId);
@@ -2213,6 +2248,13 @@ class WebSocketManager {
     await this.persistCompletedMatch(match, ratingUpdate?.ratingChanges);
     await this.matchManager.endMatch(match.matchId);
 
+    // Update recent opponents (skip bot matches)
+    const playerXId = match.players.X?.id;
+    const playerOId = match.players.O?.id;
+    if (playerXId && playerOId) {
+      await this.updateRecentOpponents(match.matchId, playerXId, playerOId);
+    }
+
     // Cleanup bot instance if this is a bot match
     if (match.isBotMatch) {
       botController.cleanup(match.matchId);
@@ -2444,6 +2486,556 @@ class WebSocketManager {
       drawCount: match.gameState.isDraw ? 1 : 0,
       createdAt: match.startedAt ?? Date.now(),
     };
+  }
+
+  // ============================================
+  // Social Features
+  // ============================================
+
+  /**
+   * Update online status in Redis and broadcast to friends
+   */
+  private async updateOnlineStatus(playerId: string, isOnline: boolean): Promise<void> {
+    try {
+      const redis = getRedisClient();
+
+      if (isOnline) {
+        await redis.sadd('online:players', playerId);
+        await this.broadcastToFriends(playerId, 'FRIEND_ONLINE', { friendId: playerId });
+      } else {
+        await redis.srem('online:players', playerId);
+        await this.broadcastToFriends(playerId, 'FRIEND_OFFLINE', { friendId: playerId });
+      }
+    } catch (error) {
+      console.error('Error updating online status:', error);
+    }
+  }
+
+  /**
+   * Broadcast event to all friends of a player
+   */
+  private async broadcastToFriends(
+    playerId: string,
+    eventType: ServerEventType,
+    payload: any
+  ): Promise<void> {
+    try {
+      const prisma = getPrismaClient();
+
+      // Get all accepted friendships
+      const friendships = await prisma.friendship.findMany({
+        where: {
+          OR: [
+            { requesterId: playerId, status: 'ACCEPTED' },
+            { addresseeId: playerId, status: 'ACCEPTED' },
+          ],
+        },
+        select: { requesterId: true, addresseeId: true },
+      });
+
+      // Extract friend IDs
+      const friendIds = friendships.map((f) =>
+        f.requesterId === playerId ? f.addresseeId : f.requesterId
+      );
+
+      // Broadcast to each online friend
+      friendIds.forEach((friendId) => {
+        const client = this.clients.get(friendId);
+        if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+          this.send(client.ws, { type: eventType, payload });
+        }
+      });
+    } catch (error) {
+      console.error('Error broadcasting to friends:', error);
+    }
+  }
+
+  /**
+   * Handle FRIEND_REQUEST event
+   */
+  private async handleFriendRequest(
+    playerId: string,
+    payload: { addresseeId: string }
+  ): Promise<void> {
+    try {
+      const { addresseeId } = payload;
+
+      const prisma = getPrismaClient();
+
+      // Get requester info
+      const requester = await prisma.player.findUnique({
+        where: { id: playerId },
+        select: { id: true, username: true, displayName: true },
+      });
+
+      if (!requester) {
+        return;
+      }
+
+      // Notify addressee if they're online
+      const addresseeClient = this.clients.get(addresseeId);
+      if (addresseeClient?.ws && addresseeClient.ws.readyState === WebSocket.OPEN) {
+        this.send(addresseeClient.ws, {
+          type: 'FRIEND_REQUEST_RECEIVED',
+          payload: {
+            friendship: {
+              id: 'pending', // Will be replaced by actual API response
+              requester,
+            },
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error handling friend request:', error);
+    }
+  }
+
+  /**
+   * Handle CHALLENGE_CREATE event
+   */
+  private async handleChallengeCreate(
+    playerId: string,
+    payload: { challengedId: string; mode: number }
+  ): Promise<void> {
+    try {
+      const { challengedId, mode } = payload;
+
+      const prisma = getPrismaClient();
+
+      // Get challenger info
+      const challenger = await prisma.player.findUnique({
+        where: { id: playerId },
+        select: { id: true, username: true, displayName: true },
+      });
+
+      if (!challenger) {
+        return;
+      }
+
+      // Notify challenged player if they're online
+      const challengedClient = this.clients.get(challengedId);
+      if (challengedClient?.ws && challengedClient.ws.readyState === WebSocket.OPEN) {
+        // Get full challenge details
+        const challenge = await prisma.challenge.findFirst({
+          where: {
+            challengerId: playerId,
+            challengedId,
+            status: 'PENDING',
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        if (challenge) {
+          this.send(challengedClient.ws, {
+            type: 'CHALLENGE_RECEIVED',
+            payload: {
+              challenge: {
+                id: challenge.id,
+                challenger,
+                mode,
+                expiresAt: challenge.expiresAt,
+              },
+            },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error handling challenge create:', error);
+    }
+  }
+
+  /**
+   * Handle CHALLENGE_RESPOND event
+   */
+  private async handleChallengeRespond(
+    playerId: string,
+    payload: { challengeId: string; action: 'ACCEPT' | 'DECLINE' }
+  ): Promise<void> {
+    try {
+      const { challengeId, action } = payload;
+
+      const prisma = getPrismaClient();
+
+      const challenge = await prisma.challenge.findUnique({
+        where: { id: challengeId },
+        include: {
+          challenger: { select: { id: true, username: true } },
+          challenged: { select: { id: true, username: true } },
+        },
+      });
+
+      if (!challenge || challenge.challengedId !== playerId) {
+        return;
+      }
+
+      const challengerClient = this.clients.get(challenge.challengerId);
+
+      if (action === 'ACCEPT') {
+        // Create match for the challenge
+        const matchId = await this.createChallengeMatch(challenge);
+
+        if (challengerClient?.ws && challengerClient.ws.readyState === WebSocket.OPEN) {
+          this.send(challengerClient.ws, {
+            type: 'CHALLENGE_ACCEPTED',
+            payload: { challengeId, matchId },
+          });
+        }
+
+        // Also notify the challenged player
+        const challengedClient = this.clients.get(playerId);
+        if (challengedClient?.ws && challengedClient.ws.readyState === WebSocket.OPEN) {
+          this.send(challengedClient.ws, {
+            type: 'CHALLENGE_ACCEPTED',
+            payload: { challengeId, matchId },
+          });
+        }
+      } else {
+        // Notify challenger of decline
+        if (challengerClient?.ws && challengerClient.ws.readyState === WebSocket.OPEN) {
+          this.send(challengerClient.ws, {
+            type: 'CHALLENGE_DECLINED',
+            payload: { challengeId },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error handling challenge respond:', error);
+    }
+  }
+
+  /**
+   * Create a match from an accepted challenge
+   */
+  private async createChallengeMatch(challenge: any): Promise<string> {
+    const matchId = `match_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const mode: GameMode = challenge.mode === 1 ? 'MODE_1' : 'MODE_2';
+
+    const prisma = getPrismaClient();
+
+    // Get player profiles
+    const [challenger, challenged] = await Promise.all([
+      prisma.player.findUnique({
+        where: { id: challenge.challengerId },
+        select: { username: true, ratingMode1: true, ratingMode2: true },
+      }),
+      prisma.player.findUnique({
+        where: { id: challenge.challengedId },
+        select: { username: true, ratingMode1: true, ratingMode2: true },
+      }),
+    ]);
+
+    if (!challenger || !challenged) {
+      throw new Error('Player not found');
+    }
+
+    const rating1 = mode === 'MODE_1' ? challenger.ratingMode1 : challenger.ratingMode2;
+    const rating2 = mode === 'MODE_1' ? challenged.ratingMode1 : challenged.ratingMode2;
+
+    // Create match state
+    const matchState: MatchState = {
+      matchId,
+      status: 'active',
+      mode,
+      isRanked: false, // Challenges are always unranked
+      players: {
+        X: {
+          id: challenge.challengerId,
+          username: challenger.username,
+          rating: rating1,
+          isConnected: true,
+        },
+        O: {
+          id: challenge.challengedId,
+          username: challenged.username,
+          rating: rating2,
+          isConnected: true,
+        },
+      },
+      gameState: {
+        board: Array(3).fill(null).map(() => Array(3).fill(null)),
+        boardSize: 3,
+        currentPlayer: 'X',
+        moveHistory: [],
+        isGameOver: false,
+        winner: null,
+        winInfo: null,
+        isDraw: false,
+        mode,
+        moveCount: 0,
+      },
+      spectators: [],
+      spectatorCount: 0,
+      startedAt: Date.now(),
+    };
+
+    this.matches.set(matchId, matchState);
+    this.engineStates.set(matchId, initEngineState(mode));
+
+    // Update challenge with matchId
+    await prisma.challenge.update({
+      where: { id: challenge.id },
+      data: { matchId, status: 'ACCEPTED' },
+    });
+
+    // Store in Redis
+    await this.matchManager.saveMatchState(matchState, this.engineStates.get(matchId)!);
+
+    // Send MATCH_FOUND to both players
+    const challengerClient = this.clients.get(challenge.challengerId);
+    const challengedClient = this.clients.get(challenge.challengedId);
+
+    const matchFoundPayload = {
+      matchId,
+      mode,
+      isRanked: false,
+      opponent: null, // Will be set individually
+      yourSymbol: null, // Will be set individually
+    };
+
+    if (challengerClient?.ws && challengerClient.ws.readyState === WebSocket.OPEN) {
+      this.send(challengerClient.ws, {
+        type: 'MATCH_FOUND',
+        payload: {
+          ...matchFoundPayload,
+          yourSymbol: 'X',
+          opponent: { id: challenge.challengedId, username: challenged.username, rating: rating2 },
+        },
+      });
+    }
+
+    if (challengedClient?.ws && challengedClient.ws.readyState === WebSocket.OPEN) {
+      this.send(challengedClient.ws, {
+        type: 'MATCH_FOUND',
+        payload: {
+          ...matchFoundPayload,
+          yourSymbol: 'O',
+          opponent: { id: challenge.challengerId, username: challenger.username, rating: rating1 },
+        },
+      });
+    }
+
+    return matchId;
+  }
+
+  /**
+   * Update recent opponents after match completion
+   */
+  private async updateRecentOpponents(
+    matchId: string,
+    playerXId: string,
+    playerOId: string
+  ): Promise<void> {
+    try {
+      // Skip bot matches
+      if (playerXId.startsWith('bot-') || playerOId.startsWith('bot-')) {
+        return;
+      }
+
+      const prisma = getPrismaClient();
+      const now = new Date();
+
+      // Upsert both directions
+      await Promise.all([
+        prisma.recentOpponent.upsert({
+          where: {
+            playerId_opponentId: {
+              playerId: playerXId,
+              opponentId: playerOId,
+            },
+          },
+          update: { lastPlayedAt: now, matchId },
+          create: { playerId: playerXId, opponentId: playerOId, matchId, lastPlayedAt: now },
+        }),
+        prisma.recentOpponent.upsert({
+          where: {
+            playerId_opponentId: {
+              playerId: playerOId,
+              opponentId: playerXId,
+            },
+          },
+          update: { lastPlayedAt: now, matchId },
+          create: { playerId: playerOId, opponentId: playerXId, matchId, lastPlayedAt: now },
+        }),
+      ]);
+
+      // Prune to keep only last 20 per player
+      await Promise.all([
+        this.pruneRecentOpponents(playerXId),
+        this.pruneRecentOpponents(playerOId),
+      ]);
+    } catch (error) {
+      console.error('Error updating recent opponents:', error);
+    }
+  }
+
+  /**
+   * Prune recent opponents to keep only last 20 per player
+   */
+  private async pruneRecentOpponents(playerId: string): Promise<void> {
+    try {
+      const prisma = getPrismaClient();
+
+      // Get all recent opponents for this player, ordered by most recent
+      const recentOpponents = await prisma.recentOpponent.findMany({
+        where: { playerId },
+        orderBy: { lastPlayedAt: 'desc' },
+        select: { id: true },
+      });
+
+      // If more than 20, delete the oldest ones
+      if (recentOpponents.length > 20) {
+        const toDelete = recentOpponents.slice(20).map((ro) => ro.id);
+
+        await prisma.recentOpponent.deleteMany({
+          where: { id: { in: toDelete } },
+        });
+      }
+    } catch (error) {
+      console.error('Error pruning recent opponents:', error);
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit friend request received event
+   */
+  public emitFriendRequestReceived(addresseeId: string, friendship: any) {
+    const client = this.clients.get(addresseeId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'FRIEND_REQUEST_RECEIVED',
+        payload: friendship,
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit friend request accepted event
+   */
+  public emitFriendRequestAccepted(requesterId: string, friendship: any) {
+    const client = this.clients.get(requesterId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'FRIEND_REQUEST_ACCEPTED',
+        payload: friendship,
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit friend request declined event
+   */
+  public emitFriendRequestDeclined(requesterId: string, friendshipId: string) {
+    const client = this.clients.get(requesterId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'FRIEND_REQUEST_DECLINED',
+        payload: { friendshipId },
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit friend removed event
+   */
+  public emitFriendRemoved(playerId: string, friendshipId: string) {
+    const client = this.clients.get(playerId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'FRIEND_REMOVED',
+        payload: { friendshipId },
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit challenge received event
+   */
+  public emitChallengeReceived(challengedId: string, challenge: any) {
+    const client = this.clients.get(challengedId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'CHALLENGE_RECEIVED',
+        payload: challenge,
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit challenge accepted event
+   */
+  public emitChallengeAccepted(challengerId: string, challengeId: string, matchId: string) {
+    const client = this.clients.get(challengerId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'CHALLENGE_ACCEPTED',
+        payload: { challengeId, matchId },
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit challenge declined event
+   */
+  public emitChallengeDeclined(challengerId: string, challengeId: string) {
+    const client = this.clients.get(challengerId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'CHALLENGE_DECLINED',
+        payload: { challengeId },
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit challenge cancelled event
+   */
+  public emitChallengeCancelled(challengedId: string, challengeId: string) {
+    const client = this.clients.get(challengedId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'CHALLENGE_CANCELLED',
+        payload: { challengeId },
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit challenge expired event
+   */
+  public emitChallengeExpired(playerId: string, challengeId: string) {
+    const client = this.clients.get(playerId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'CHALLENGE_EXPIRED',
+        payload: { challengeId },
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit private match joined event
+   */
+  public emitPrivateMatchJoined(creatorId: string, matchId: string) {
+    const client = this.clients.get(creatorId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'PRIVATE_MATCH_JOINED',
+        payload: { matchId },
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit private match expired event
+   */
+  public emitPrivateMatchExpired(creatorId: string, matchId: string) {
+    const client = this.clients.get(creatorId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'PRIVATE_MATCH_EXPIRED',
+        payload: { matchId },
+      });
+    }
   }
 }
 
