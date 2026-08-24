@@ -20,6 +20,8 @@ import { useToast } from "@/components/ui/Toast";
 import { useGameState } from "@/hooks/useGameState";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useBotMatch } from "@/hooks/useBotMatch";
+import { useErrorHandler } from "@/hooks/useErrorHandler";
+import { ConnectionStatus, OfflineBanner } from "@/components/feedback/ConnectionStatus";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/helpers";
 import type { MatchResultUIState } from "@/lib/adapters/gameAdapter";
@@ -30,6 +32,7 @@ export default function MatchPage() {
   const matchId = params.matchId as string;
   const { addToast } = useToast();
   const { connectionState } = useWebSocket();
+  const { handleError } = useErrorHandler({ context: "Match" });
 
   const [showResultModal, setShowResultModal] = useState(false);
   const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
@@ -191,20 +194,15 @@ export default function MatchPage() {
 
   return (
     <main className="flex-1 flex flex-col px-4 py-6">
+      {/* Offline Banner */}
+      <OfflineBanner />
+
       <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
-        {/* Connection Status Bar */}
-        {connectionState.status !== "connected" && (
-          <div className="p-3 rounded-lg bg-accent-warning/10 border border-accent-warning text-center flex items-center justify-center gap-2">
-            {connectionState.status === "reconnecting" && (
-              <div className="w-4 h-4 rounded-full border-2 border-accent-warning border-t-transparent animate-spin" />
-            )}
-            <span className="text-sm text-accent-warning">
-              {connectionState.status === "reconnecting"
-                ? "Reconnecting to server..."
-                : "Connection lost — attempting to reconnect"}
-            </span>
-          </div>
-        )}
+        {/* Connection Status */}
+        <ConnectionStatus
+          connectionState={connectionState}
+          compact={false}
+        />
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -403,7 +401,7 @@ export default function MatchPage() {
           )}
 
           {/* Rematch UI - Hidden for bot matches */}
-          {!botInfo.isBotMatch && !matchState.isBotMatch && opponentRequestedRematch ? (
+          {!botInfo.isBotMatch && opponentRequestedRematch ? (
             <div className="mb-6 p-4 rounded-xl bg-accent-primary/10 border-2 border-accent-primary animate-pulse">
               <p className="text-lg font-semibold mb-3">
                 🎮 Opponent wants a rematch!
@@ -417,7 +415,7 @@ export default function MatchPage() {
                 </Button>
               </div>
             </div>
-          ) : !botInfo.isBotMatch && !matchState.isBotMatch && rematchRequested ? (
+          ) : !botInfo.isBotMatch && rematchRequested ? (
             <div className="mb-6 p-4 rounded-xl bg-surface-elevated">
               <div className="flex items-center justify-center gap-2">
                 <div className="w-5 h-5 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" />
@@ -430,7 +428,7 @@ export default function MatchPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {!botInfo.isBotMatch && !matchState.isBotMatch && !rematchRequested && !opponentRequestedRematch && (
+            {!botInfo.isBotMatch && !rematchRequested && !opponentRequestedRematch && (
               <Button
                 size="lg"
                 onClick={requestRematch}
@@ -439,7 +437,7 @@ export default function MatchPage() {
                 🔄 Request Rematch
               </Button>
             )}
-            <Link href={matchState.isRanked ? ROUTES.PLAY_RANKED : ROUTES.PLAY_ONLINE}>
+            <Link href={ROUTES.PLAY}>
               <Button
                 variant="secondary"
                 size="lg"

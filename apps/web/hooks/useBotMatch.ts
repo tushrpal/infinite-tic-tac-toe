@@ -52,7 +52,8 @@ export function useBotMatch({ matchState, yourPlayer }: UseBotMatchOptions): Bot
     const opponentPlayer: Player = yourPlayer === 'X' ? 'O' : 'X';
 
     // Get opponent info from score (which contains player info)
-    const opponentInfo = matchState.score[opponentPlayer];
+    // Note: score keys are playerX and playerO, not X and O
+    const opponentInfo = opponentPlayer === 'X' ? matchState.score.playerX : matchState.score.playerO;
     const opponentName = opponentInfo?.name || 'Opponent';
 
     // Check if this is a bot match
