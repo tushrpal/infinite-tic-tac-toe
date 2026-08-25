@@ -36,13 +36,24 @@ export async function getChallenges(): Promise<{
   sent: Challenge[];
   received: Challenge[];
 }> {
-  return apiRequest<{ sent: Challenge[]; received: Challenge[] }>(
-    '/challenges',
-    {
-      method: 'GET',
-      headers: getAuthHeaders(),
-    }
-  );
+  try {
+    const response = await apiRequest<any>(
+      '/challenges',
+      {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      }
+    );
+
+    // Return empty arrays if no data
+    return {
+      sent: response?.sent || [],
+      received: response?.received || [],
+    };
+  } catch (error) {
+    console.error('Failed to fetch challenges:', error);
+    return { sent: [], received: [] }; // Return empty arrays instead of throwing
+  }
 }
 
 /**
