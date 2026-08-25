@@ -100,7 +100,6 @@ export async function getFriendRequests(): Promise<{
     return { sent: [], received: [] }; // Return empty arrays instead of throwing
   }
 }
-}
 
 /**
  * Search for players by username
