@@ -143,6 +143,19 @@ export type ServerEventType =
   | 'REMATCH_DECLINED'
   | 'SPECTATOR_JOINED'
   | 'SPECTATOR_LEFT'
+  | 'CHALLENGE_RECEIVED'
+  | 'CHALLENGE_ACCEPTED'
+  | 'CHALLENGE_DECLINED'
+  | 'CHALLENGE_CANCELLED'
+  | 'CHALLENGE_EXPIRED'
+  | 'PRIVATE_MATCH_JOINED'
+  | 'PRIVATE_MATCH_EXPIRED'
+  | 'FRIEND_REQUEST_RECEIVED'
+  | 'FRIEND_REQUEST_ACCEPTED'
+  | 'FRIEND_REQUEST_DECLINED'
+  | 'FRIEND_REMOVED'
+  | 'FRIEND_ONLINE'
+  | 'FRIEND_OFFLINE'
   | 'ERROR'
   | 'PONG';
 
@@ -494,6 +507,123 @@ export interface ReconnectedEvent {
   };
 }
 
+export interface ChallengeReceivedEvent {
+  type: 'CHALLENGE_RECEIVED';
+  payload: {
+    challengeId: string;
+    challengerId: string;
+    challengerUsername: string;
+    challengerDisplayName: string;
+    challengerRating: number;
+    challengedId: string;
+    challengedUsername: string;
+    challengedDisplayName: string;
+    challengedRating: number;
+    mode: GameMode;
+    expiresAt: string;
+    createdAt: string;
+  };
+}
+
+export interface ChallengeAcceptedEvent {
+  type: 'CHALLENGE_ACCEPTED';
+  payload: {
+    challengeId: string;
+    matchId: string;
+  };
+}
+
+export interface ChallengeDeclinedEvent {
+  type: 'CHALLENGE_DECLINED';
+  payload: {
+    challengeId: string;
+  };
+}
+
+export interface ChallengeCancelledEvent {
+  type: 'CHALLENGE_CANCELLED';
+  payload: {
+    challengeId: string;
+  };
+}
+
+export interface ChallengeExpiredEvent {
+  type: 'CHALLENGE_EXPIRED';
+  payload: {
+    challengeId: string;
+  };
+}
+
+export interface PrivateMatchJoinedEvent {
+  type: 'PRIVATE_MATCH_JOINED';
+  payload: {
+    matchId: string;
+  };
+}
+
+export interface PrivateMatchExpiredEvent {
+  type: 'PRIVATE_MATCH_EXPIRED';
+  payload: {
+    matchId: string;
+  };
+}
+
+export interface FriendRequestReceivedEvent {
+  type: 'FRIEND_REQUEST_RECEIVED';
+  payload: {
+    friendshipId: string;
+    requesterId: string;
+    requesterUsername: string;
+    requesterDisplayName: string;
+    requesterRating: number;
+    addresseeId: string;
+    addresseeUsername: string;
+    addresseeDisplayName: string;
+    addresseeRating: number;
+    createdAt: string;
+  };
+}
+
+export interface FriendRequestAcceptedEvent {
+  type: 'FRIEND_REQUEST_ACCEPTED';
+  payload: {
+    friendshipId: string;
+    friendId: string;
+    friendUsername: string;
+    friendDisplayName: string;
+    friendRating: number;
+    isOnline: boolean;
+  };
+}
+
+export interface FriendRequestDeclinedEvent {
+  type: 'FRIEND_REQUEST_DECLINED';
+  payload: {
+    friendshipId: string;
+  };
+}
+
+export interface FriendRemovedEvent {
+  type: 'FRIEND_REMOVED';
+  payload: {
+    friendshipId: string;
+  };
+}
+
+export interface FriendOnlineEvent {
+  type: 'FRIEND_ONLINE';
+  payload: {
+    playerId: string;
+  };
+}
+
+export interface FriendOfflineEvent {
+  type: 'FRIEND_OFFLINE';
+  payload: {
+    playerId: string;
+  };
+}
+
 export type ServerEvent =
   | QueueJoinedEvent
   | QueueLeftEvent
@@ -514,6 +644,19 @@ export type ServerEvent =
   | RematchDeclinedEvent
   | SpectatorJoinedEvent
   | SpectatorLeftEvent
+  | ChallengeReceivedEvent
+  | ChallengeAcceptedEvent
+  | ChallengeDeclinedEvent
+  | ChallengeCancelledEvent
+  | ChallengeExpiredEvent
+  | PrivateMatchJoinedEvent
+  | PrivateMatchExpiredEvent
+  | FriendRequestReceivedEvent
+  | FriendRequestAcceptedEvent
+  | FriendRequestDeclinedEvent
+  | FriendRemovedEvent
+  | FriendOnlineEvent
+  | FriendOfflineEvent
   | ErrorEvent
   | PongEvent;
 

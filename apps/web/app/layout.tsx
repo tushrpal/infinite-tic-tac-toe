@@ -10,7 +10,7 @@ import { ChallengesProvider } from "@/components/providers/ChallengesProvider";
 import { Navigation } from "@/components/layout/Navigation";
 import { ErrorBoundary } from "@/components/errors/ErrorBoundary";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingModal";
-import { ChallengeNotificationContainer } from "@/components/challenges/ChallengeNotification";
+import { ChallengeNotificationWrapper } from "@/components/challenges/ChallengeNotificationWrapper";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -67,13 +67,7 @@ export default function RootLayout({
                         {children}
                       </div>
                       {/* Challenge Notifications */}
-                      <ChallengeNotificationContainer
-                        onNavigateToMatch={(matchId) => {
-                          if (typeof window !== 'undefined') {
-                            window.location.href = `/match/${matchId}`;
-                          }
-                        }}
-                      />
+                      <ChallengeNotificationWrapper />
                       {/* Onboarding loads after main content */}
                       <OnboardingProvider>
                         {null}
