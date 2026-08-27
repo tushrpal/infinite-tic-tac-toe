@@ -204,12 +204,7 @@ function ProfileContent() {
             <section className="rounded-xl border border-board-grid bg-surface-elevated p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex-1">
-                  {/* Username (permanent) */}
-                  <div className="text-sm text-text-muted mb-1">
-                    @{profile.username || profile.playerId}
-                  </div>
-
-                  {/* Display Name (editable) */}
+                  {/* Display Name (editable) - Main Heading */}
                   {isEditing ? (
                     <div className="space-y-2">
                       <input
@@ -241,23 +236,31 @@ function ProfileContent() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <h1 className="text-2xl font-semibold">
-                        {profile.displayName || "No display name set"}
-                      </h1>
-                      {viewingOwnProfile && (
-                        <button
-                          onClick={handleEditClick}
-                          className="text-sm text-accent-primary hover:underline"
-                          title="Edit display name"
-                        >
-                          Edit
-                        </button>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h1 className="text-3xl font-bold text-text-primary">
+                          {profile.displayName || profile.username || "No display name set"}
+                        </h1>
+                        {viewingOwnProfile && (
+                          <button
+                            onClick={handleEditClick}
+                            className="text-sm text-accent-primary hover:underline"
+                            title="Edit display name"
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
+                      {/* Username (subtitle) - Only show when both exist */}
+                      {profile.displayName && profile.username && (
+                        <p className="text-text-tertiary mt-1">
+                          @{profile.username}
+                        </p>
                       )}
                     </div>
                   )}
 
-                  <div className="text-xs text-text-muted mt-1">
+                  <div className="text-xs text-text-muted mt-2">
                     Member since{" "}
                     {new Date(profile.createdAt).toLocaleDateString()}
                   </div>
