@@ -90,8 +90,12 @@ export function FriendsList({ onChallenge }: FriendsListProps) {
               )}
             </div>
             <div className="flex items-center gap-2 text-sm text-text-secondary">
-              <span>@{friend.username}</span>
-              <span>•</span>
+              {friend.displayName && friend.username && (
+                <>
+                  <span>@{friend.username}</span>
+                  <span>•</span>
+                </>
+              )}
               <span>{friend.rating} rating</span>
             </div>
           </div>

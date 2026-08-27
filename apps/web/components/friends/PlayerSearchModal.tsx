@@ -190,8 +190,12 @@ export function PlayerSearchModal({ isOpen, onClose }: PlayerSearchModalProps) {
                         {result.displayName || result.username}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-text-secondary">
-                        <span>@{result.username}</span>
-                        <span>•</span>
+                        {result.displayName && result.username && (
+                          <>
+                            <span>@{result.username}</span>
+                            <span>•</span>
+                          </>
+                        )}
                         <span>{result.rating} rating</span>
                       </div>
                       {result.mutualFriendsCount !== undefined && result.mutualFriendsCount > 0 && (

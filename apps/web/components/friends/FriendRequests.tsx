@@ -117,8 +117,12 @@ export function FriendRequests({ tab }: FriendRequestsProps) {
                 {displayUser.displayName || displayUser.username}
               </div>
               <div className="flex items-center gap-2 text-sm text-text-secondary">
-                <span>@{displayUser.username}</span>
-                <span>•</span>
+                {displayUser.displayName && displayUser.username && (
+                  <>
+                    <span>@{displayUser.username}</span>
+                    <span>•</span>
+                  </>
+                )}
                 <span>{displayUser.rating} rating</span>
               </div>
               <div className="text-xs text-text-tertiary mt-1">
