@@ -121,8 +121,8 @@ export function Navigation() {
                   <div className="font-medium text-text-primary">
                     {player.displayName || player.username}
                   </div>
-                  {player.displayName && (
-                    <div className="text-xs text-text-muted">
+                  {player.displayName && player.username && (
+                    <div className="text-xs text-text-tertiary">
                       @{player.username}
                     </div>
                   )}
@@ -231,8 +231,8 @@ export function Navigation() {
                     <div className="font-medium text-text-primary">
                       {player.displayName || player.username}
                     </div>
-                    {player.displayName && (
-                      <div className="text-xs text-text-muted">
+                    {player.displayName && player.username && (
+                      <div className="text-xs text-text-tertiary">
                         @{player.username}
                       </div>
                     )}
