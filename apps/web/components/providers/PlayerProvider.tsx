@@ -41,7 +41,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // OAuth state
   const [oauthData, setOAuthData] = useState<OAuthCallbackResponse["oauthData"] | null>(null);
-  const [suggestedUsername, setSuggestedUsername] = useState<string | undefined>(undefined);
 
   const loadPlayer = async () => {
     setIsLoading(true);
@@ -109,7 +108,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     loadPlayer();
   }, []);
 
-  const handleRegistration = async (username: string, displayName: string) => {
+  const handleRegistration = async (displayName: string) => {
     setIsRegistering(true);
     setRegistrationError(null);
 
@@ -117,24 +116,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       let newPlayer: PlayerProfile;
 
       if (oauthData) {
-        // Complete OAuth registration with chosen username
-        console.log('Completing OAuth registration:', { username, displayName, oauthData });
+        // Complete OAuth registration with display name only
+        console.log('Completing OAuth registration:', { displayName, oauthData });
 
         newPlayer = await registerWithOAuth(
           oauthData.provider,
           oauthData.oauthId,
           oauthData.email,
-          username,
-          displayName || undefined
+          displayName
         );
 
         console.log('OAuth registration successful:', newPlayer);
         setOAuthData(null);
-        setSuggestedUsername(undefined);
       } else {
-        // Regular anonymous registration
-        console.log('Creating anonymous player:', { username, displayName });
-        newPlayer = await ensurePlayer(username, displayName || undefined);
+        // Regular anonymous registration with display name
+        console.log('Creating anonymous player:', { displayName });
+        newPlayer = await ensurePlayer(displayName);
       }
 
       setPlayer(newPlayer);
@@ -165,10 +162,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       console.log('OAuth callback response:', response);
 
       if (response.isNewUser) {
-        // New OAuth user - show username selection with suggestion
+        // New OAuth user - show username modal
         console.log('New OAuth user - showing username modal');
         setOAuthData(response.oauthData || null);
-        setSuggestedUsername(response.suggestedUsername);
         setNeedsRegistration(true);
         setIsRegistering(false);
       } else {
@@ -218,7 +214,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         onOAuthAuth={oauthData ? undefined : handleOAuthAuth}
         error={registrationError}
         isLoading={isRegistering}
-        suggestedUsername={suggestedUsername}
         showOAuth={!oauthData}
       />
     </PlayerContext.Provider>
