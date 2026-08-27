@@ -49,3 +49,35 @@ export function isValidDisplayName(displayName: string): boolean {
 export function sanitizeUsername(username: string): string {
   return username.trim().toLowerCase();
 }
+
+/**
+ * Validate display name format
+ * - 1-30 characters after trimming
+ * - Unicode letters, numbers, spaces, special chars (emoji, punctuation) allowed
+ * - Control characters not allowed
+ */
+export function validateDisplayName(displayName: string): {
+  valid: boolean;
+  sanitized?: string;
+  error?: string;
+} {
+  // Trim whitespace
+  const trimmed = displayName.trim();
+
+  // Check not empty
+  if (!trimmed) {
+    return { valid: false, error: 'Display name cannot be empty' };
+  }
+
+  // Check length
+  if (trimmed.length > 30) {
+    return { valid: false, error: 'Display name must be 30 characters or less' };
+  }
+
+  // Check for control characters
+  if (/[\x00-\x1F\x7F]/.test(trimmed)) {
+    return { valid: false, error: 'Display name contains invalid characters' };
+  }
+
+  return { valid: true, sanitized: trimmed };
+}
