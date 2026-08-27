@@ -51,7 +51,6 @@ export interface OAuthCallbackResponse {
   displayName?: string;
   rating?: number;
   sessionToken?: string;
-  suggestedUsername?: string;
   oauthData?: {
     provider: string;
     oauthId: string;
@@ -136,28 +135,6 @@ async function loginWithSession(): Promise<PlayerProfile | null> {
   }
 }
 
-/**
- * Check if username is available
- * Returns { available: boolean, username?: string, reason?: string }
- */
-export async function checkUsernameAvailability(username: string): Promise<{
-  available: boolean;
-  username?: string;
-  reason?: string;
-  message?: string;
-}> {
-  try {
-    return await apiRequest<{
-      available: boolean;
-      username?: string;
-      reason?: string;
-      message?: string;
-    }>(`/players/check-username/${encodeURIComponent(username)}`);
-  } catch (error) {
-    return { available: false, reason: 'error', message: 'Failed to check username' };
-  }
-}
-
 async function createPlayer(username: string, displayName?: string): Promise<PlayerProfile> {
   const body = { username, displayName: displayName || undefined };
   const player = await apiRequest<PlayerProfile>('/players', {
@@ -229,18 +206,17 @@ export async function handleOAuthCallback(
 }
 
 /**
- * Complete OAuth registration with username
+ * Complete OAuth registration with display name
  */
 export async function registerWithOAuth(
   provider: string,
   oauthId: string,
   email: string,
-  username: string,
-  displayName?: string
+  displayName: string
 ): Promise<PlayerProfile> {
   const response = await apiRequest<PlayerProfile & { sessionToken: string }>('/auth/oauth/register', {
     method: 'POST',
-    body: JSON.stringify({ provider, oauthId, email, username, displayName }),
+    body: JSON.stringify({ provider, oauthId, email, displayName }),
   });
 
   setStoredPlayerId(response.playerId);
