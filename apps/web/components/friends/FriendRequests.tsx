@@ -2,6 +2,7 @@
 
 /**
  * FriendRequests Component
+ *
  * Displays incoming and outgoing friend requests
  *
  */
