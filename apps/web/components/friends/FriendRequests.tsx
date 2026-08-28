@@ -3,6 +3,7 @@
 /**
  * FriendRequests Component
  * Displays incoming and outgoing friend requests
+ *
  */
 
 import { useState } from "react";
@@ -10,14 +11,20 @@ import { useFriends } from "@/components/providers/FriendsProvider";
 import { cn } from "@/lib/helpers";
 
 interface FriendRequestsProps {
-  tab: 'received' | 'sent';
+  tab: "received" | "sent";
 }
 
 export function FriendRequests({ tab }: FriendRequestsProps) {
-  const { sentRequests, receivedRequests, respondToRequest, cancelRequest, isLoading } = useFriends();
+  const {
+    sentRequests,
+    receivedRequests,
+    respondToRequest,
+    cancelRequest,
+    isLoading,
+  } = useFriends();
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const requests = tab === 'received' ? receivedRequests : sentRequests;
+  const requests = tab === "received" ? receivedRequests : sentRequests;
 
   const handleAcceptRequest = async (friendshipId: string) => {
     setProcessingId(friendshipId);
@@ -30,7 +37,7 @@ export function FriendRequests({ tab }: FriendRequestsProps) {
       setProcessingId(null);
     }
   };
-
+  //heer
   const handleDeclineRequest = async (friendshipId: string) => {
     setProcessingId(friendshipId);
     try {
@@ -67,12 +74,12 @@ export function FriendRequests({ tab }: FriendRequestsProps) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4">
         <div className="text-text-secondary text-center">
-          {tab === 'received' ? 'No pending requests' : 'No sent requests'}
+          {tab === "received" ? "No pending requests" : "No sent requests"}
         </div>
         <div className="text-text-tertiary text-sm text-center mt-1">
-          {tab === 'received'
-            ? 'Friend requests you receive will appear here'
-            : 'Friend requests you send will appear here'}
+          {tab === "received"
+            ? "Friend requests you receive will appear here"
+            : "Friend requests you send will appear here"}
         </div>
       </div>
     );
@@ -82,17 +89,18 @@ export function FriendRequests({ tab }: FriendRequestsProps) {
     <div className="space-y-2">
       {requests.map((request) => {
         const isProcessing = processingId === request.friendshipId;
-        const displayUser = tab === 'received'
-          ? {
-              username: request.requesterUsername,
-              displayName: request.requesterDisplayName,
-              rating: request.requesterRating,
-            }
-          : {
-              username: request.addresseeUsername,
-              displayName: request.addresseeDisplayName,
-              rating: request.addresseeRating,
-            };
+        const displayUser =
+          tab === "received"
+            ? {
+                username: request.requesterUsername,
+                displayName: request.requesterDisplayName,
+                rating: request.requesterRating,
+              }
+            : {
+                username: request.addresseeUsername,
+                displayName: request.addresseeDisplayName,
+                rating: request.addresseeRating,
+              };
 
         return (
           <div
@@ -101,13 +109,15 @@ export function FriendRequests({ tab }: FriendRequestsProps) {
               "flex items-center gap-3 p-3 rounded-lg",
               "bg-surface-elevated hover:bg-board-grid",
               "border border-transparent hover:border-board-grid",
-              "transition-colors duration-150"
+              "transition-colors duration-150",
             )}
           >
             {/* Player Avatar */}
             <div className="w-10 h-10 rounded-full bg-accent-primary/20 flex items-center justify-center flex-shrink-0">
               <span className="text-accent-primary font-semibold">
-                {(displayUser.displayName || displayUser.username).charAt(0).toUpperCase()}
+                {(displayUser.displayName || displayUser.username)
+                  .charAt(0)
+                  .toUpperCase()}
               </span>
             </div>
 
@@ -127,17 +137,17 @@ export function FriendRequests({ tab }: FriendRequestsProps) {
               </div>
               <div className="text-xs text-text-tertiary mt-1">
                 {new Date(request.createdAt).toLocaleDateString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
                 })}
               </div>
             </div>
 
             {/* Actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              {tab === 'received' ? (
+              {tab === "received" ? (
                 <>
                   <button
                     onClick={() => handleAcceptRequest(request.friendshipId)}
@@ -148,7 +158,7 @@ export function FriendRequests({ tab }: FriendRequestsProps) {
                       "hover:bg-success/90",
                       "transition-colors duration-150",
                       "focus:outline-none focus:ring-2 focus:ring-success",
-                      "disabled:opacity-50 disabled:cursor-not-allowed"
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
                     )}
                   >
                     Accept
@@ -163,7 +173,7 @@ export function FriendRequests({ tab }: FriendRequestsProps) {
                       "border border-board-grid",
                       "transition-colors duration-150",
                       "focus:outline-none focus:ring-2 focus:ring-accent-primary",
-                      "disabled:opacity-50 disabled:cursor-not-allowed"
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
                     )}
                   >
                     Decline
@@ -180,7 +190,7 @@ export function FriendRequests({ tab }: FriendRequestsProps) {
                     "border border-board-grid",
                     "transition-colors duration-150",
                     "focus:outline-none focus:ring-2 focus:ring-critical",
-                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
                   )}
                 >
                   Cancel
