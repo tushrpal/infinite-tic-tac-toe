@@ -723,7 +723,7 @@ export interface RoomInvite {
   room?: {
     id: string;
     name: string | null;
-    mode: number;
+    mode: 1 | 2;
     status: RoomStatus;
     memberCount: number;
   };
