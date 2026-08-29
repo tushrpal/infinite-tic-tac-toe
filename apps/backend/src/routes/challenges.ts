@@ -17,7 +17,9 @@ const MAX_PENDING_CHALLENGES = 3;
 /**
  * POST /challenges/create
  *
- * Challenge a friend to a match
+ * Challenge a friend to a casual match
+ *
+ * All challenges are casual/unranked (isRanked=false)
  *
  * Request body:
  * {
@@ -39,6 +41,11 @@ router.post('/create', requireAuth, challengeLimiter, async (req, res) => {
 
     if (!mode || ![1, 2].includes(mode)) {
       return res.status(400).json({ error: 'mode must be 1 or 2' });
+    }
+
+    // Explicitly reject ranked flag if passed (for backwards compatibility)
+    if ('isRanked' in req.body && req.body.isRanked === true) {
+      return res.status(400).json({ error: 'Challenges must be casual (isRanked cannot be true)' });
     }
 
     // Cannot challenge yourself
