@@ -1,192 +1,275 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
+  provider = "postgresql"
 }
 
 enum FriendStatus {
-    PENDING
-    ACCEPTED
-    DECLINED
-    BLOCKED
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
 }
 
 enum ChallengeStatus {
-    PENDING
-    ACCEPTED
-    DECLINED
-    EXPIRED
-    CANCELLED
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
+enum RoomStatus {
+  WAITING
+  ACTIVE
+  BETWEEN_GAMES
+  CLOSED
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
 }
 
 enum PrivateMatchStatus {
-    WAITING
-    ACTIVE
-    EXPIRED
+  WAITING
+  ACTIVE
+  EXPIRED
 }
 
 model Player {
-    id            String        @id
-    username      String        @unique
-    displayName   String?
+  id          String  @id
+  username    String  @unique
+  displayName String?
 
-    // OAuth authentication
-    oauthProvider String?
-    oauthId       String?
-    oauthEmail    String?
+  // OAuth authentication
+  oauthProvider String?
+  oauthId       String?
+  oauthEmail    String?
 
-    // Account metadata
-    isAnonymous   Boolean       @default(true)
-    lastLoginAt   DateTime?
+  // Account metadata
+  isAnonymous Boolean   @default(true)
+  lastLoginAt DateTime?
 
-    ratingMode1   Int           @default(200)
-    ratingMode2   Int           @default(200)
-    createdAt     DateTime      @default(now())
-    updatedAt     DateTime      @updatedAt
-    matches       MatchPlayer[]
-    sessions      Session[]
+  ratingMode1 Int           @default(200)
+  ratingMode2 Int           @default(200)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  matches     MatchPlayer[]
+  sessions    Session[]
 
-    // Social features
-    friendshipsRequested  Friendship[]     @relation("FriendshipRequester")
-    friendshipsReceived   Friendship[]     @relation("FriendshipAddressee")
-    challengesSent        Challenge[]      @relation("ChallengeChallenger")
-    challengesReceived    Challenge[]      @relation("ChallengeChallenged")
-    privateMatchesCreated PrivateMatch[]   @relation("PrivateMatchCreator")
-    recentOpponents       RecentOpponent[] @relation("RecentOpponentPlayer")
-    recentOpponentsOf     RecentOpponent[] @relation("RecentOpponentOpponent")
+  // Social features
+  friendshipsRequested  Friendship[]     @relation("FriendshipRequester")
+  friendshipsReceived   Friendship[]     @relation("FriendshipAddressee")
+  challengesSent        Challenge[]      @relation("ChallengeChallenger")
+  challengesReceived    Challenge[]      @relation("ChallengeChallenged")
+  privateMatchesCreated PrivateMatch[]   @relation("PrivateMatchCreator")
+  recentOpponents       RecentOpponent[] @relation("RecentOpponentPlayer")
+  recentOpponentsOf     RecentOpponent[] @relation("RecentOpponentOpponent")
 
-    @@unique([oauthProvider, oauthId])
-    @@index([ratingMode1])
-    @@index([ratingMode2])
-    @@index([username])
-    @@index([oauthProvider, oauthId])
+  // Room features
+  roomsHosted         Room[]       @relation("RoomHost")
+  roomsAsPlayer1      Room[]       @relation("RoomPlayer1")
+  roomsAsPlayer2      Room[]       @relation("RoomPlayer2")
+  roomMemberships     RoomMember[]
+  roomInvitesSent     RoomInvite[] @relation("RoomInviter")
+  roomInvitesReceived RoomInvite[] @relation("RoomInvitee")
+
+  @@unique([oauthProvider, oauthId])
+  @@index([ratingMode1])
+  @@index([ratingMode2])
+  @@index([username])
+  @@index([oauthProvider, oauthId])
 }
 
 model Session {
-    id        String   @id @default(cuid())
-    playerId  String
-    token     String   @unique
-    expiresAt DateTime
-    createdAt DateTime @default(now())
-    player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  playerId  String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
-    @@index([playerId])
-    @@index([token])
-    @@index([expiresAt])
+  @@index([playerId])
+  @@index([token])
+  @@index([expiresAt])
 }
 
 model Match {
-    id           String        @id
-    mode         String
-    isRanked     Boolean
-    difficulty   String
-    winner       String?
-    roundsPlayed Int
-    totalMoves   Int
-    drawCount    Int
-    createdAtMs  BigInt
-    payload      Json
-    persistedAt  DateTime      @default(now())
-    players      MatchPlayer[]
-    moves        Move[]
-    recentOpponents RecentOpponent[]
+  id              String           @id
+  mode            String
+  isRanked        Boolean
+  difficulty      String
+  winner          String?
+  roundsPlayed    Int
+  totalMoves      Int
+  drawCount       Int
+  createdAtMs     BigInt
+  payload         Json
+  persistedAt     DateTime         @default(now())
+  roomId          String?
+  players         MatchPlayer[]
+  moves           Move[]
+  recentOpponents RecentOpponent[]
 }
 
 model MatchPlayer {
-    id           String   @id @default(cuid())
-    matchId      String
-    playerId     String
-    playerType   String
-    ratingChange Int?
-    createdAt    DateTime @default(now())
-    match        Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-    player       Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  id           String   @id @default(cuid())
+  matchId      String
+  playerId     String
+  playerType   String
+  ratingChange Int?
+  createdAt    DateTime @default(now())
+  match        Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
 
-    @@unique([matchId, playerId])
-    @@index([playerId])
+  @@unique([matchId, playerId])
+  @@index([playerId])
 }
 
 model Move {
-    id             String   @id @default(cuid())
-    matchId        String
-    gameIndex      Int
-    index          Int
-    playerId       String
-    playerSymbol   String
-    turn           Int
-    timestampMs    BigInt?
-    gameWinner     String?
-    gameTotalMoves Int
-    gameBoardSize  Int
-    createdAt      DateTime @default(now())
-    match          Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  matchId        String
+  gameIndex      Int
+  index          Int
+  playerId       String
+  playerSymbol   String
+  turn           Int
+  timestampMs    BigInt?
+  gameWinner     String?
+  gameTotalMoves Int
+  gameBoardSize  Int
+  createdAt      DateTime @default(now())
+  match          Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
-    @@index([matchId, gameIndex, turn])
+  @@index([matchId, gameIndex, turn])
 }
 
 model Friendship {
-    id           String       @id @default(cuid())
-    requesterId  String
-    addresseeId  String
-    status       FriendStatus @default(PENDING)
-    createdAt    DateTime     @default(now())
-    respondedAt  DateTime?
+  id          String       @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      FriendStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  respondedAt DateTime?
 
-    requester Player @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-    addressee Player @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  requester Player @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee Player @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
 
-    @@unique([requesterId, addresseeId])
-    @@index([requesterId, status])
-    @@index([addresseeId, status])
-    @@index([createdAt])
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId, status])
+  @@index([addresseeId, status])
+  @@index([createdAt])
 }
 
 model Challenge {
-    id           String          @id @default(cuid())
-    challengerId String
-    challengedId String
-    mode         Int
-    status       ChallengeStatus @default(PENDING)
-    matchId      String?
-    expiresAt    DateTime
-    createdAt    DateTime        @default(now())
+  id           String          @id @default(cuid())
+  challengerId String
+  challengedId String
+  mode         Int
+  status       ChallengeStatus @default(PENDING)
+  matchId      String?
+  expiresAt    DateTime
+  createdAt    DateTime        @default(now())
 
-    challenger Player @relation("ChallengeChallenger", fields: [challengerId], references: [id], onDelete: Cascade)
-    challenged Player @relation("ChallengeChallenged", fields: [challengedId], references: [id], onDelete: Cascade)
+  challenger Player @relation("ChallengeChallenger", fields: [challengerId], references: [id], onDelete: Cascade)
+  challenged Player @relation("ChallengeChallenged", fields: [challengedId], references: [id], onDelete: Cascade)
 
-    @@index([challengerId, status])
-    @@index([challengedId, status])
-    @@index([expiresAt])
+  @@index([challengerId, status])
+  @@index([challengedId, status])
+  @@index([expiresAt])
 }
 
 model PrivateMatch {
-    id        String             @id
-    creatorId String
-    mode      Int
-    matchId   String?
-    status    PrivateMatchStatus @default(WAITING)
-    expiresAt DateTime
-    createdAt DateTime           @default(now())
+  id        String             @id
+  creatorId String
+  mode      Int
+  matchId   String?
+  status    PrivateMatchStatus @default(WAITING)
+  expiresAt DateTime
+  createdAt DateTime           @default(now())
 
-    creator Player @relation("PrivateMatchCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  creator Player @relation("PrivateMatchCreator", fields: [creatorId], references: [id], onDelete: Cascade)
 
-    @@index([creatorId, status])
-    @@index([expiresAt])
+  @@index([creatorId, status])
+  @@index([expiresAt])
 }
 
 model RecentOpponent {
-    id           String   @id @default(cuid())
-    playerId     String
-    opponentId   String
-    matchId      String
-    lastPlayedAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  playerId     String
+  opponentId   String
+  matchId      String
+  lastPlayedAt DateTime @default(now())
 
-    player   Player @relation("RecentOpponentPlayer", fields: [playerId], references: [id], onDelete: Cascade)
-    opponent Player @relation("RecentOpponentOpponent", fields: [opponentId], references: [id], onDelete: Cascade)
-    match    Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player   Player @relation("RecentOpponentPlayer", fields: [playerId], references: [id], onDelete: Cascade)
+  opponent Player @relation("RecentOpponentOpponent", fields: [opponentId], references: [id], onDelete: Cascade)
+  match    Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
-    @@unique([playerId, opponentId])
-    @@index([playerId, lastPlayedAt])
+  @@unique([playerId, opponentId])
+  @@index([playerId, lastPlayedAt])
+}
+
+model Room {
+  id     String     @id @default(cuid())
+  hostId String
+  name   String?
+  mode   Int
+  status RoomStatus @default(WAITING)
+
+  player1Id String?
+  player2Id String?
+
+  currentMatchId String? @unique
+
+  expiresAt      DateTime
+  lastActivityAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  host    Player  @relation("RoomHost", fields: [hostId], references: [id], onDelete: Cascade)
+  player1 Player? @relation("RoomPlayer1", fields: [player1Id], references: [id], onDelete: SetNull)
+  player2 Player? @relation("RoomPlayer2", fields: [player2Id], references: [id], onDelete: SetNull)
+
+  members RoomMember[]
+  invites RoomInvite[]
+
+  @@index([hostId, status])
+  @@index([expiresAt])
+  @@index([lastActivityAt])
+}
+
+model RoomMember {
+  id       String   @id @default(cuid())
+  roomId   String
+  playerId String
+  isReady  Boolean  @default(false)
+  joinedAt DateTime @default(now())
+
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, playerId])
+  @@index([playerId])
+}
+
+model RoomInvite {
+  id        String       @id @default(cuid())
+  roomId    String
+  inviterId String
+  inviteeId String
+  status    InviteStatus @default(PENDING)
+  expiresAt DateTime
+  createdAt DateTime     @default(now())
+
+  room    Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  inviter Player @relation("RoomInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee Player @relation("RoomInvitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, inviteeId])
+  @@index([inviteeId, status])
+  @@index([expiresAt])
 }
