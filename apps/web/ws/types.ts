@@ -156,6 +156,17 @@ export type ServerEventType =
   | 'FRIEND_REMOVED'
   | 'FRIEND_ONLINE'
   | 'FRIEND_OFFLINE'
+  | 'ROOM_CREATED'
+  | 'ROOM_MEMBER_JOINED'
+  | 'ROOM_MEMBER_LEFT'
+  | 'ROOM_READY_STATE_CHANGED'
+  | 'ROOM_PLAYERS_ASSIGNED'
+  | 'ROOM_GAME_STARTING'
+  | 'ROOM_GAME_ENDED'
+  | 'ROOM_CLOSED'
+  | 'ROOM_INVITE_RECEIVED'
+  | 'ROOM_INVITE_ACCEPTED'
+  | 'ROOM_INVITE_DECLINED'
   | 'ERROR'
   | 'PONG';
 
@@ -624,6 +635,108 @@ export interface FriendOfflineEvent {
   };
 }
 
+export interface RoomCreatedEvent {
+  type: 'ROOM_CREATED';
+  payload: {
+    room: Room;
+  };
+}
+
+export interface RoomMemberJoinedEvent {
+  type: 'ROOM_MEMBER_JOINED';
+  payload: {
+    roomId: string;
+    member: PlayerInfo;
+    memberCount: number;
+  };
+}
+
+export interface RoomMemberLeftEvent {
+  type: 'ROOM_MEMBER_LEFT';
+  payload: {
+    roomId: string;
+    memberId: string;
+    memberCount: number;
+  };
+}
+
+export interface RoomReadyStateChangedEvent {
+  type: 'ROOM_READY_STATE_CHANGED';
+  payload: {
+    roomId: string;
+    playerId: string;
+    isReady: boolean;
+    readyCount: number;
+  };
+}
+
+export interface RoomPlayersAssignedEvent {
+  type: 'ROOM_PLAYERS_ASSIGNED';
+  payload: {
+    roomId: string;
+    player1: PlayerInfo;
+    player2: PlayerInfo;
+  };
+}
+
+export interface RoomGameStartingEvent {
+  type: 'ROOM_GAME_STARTING';
+  payload: {
+    roomId: string;
+    matchId: string;
+    player1: PlayerInfo;
+    player2: PlayerInfo;
+  };
+}
+
+export interface RoomGameEndedEvent {
+  type: 'ROOM_GAME_ENDED';
+  payload: {
+    roomId: string;
+    matchId: string;
+    winner: 'PLAYER_1' | 'PLAYER_2' | 'DRAW';
+    player1: PlayerInfo;
+    player2: PlayerInfo;
+  };
+}
+
+export interface RoomClosedEvent {
+  type: 'ROOM_CLOSED';
+  payload: {
+    roomId: string;
+    reason: 'host_left' | 'host_closed' | 'expired';
+  };
+}
+
+export interface RoomInviteReceivedEvent {
+  type: 'ROOM_INVITE_RECEIVED';
+  payload: {
+    inviteId: string;
+    roomId: string;
+    roomName: string | null;
+    inviter: PlayerInfo;
+    expiresAt: string;
+  };
+}
+
+export interface RoomInviteAcceptedEvent {
+  type: 'ROOM_INVITE_ACCEPTED';
+  payload: {
+    inviteId: string;
+    roomId: string;
+    invitee: PlayerInfo;
+  };
+}
+
+export interface RoomInviteDeclinedEvent {
+  type: 'ROOM_INVITE_DECLINED';
+  payload: {
+    inviteId: string;
+    roomId: string;
+    inviteeId: string;
+  };
+}
+
 export type ServerEvent =
   | QueueJoinedEvent
   | QueueLeftEvent
@@ -657,6 +770,17 @@ export type ServerEvent =
   | FriendRemovedEvent
   | FriendOnlineEvent
   | FriendOfflineEvent
+  | RoomCreatedEvent
+  | RoomMemberJoinedEvent
+  | RoomMemberLeftEvent
+  | RoomReadyStateChangedEvent
+  | RoomPlayersAssignedEvent
+  | RoomGameStartingEvent
+  | RoomGameEndedEvent
+  | RoomClosedEvent
+  | RoomInviteReceivedEvent
+  | RoomInviteAcceptedEvent
+  | RoomInviteDeclinedEvent
   | ErrorEvent
   | PongEvent;
 
