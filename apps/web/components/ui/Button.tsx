@@ -5,7 +5,7 @@
  * Reusable button with multiple variants
  */
 
-import { forwardRef, type ButtonHTMLAttributes } from "react";
+import React, { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/helpers";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
