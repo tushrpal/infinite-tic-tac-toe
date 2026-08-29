@@ -19,8 +19,6 @@ export function PlayerList({
   onToggleReady,
   onInvite,
 }: PlayerListProps) {
-  const currentMember = members.find((m) => m.playerId === currentPlayerId);
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
