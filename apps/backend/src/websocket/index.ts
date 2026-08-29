@@ -163,6 +163,17 @@ type ServerEventType =
   | 'CHALLENGE_EXPIRED'
   | 'PRIVATE_MATCH_JOINED'
   | 'PRIVATE_MATCH_EXPIRED'
+  | 'ROOM_CREATED'
+  | 'ROOM_MEMBER_JOINED'
+  | 'ROOM_MEMBER_LEFT'
+  | 'ROOM_READY_STATE_CHANGED'
+  | 'ROOM_PLAYERS_ASSIGNED'
+  | 'ROOM_GAME_STARTING'
+  | 'ROOM_GAME_ENDED'
+  | 'ROOM_CLOSED'
+  | 'ROOM_INVITE_RECEIVED'
+  | 'ROOM_INVITE_ACCEPTED'
+  | 'ROOM_INVITE_DECLINED'
   | 'ERROR'
   | 'PONG';
 
@@ -3034,6 +3045,151 @@ class WebSocketManager {
       this.send(client.ws, {
         type: 'PRIVATE_MATCH_EXPIRED',
         payload: { matchId },
+      });
+    }
+  }
+
+  /**
+   * Broadcast message to all members of a room
+   */
+  private async broadcastToRoom(roomId: string, event: ServerEvent) {
+    try {
+      const prisma = getPrismaClient();
+
+      const members = await prisma.roomMember.findMany({
+        where: { roomId },
+        select: { playerId: true },
+      });
+
+      members.forEach((member) => {
+        const client = this.clients.get(member.playerId);
+        if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+          this.send(client.ws, event);
+        }
+      });
+    } catch (error) {
+      console.error('Error broadcasting to room:', error);
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit room created event
+   */
+  public emitRoomCreated(hostId: string, payload: any) {
+    const client = this.clients.get(hostId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'ROOM_CREATED',
+        payload,
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit room member joined event to all room members
+   */
+  public emitRoomMemberJoined(roomId: string, payload: any) {
+    this.broadcastToRoom(roomId, {
+      type: 'ROOM_MEMBER_JOINED',
+      payload,
+    });
+  }
+
+  /**
+   * PUBLIC API: Emit room member left event to all room members
+   */
+  public emitRoomMemberLeft(roomId: string, payload: any) {
+    this.broadcastToRoom(roomId, {
+      type: 'ROOM_MEMBER_LEFT',
+      payload,
+    });
+  }
+
+  /**
+   * PUBLIC API: Emit ready state changed event to all room members
+   */
+  public emitRoomReadyStateChanged(roomId: string, payload: any) {
+    this.broadcastToRoom(roomId, {
+      type: 'ROOM_READY_STATE_CHANGED',
+      payload,
+    });
+  }
+
+  /**
+   * PUBLIC API: Emit players assigned event to all room members
+   */
+  public emitRoomPlayersAssigned(roomId: string, payload: any) {
+    this.broadcastToRoom(roomId, {
+      type: 'ROOM_PLAYERS_ASSIGNED',
+      payload,
+    });
+  }
+
+  /**
+   * PUBLIC API: Emit game starting event to all room members
+   */
+  public emitRoomGameStarting(roomId: string, payload: any) {
+    this.broadcastToRoom(roomId, {
+      type: 'ROOM_GAME_STARTING',
+      payload,
+    });
+  }
+
+  /**
+   * PUBLIC API: Emit game ended event to all room members
+   */
+  public emitRoomGameEnded(roomId: string, payload: any) {
+    this.broadcastToRoom(roomId, {
+      type: 'ROOM_GAME_ENDED',
+      payload,
+    });
+  }
+
+  /**
+   * PUBLIC API: Emit room closed event to all room members
+   */
+  public emitRoomClosed(roomId: string, payload: any) {
+    this.broadcastToRoom(roomId, {
+      type: 'ROOM_CLOSED',
+      payload,
+    });
+  }
+
+  /**
+   * PUBLIC API: Emit room invite received event to invitee
+   */
+  public emitRoomInviteReceived(inviteeId: string, payload: any) {
+    const client = this.clients.get(inviteeId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'ROOM_INVITE_RECEIVED',
+        payload,
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit room invite accepted event to inviter
+   */
+  public emitRoomInviteAccepted(inviterId: string, payload: any) {
+    const client = this.clients.get(inviterId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'ROOM_INVITE_ACCEPTED',
+        payload,
+      });
+    }
+  }
+
+  /**
+   * PUBLIC API: Emit room invite declined event to inviter
+   */
+  public emitRoomInviteDeclined(inviterId: string, payload: any) {
+    const client = this.clients.get(inviterId);
+    if (client?.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.send(client.ws, {
+        type: 'ROOM_INVITE_DECLINED',
+        payload,
       });
     }
   }
