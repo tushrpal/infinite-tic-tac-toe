@@ -137,3 +137,9 @@ export const defaultLimiter = createRateLimiter(
   RATE_LIMITS.DEFAULT.points,
   RATE_LIMITS.DEFAULT.duration
 );
+
+export const roomLimiter = createRateLimiter(
+  'rl:room',
+  10, // 10 room creations per 5 minutes
+  5 * 60 // 5 minutes
+);
