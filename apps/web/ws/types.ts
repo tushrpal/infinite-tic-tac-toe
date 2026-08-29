@@ -678,3 +678,69 @@ export interface ConnectionState {
   lastConnectedAt: number | null;
   error: string | null;
 }
+
+// ============================================
+// Room Types
+// ============================================
+
+export type RoomStatus = 'WAITING' | 'ACTIVE' | 'BETWEEN_GAMES' | 'CLOSED';
+
+export interface Room {
+  id: string;
+  hostId: string;
+  name: string | null;
+  mode: 1 | 2;
+  status: RoomStatus;
+  player1Id: string | null;
+  player2Id: string | null;
+  currentMatchId: string | null;
+  expiresAt: string;
+  lastActivityAt: string;
+  createdAt: string;
+  host: PlayerInfo;
+  player1?: PlayerInfo;
+  player2?: PlayerInfo;
+  members: RoomMember[];
+}
+
+export interface RoomMember {
+  id: string;
+  roomId: string;
+  playerId: string;
+  isReady: boolean;
+  joinedAt: string;
+  player: PlayerInfo;
+}
+
+export interface RoomInvite {
+  id: string;
+  roomId: string;
+  inviterId: string;
+  inviteeId: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+  expiresAt: string;
+  createdAt: string;
+  room?: {
+    id: string;
+    name: string | null;
+    mode: number;
+    status: RoomStatus;
+    memberCount: number;
+  };
+  inviter?: PlayerInfo;
+}
+
+export interface RoomListItem {
+  id: string;
+  hostId: string;
+  name: string | null;
+  mode: 1 | 2;
+  status: RoomStatus;
+  memberCount: number;
+  maxPlayers: number;
+  host: {
+    username: string;
+    displayName: string;
+  };
+  createdAt: string;
+}
