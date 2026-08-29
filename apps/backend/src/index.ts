@@ -6,7 +6,7 @@ import { getPrismaClient } from './storage/prismaClient';
 import { getRedisClient } from './redis/redisClient';
 import { startChallengeExpiryJob, stopChallengeExpiryJob } from './jobs/challengeExpiry';
 import { startPrivateMatchExpiryJob, stopPrivateMatchExpiryJob } from './jobs/privateMatchExpiry';
-import { startRoomExpiryJob } from './jobs/roomExpiry';
+import { startRoomExpiryJob, stopRoomExpiryJob } from './jobs/roomExpiry';
 
 const DEFAULT_PORT = 3000;
 
@@ -87,6 +87,7 @@ process.on('SIGTERM', () => {
   // Stop background jobs
   stopChallengeExpiryJob();
   stopPrivateMatchExpiryJob();
+  stopRoomExpiryJob();
 
   httpServer.close(async () => {
     try {

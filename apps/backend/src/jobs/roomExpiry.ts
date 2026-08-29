@@ -10,6 +10,8 @@ import { wsManager } from '../websocket';
 
 const INACTIVITY_THRESHOLD_MINUTES = 30;
 
+let intervalId: ReturnType<typeof setInterval> | null = null;
+
 export async function closeExpiredRooms(): Promise<void> {
   try {
     const prisma = getPrismaClient();
@@ -57,16 +59,27 @@ export async function closeExpiredRooms(): Promise<void> {
   }
 }
 
-export function startRoomExpiryJob(): NodeJS.Timeout {
-  // Run every 5 minutes
-  const interval = setInterval(() => {
+export function startRoomExpiryJob(): void {
+  if (intervalId) {
+    console.log('⚠️ Room expiry job already running');
+    return;
+  }
+
+  // Run immediately on start
+  void closeExpiredRooms();
+
+  // Then run every 5 minutes
+  intervalId = setInterval(() => {
     void closeExpiredRooms();
   }, 5 * 60 * 1000);
 
-  // Run immediately on startup
-  void closeExpiredRooms();
-
   console.log('✅ Room expiry job started (runs every 5 minutes)');
+}
 
-  return interval;
+export function stopRoomExpiryJob(): void {
+  if (intervalId) {
+    clearInterval(intervalId);
+    intervalId = null;
+    console.log('⏹️  Room expiry job stopped');
+  }
 }
