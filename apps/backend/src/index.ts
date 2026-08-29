@@ -6,6 +6,7 @@ import { getPrismaClient } from './storage/prismaClient';
 import { getRedisClient } from './redis/redisClient';
 import { startChallengeExpiryJob, stopChallengeExpiryJob } from './jobs/challengeExpiry';
 import { startPrivateMatchExpiryJob, stopPrivateMatchExpiryJob } from './jobs/privateMatchExpiry';
+import { startRoomExpiryJob } from './jobs/roomExpiry';
 
 const DEFAULT_PORT = 3000;
 
@@ -58,6 +59,7 @@ void bootstrapDependencies()
       // Start background jobs
       startChallengeExpiryJob();
       startPrivateMatchExpiryJob();
+      startRoomExpiryJob();
     });
   })
   .catch(() => {
