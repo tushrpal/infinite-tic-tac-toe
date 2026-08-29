@@ -124,6 +124,8 @@ export const ROUTES = {
   PLAY_ONLINE: '/play/online',
   PLAY_RANKED: '/play/ranked',
   PLAY_PRACTICE: '/play/practice',
+  PLAY_ROOMS: '/play/rooms',
+  ROOM: (roomId: string) => `/rooms/${roomId}` as const,
   MATCH: (matchId: string) => `/match/${matchId}` as const,
   WATCH: (matchId: string) => `/watch/${matchId}` as const,
   REPLAY: (matchId: string) => `/replay/${matchId}` as const,
