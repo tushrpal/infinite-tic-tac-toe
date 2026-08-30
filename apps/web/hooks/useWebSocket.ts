@@ -74,7 +74,7 @@ export function useSocketEvent<T extends ServerEvent['type']>(
   const socket = getSocket();
 
   useEffect(() => {
-    const unsubscribe = socket.on(eventType, handler);
+    const unsubscribe = socket.on(eventType, handler as any);
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventType, ...deps]);
