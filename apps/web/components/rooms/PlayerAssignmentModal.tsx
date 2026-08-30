@@ -92,7 +92,7 @@ export function PlayerAssignmentModal({
             {sortedMembers.map((member) => (
               <option key={member.playerId} value={member.playerId}>
                 {member.isReady ? '✅ ' : '⏸️ '}
-                {member.player.displayName}
+                {member.player.displayName || member.player.username}
               </option>
             ))}
           </select>
@@ -113,7 +113,7 @@ export function PlayerAssignmentModal({
             {sortedMembers.map((member) => (
               <option key={member.playerId} value={member.playerId}>
                 {member.isReady ? '✅ ' : '⏸️ '}
-                {member.player.displayName}
+                {member.player.displayName || member.player.username}
               </option>
             ))}
           </select>

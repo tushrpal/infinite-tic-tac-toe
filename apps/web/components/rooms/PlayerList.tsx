@@ -45,7 +45,7 @@ export function PlayerList({
                   <div className="flex items-center gap-2 mb-1">
                     {isHost && <span className="text-lg">👑</span>}
                     <span className="font-medium truncate">
-                      {member.player.displayName}
+                      {member.player.displayName || member.player.username}
                     </span>
                     {isCurrentPlayer && (
                       <span className="text-xs text-text-muted">(You)</span>

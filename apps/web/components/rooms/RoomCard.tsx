@@ -11,7 +11,7 @@ interface RoomCardProps {
 }
 
 export function RoomCard({ room, onJoin, isMember = false }: RoomCardProps) {
-  const displayName = room.name || `${room.host.displayName}'s Room`;
+  const displayName = room.name || `${room.host.displayName || room.host.username}'s Room`;
   const modeLabel = room.mode === 1 ? 'Sliding' : 'Classic';
 
   const statusConfig = {

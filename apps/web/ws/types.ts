@@ -53,7 +53,10 @@ export interface GameState {
 export interface PlayerInfo {
   id: string;
   username: string;
+  displayName?: string | null;
   rating?: number;
+  ratingMode1?: number;
+  ratingMode2?: number;
   rank?: string;
   avatar?: string;
   isConnected: boolean;
