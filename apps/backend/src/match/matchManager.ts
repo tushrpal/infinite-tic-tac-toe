@@ -1,5 +1,6 @@
 import type { ExpandingBoardState, Infinite3x3State } from '@infinite-ttt/game-engine';
-import { getRedisClient } from '../redis/redisClient';
+import { getRedisClient, isRedisAvailable } from '../redis/redisClient';
+import { getPrismaClient } from '../storage/prismaClient';
 
 type Player = 'X' | 'O';
 type GameMode = 'MODE_1' | 'MODE_2';
@@ -150,17 +151,41 @@ export class MatchManager {
 
   private async saveSnapshot(snapshot: MatchSnapshot): Promise<void> {
     try {
-      const record = toRecord(snapshot.matchState, snapshot.engineState, snapshot.createdAt);
-      await this.redis.set(this.key(snapshot.matchState.matchId), JSON.stringify(record));
+      const prisma = getPrismaClient();
 
-      if (snapshot.matchState.status === 'waiting' || snapshot.matchState.status === 'active') {
-        await this.redis.sadd(ACTIVE_SET_KEY, snapshot.matchState.matchId);
-      } else {
-        await this.redis.srem(ACTIVE_SET_KEY, snapshot.matchState.matchId);
+      // Save to PostgreSQL for persistence
+      await prisma.activeMatch.upsert({
+        where: { id: snapshot.matchState.matchId },
+        update: {
+          state: snapshot as any,
+          status: snapshot.matchState.status,
+          updatedAt: new Date(),
+        },
+        create: {
+          id: snapshot.matchState.matchId,
+          state: snapshot as any,
+          mode: snapshot.matchState.mode,
+          isRanked: snapshot.matchState.isRanked,
+          status: snapshot.matchState.status,
+          expiresAt: new Date(Date.now() + 3600000), // 1 hour
+        },
+      });
+
+      // Optionally use Redis for matchmaking queue (if available)
+      if (await isRedisAvailable()) {
+        try {
+          if (snapshot.matchState.status === 'waiting' || snapshot.matchState.status === 'active') {
+            await this.redis.sadd(ACTIVE_SET_KEY, snapshot.matchState.matchId);
+          } else {
+            await this.redis.srem(ACTIVE_SET_KEY, snapshot.matchState.matchId);
+          }
+        } catch (redisError) {
+          // Redis is optional - continue without it
+        }
       }
     } catch (error) {
-      console.warn('Failed to save match snapshot to Redis:', error);
-      // Continue without Redis persistence - match state will be lost on restart
+      console.error('Failed to save match snapshot:', error);
+      throw error; // Don't silently fail on database errors
     }
   }
 
@@ -203,13 +228,15 @@ export class MatchManager {
 
   async getMatch(matchId: string): Promise<MatchSnapshot | null> {
     try {
-      const value = await this.redis.get(this.key(matchId));
-      if (!value) return null;
+      const prisma = getPrismaClient();
+      const match = await prisma.activeMatch.findUnique({
+        where: { id: matchId },
+      });
 
-      const parsed = JSON.parse(value) as RedisMatchRecord;
-      return toSnapshot(parsed);
+      if (!match) return null;
+      return match.state as MatchSnapshot;
     } catch (error) {
-      console.warn('Failed to get match from Redis:', error);
+      console.warn('Failed to get match from database:', error);
       return null;
     }
   }
@@ -263,42 +290,57 @@ export class MatchManager {
 
   async endMatch(matchId: string): Promise<void> {
     try {
-      await this.redis.del(this.key(matchId));
-      await this.redis.srem(ACTIVE_SET_KEY, matchId);
+      const prisma = getPrismaClient();
+      await prisma.activeMatch.delete({
+        where: { id: matchId },
+      });
+
+      // Clean up Redis if available
+      if (await isRedisAvailable()) {
+        try {
+          await this.redis.del(this.key(matchId));
+          await this.redis.srem(ACTIVE_SET_KEY, matchId);
+        } catch (redisError) {
+          // Redis cleanup is optional
+        }
+      }
     } catch (error) {
-      console.warn('Failed to remove match from Redis:', error);
-      // Continue without Redis cleanup
+      console.warn('Failed to end match:', error);
+      // Continue - match may already be deleted
     }
   }
 
   async findWaiting(mode: GameMode, isRanked: boolean): Promise<MatchSnapshot | null> {
     try {
-      const activeMatchIds = await this.redis.smembers(ACTIVE_SET_KEY);
+      const prisma = getPrismaClient();
+      const match = await prisma.activeMatch.findFirst({
+        where: {
+          status: 'waiting',
+          mode,
+          isRanked,
+        },
+        orderBy: { createdAt: 'asc' },
+      });
 
-      for (const matchId of activeMatchIds) {
-        const snapshot = await this.recoverMatch(matchId);
-        if (!snapshot) continue;
-
-        const match = snapshot.matchState;
-        if (match.status === 'waiting' && match.mode === mode && match.isRanked === isRanked) {
-          return snapshot;
-        }
-      }
-
-      return null;
+      return match ? (match.state as MatchSnapshot) : null;
     } catch (error) {
-      console.warn('Failed to find waiting match in Redis:', error);
+      console.warn('Failed to find waiting match:', error);
       return null;
     }
   }
 
   async getActiveMatches(): Promise<MatchSnapshot[]> {
     try {
-      const activeMatchIds = await this.redis.smembers(ACTIVE_SET_KEY);
-      const snapshots = await Promise.all(activeMatchIds.map((matchId) => this.recoverMatch(matchId)));
-      return snapshots.filter((snapshot): snapshot is MatchSnapshot => Boolean(snapshot));
+      const prisma = getPrismaClient();
+      const matches = await prisma.activeMatch.findMany({
+        where: {
+          status: { in: ['waiting', 'active'] },
+        },
+      });
+
+      return matches.map(m => m.state as MatchSnapshot);
     } catch (error) {
-      console.warn('Failed to get active matches from Redis:', error);
+      console.warn('Failed to get active matches:', error);
       return [];
     }
   }

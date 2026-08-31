@@ -273,3 +273,18 @@ model RoomInvite {
   @@index([inviteeId, status])
   @@index([expiresAt])
 }
+
+model ActiveMatch {
+  id        String   @id // matchId
+  state     Json     // Full match state snapshot
+  mode      String   // MODE_1 or MODE_2
+  isRanked  Boolean
+  status    String   // waiting, active, completed
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, mode, isRanked])
+  @@index([expiresAt])
+  @@index([updatedAt])
+}

@@ -7,6 +7,7 @@ import { getRedisClient } from './redis/redisClient';
 import { startChallengeExpiryJob, stopChallengeExpiryJob } from './jobs/challengeExpiry';
 import { startPrivateMatchExpiryJob, stopPrivateMatchExpiryJob } from './jobs/privateMatchExpiry';
 import { startRoomExpiryJob, stopRoomExpiryJob } from './jobs/roomExpiry';
+import { startMatchCleanupJob, stopMatchCleanupJob } from './jobs/matchCleanup';
 
 const DEFAULT_PORT = 3000;
 
@@ -61,6 +62,7 @@ void bootstrapDependencies()
       startChallengeExpiryJob();
       startPrivateMatchExpiryJob();
       startRoomExpiryJob();
+      startMatchCleanupJob();
     });
   })
   .catch(() => {
@@ -89,6 +91,7 @@ process.on('SIGTERM', () => {
   stopChallengeExpiryJob();
   stopPrivateMatchExpiryJob();
   stopRoomExpiryJob();
+  stopMatchCleanupJob();
 
   httpServer.close(async () => {
     try {
