@@ -43,10 +43,11 @@ async function bootstrapDependencies(): Promise<void> {
 
   try {
     await redis.ping();
-    console.log('Redis ping successful');
+    console.log('Redis connected');
   } catch (error) {
-    console.error('Failed to reach Redis (check REDIS_URL):', error);
-    throw error;
+    console.error('Redis error (check REDIS_URL and network):', error);
+    console.warn('⚠️  Continuing without Redis - rate limiting and match recovery will be disabled');
+    // Don't throw - Redis is optional for basic functionality
   }
 }
 
@@ -92,7 +93,11 @@ process.on('SIGTERM', () => {
   httpServer.close(async () => {
     try {
       await prisma.$disconnect();
-      await redis.quit();
+      try {
+        await redis.quit();
+      } catch (redisError) {
+        console.warn('Redis quit failed (may already be disconnected):', redisError);
+      }
       console.log('HTTP server shut down');
       process.exit(0);
     } catch (error) {

@@ -149,13 +149,18 @@ export class MatchManager {
   }
 
   private async saveSnapshot(snapshot: MatchSnapshot): Promise<void> {
-    const record = toRecord(snapshot.matchState, snapshot.engineState, snapshot.createdAt);
-    await this.redis.set(this.key(snapshot.matchState.matchId), JSON.stringify(record));
+    try {
+      const record = toRecord(snapshot.matchState, snapshot.engineState, snapshot.createdAt);
+      await this.redis.set(this.key(snapshot.matchState.matchId), JSON.stringify(record));
 
-    if (snapshot.matchState.status === 'waiting' || snapshot.matchState.status === 'active') {
-      await this.redis.sadd(ACTIVE_SET_KEY, snapshot.matchState.matchId);
-    } else {
-      await this.redis.srem(ACTIVE_SET_KEY, snapshot.matchState.matchId);
+      if (snapshot.matchState.status === 'waiting' || snapshot.matchState.status === 'active') {
+        await this.redis.sadd(ACTIVE_SET_KEY, snapshot.matchState.matchId);
+      } else {
+        await this.redis.srem(ACTIVE_SET_KEY, snapshot.matchState.matchId);
+      }
+    } catch (error) {
+      console.warn('Failed to save match snapshot to Redis:', error);
+      // Continue without Redis persistence - match state will be lost on restart
     }
   }
 
@@ -197,11 +202,17 @@ export class MatchManager {
   }
 
   async getMatch(matchId: string): Promise<MatchSnapshot | null> {
-    const value = await this.redis.get(this.key(matchId));
-    if (!value) return null;
+    try {
+      const value = await this.redis.get(this.key(matchId));
+      if (!value) return null;
 
-    const parsed = JSON.parse(value) as RedisMatchRecord;
-    return toSnapshot(parsed);
+      const parsed = JSON.parse(value) as RedisMatchRecord;
+      return toSnapshot(parsed);
+    } catch (error) {
+      console.warn('Failed to get match from Redis:', error);
+      return null;
+    }
+  }
   }
 
   async recoverMatch(matchId: string): Promise<MatchSnapshot | null> {
@@ -251,30 +262,45 @@ export class MatchManager {
   }
 
   async endMatch(matchId: string): Promise<void> {
-    await this.redis.del(this.key(matchId));
-    await this.redis.srem(ACTIVE_SET_KEY, matchId);
+    try {
+      await this.redis.del(this.key(matchId));
+      await this.redis.srem(ACTIVE_SET_KEY, matchId);
+    } catch (error) {
+      console.warn('Failed to remove match from Redis:', error);
+      // Continue without Redis cleanup
+    }
   }
 
   async findWaiting(mode: GameMode, isRanked: boolean): Promise<MatchSnapshot | null> {
-    const activeMatchIds = await this.redis.smembers(ACTIVE_SET_KEY);
+    try {
+      const activeMatchIds = await this.redis.smembers(ACTIVE_SET_KEY);
 
-    for (const matchId of activeMatchIds) {
-      const snapshot = await this.recoverMatch(matchId);
-      if (!snapshot) continue;
+      for (const matchId of activeMatchIds) {
+        const snapshot = await this.recoverMatch(matchId);
+        if (!snapshot) continue;
 
-      const match = snapshot.matchState;
-      if (match.status === 'waiting' && match.mode === mode && match.isRanked === isRanked) {
-        return snapshot;
+        const match = snapshot.matchState;
+        if (match.status === 'waiting' && match.mode === mode && match.isRanked === isRanked) {
+          return snapshot;
+        }
       }
-    }
 
-    return null;
+      return null;
+    } catch (error) {
+      console.warn('Failed to find waiting match in Redis:', error);
+      return null;
+    }
   }
 
   async getActiveMatches(): Promise<MatchSnapshot[]> {
-    const activeMatchIds = await this.redis.smembers(ACTIVE_SET_KEY);
-    const snapshots = await Promise.all(activeMatchIds.map((matchId) => this.recoverMatch(matchId)));
-    return snapshots.filter((snapshot): snapshot is MatchSnapshot => Boolean(snapshot));
+    try {
+      const activeMatchIds = await this.redis.smembers(ACTIVE_SET_KEY);
+      const snapshots = await Promise.all(activeMatchIds.map((matchId) => this.recoverMatch(matchId)));
+      return snapshots.filter((snapshot): snapshot is MatchSnapshot => Boolean(snapshot));
+    } catch (error) {
+      console.warn('Failed to get active matches from Redis:', error);
+      return [];
+    }
   }
 
   async findActiveMatchByPlayer(playerId: string): Promise<MatchSnapshot | null> {
