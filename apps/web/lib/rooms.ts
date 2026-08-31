@@ -82,6 +82,17 @@ export async function joinRoom(roomId: string): Promise<Room> {
 }
 
 /**
+ * Join a room by code
+ */
+export async function joinRoomByCode(code: string): Promise<Room> {
+  return apiRequest<Room>(`/rooms/join-by-code`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ code }),
+  });
+}
+
+/**
  * Leave a room
  */
 export async function leaveRoom(roomId: string): Promise<void> {

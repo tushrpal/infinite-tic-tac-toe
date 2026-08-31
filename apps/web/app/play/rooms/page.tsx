@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { RoomCard } from '@/components/rooms/RoomCard';
 import { CreateRoomModal } from '@/components/rooms/CreateRoomModal';
+import { JoinByCodeModal } from '@/components/rooms/JoinByCodeModal';
 import { getRooms, getAvailableRooms, getPendingInvites, respondToInvite, joinRoom } from '@/lib/rooms';
 import { ROUTES } from '@/lib/constants';
 import type { RoomListItem, RoomInvite } from '@/ws/types';
@@ -18,6 +19,7 @@ export default function RoomsHubPage() {
   const [pendingInvites, setPendingInvites] = useState<RoomInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isJoinByCodeModalOpen, setIsJoinByCodeModalOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -191,18 +193,36 @@ export default function RoomsHubPage() {
 
           {/* Right Column - Create Room */}
           <div className="lg:col-span-1">
-            <div className="sticky top-4 p-6 rounded-xl bg-surface-elevated border border-board-grid">
-              <h2 className="text-xl font-semibold mb-4">Create a Room</h2>
-              <p className="text-sm text-text-secondary mb-6">
-                Create a lobby for up to 8 friends to play multiple games
-              </p>
-              <Button
-                onClick={() => setIsCreateModalOpen(true)}
-                variant="primary"
-                className="w-full"
-              >
-                Create Room
-              </Button>
+            <div className="sticky top-4 space-y-4">
+              {/* Create Room Card */}
+              <div className="p-6 rounded-xl bg-surface-elevated border border-board-grid">
+                <h2 className="text-xl font-semibold mb-4">Create a Room</h2>
+                <p className="text-sm text-text-secondary mb-6">
+                  Create a lobby for up to 8 friends to play multiple games
+                </p>
+                <Button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  variant="primary"
+                  className="w-full"
+                >
+                  Create Room
+                </Button>
+              </div>
+
+              {/* Join by Code Card */}
+              <div className="p-6 rounded-xl bg-surface-elevated border border-board-grid">
+                <h2 className="text-xl font-semibold mb-4">Join by Code</h2>
+                <p className="text-sm text-text-secondary mb-6">
+                  Have a room code? Enter it to join instantly
+                </p>
+                <Button
+                  onClick={() => setIsJoinByCodeModalOpen(true)}
+                  variant="secondary"
+                  className="w-full"
+                >
+                  Enter Code
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -212,6 +232,11 @@ export default function RoomsHubPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={handleCreateSuccess}
+      />
+
+      <JoinByCodeModal
+        isOpen={isJoinByCodeModalOpen}
+        onClose={() => setIsJoinByCodeModalOpen(false)}
       />
     </main>
   );

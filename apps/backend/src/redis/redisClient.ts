@@ -52,4 +52,22 @@ export function getRedisClient(): Redis {
   return cachedRedisClient;
 }
 
+/**
+ * Check if Redis is available and connected
+ */
+export async function isRedisAvailable(): Promise<boolean> {
+  try {
+    const client = getRedisClient();
+    // Check if client is in a ready state
+    if (client.status === 'ready') {
+      return true;
+    }
+    // Try a simple ping to verify connection
+    await client.ping();
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 export const redisClient = getRedisClient();

@@ -234,12 +234,11 @@ export class MatchManager {
       });
 
       if (!match) return null;
-      return match.state as MatchSnapshot;
+      return match.state as unknown as MatchSnapshot;
     } catch (error) {
       console.warn('Failed to get match from database:', error);
       return null;
     }
-  }
   }
 
   async recoverMatch(matchId: string): Promise<MatchSnapshot | null> {
@@ -322,7 +321,7 @@ export class MatchManager {
         orderBy: { createdAt: 'asc' },
       });
 
-      return match ? (match.state as MatchSnapshot) : null;
+      return match ? (match.state as unknown as MatchSnapshot) : null;
     } catch (error) {
       console.warn('Failed to find waiting match:', error);
       return null;
@@ -338,7 +337,7 @@ export class MatchManager {
         },
       });
 
-      return matches.map(m => m.state as MatchSnapshot);
+      return matches.map(m => m.state as unknown as MatchSnapshot);
     } catch (error) {
       console.warn('Failed to get active matches:', error);
       return [];

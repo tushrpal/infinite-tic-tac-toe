@@ -816,6 +816,7 @@ export interface Room {
   id: string;
   hostId: string;
   name: string | null;
+  joinCode: string;
   mode: 1 | 2;
   status: RoomStatus;
   player1Id: string | null;

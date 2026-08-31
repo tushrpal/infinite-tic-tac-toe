@@ -6,12 +6,16 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { PlayerList } from '@/components/rooms/PlayerList';
 import { PlayerAssignmentModal } from '@/components/rooms/PlayerAssignmentModal';
+import { RoomInviteModal } from '@/components/rooms/RoomInviteModal';
+import { RoomCodeDisplay } from '@/components/rooms/RoomCodeDisplay';
 import { useRoomState } from '@/hooks/useRoomState';
 import { useRoomEvents } from '@/hooks/useRoomEvents';
 import { startGame, invitePlayers } from '@/lib/rooms';
+import { getFriends } from '@/lib/friends';
 import { ROUTES } from '@/lib/constants';
 import { usePlayer } from '@/hooks/usePlayer';
 import type { PlayerInfo } from '@/ws/types';
+import type { Friend } from '@/types/friends';
 
 export default function RoomLobbyPage() {
   const router = useRouter();
@@ -22,6 +26,8 @@ export default function RoomLobbyPage() {
   const { room, members, isLoading, error, refetch, actions } = useRoomState(roomId);
 
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [activityFeed, setActivityFeed] = useState<Array<{ id: string; message: string; timestamp: number }>>([]);
   const [isStartingGame, setIsStartingGame] = useState(false);
 
@@ -83,6 +89,19 @@ export default function RoomLobbyPage() {
       addActivity('Room created');
     }
   }, [room?.id]);
+
+  useEffect(() => {
+    // Load friends for invite modal
+    const loadFriends = async () => {
+      try {
+        const friendsList = await getFriends();
+        setFriends(friendsList);
+      } catch (error) {
+        console.error('Error loading friends:', error);
+      }
+    };
+    loadFriends();
+  }, []);
 
   const addActivity = (message: string) => {
     setActivityFeed((prev) => [
@@ -180,9 +199,7 @@ export default function RoomLobbyPage() {
               hostId={room.hostId}
               currentPlayerId={player?.playerId || null}
               onToggleReady={actions.toggleReady}
-              onInvite={() => {
-                /* TODO: implement invite modal */
-              }}
+              onInvite={() => setIsInviteModalOpen(true)}
             />
           </div>
 
@@ -246,18 +263,24 @@ export default function RoomLobbyPage() {
 
           {/* Section C: Activity Feed */}
           <div className="lg:col-span-1">
-            <div className="p-6 rounded-xl bg-surface-elevated border border-board-grid">
-              <h3 className="font-semibold mb-4">Activity</h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {activityFeed.length === 0 ? (
-                  <p className="text-sm text-text-muted">No activity yet</p>
-                ) : (
-                  activityFeed.map((item) => (
-                    <div key={item.id} className="text-sm text-text-secondary">
-                      • {item.message}
-                    </div>
-                  ))
-                )}
+            <div className="space-y-4">
+              {/* Room Code */}
+              <RoomCodeDisplay code={room.joinCode} />
+
+              {/* Activity Feed */}
+              <div className="p-6 rounded-xl bg-surface-elevated border border-board-grid">
+                <h3 className="font-semibold mb-4">Activity</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {activityFeed.length === 0 ? (
+                    <p className="text-sm text-text-muted">No activity yet</p>
+                  ) : (
+                    activityFeed.map((item) => (
+                      <div key={item.id} className="text-sm text-text-secondary">
+                        • {item.message}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -276,6 +299,23 @@ export default function RoomLobbyPage() {
         onSuccess={() => {
           setIsAssignmentModalOpen(false);
           refetch();
+        }}
+      />
+
+      <RoomInviteModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        roomId={roomId}
+        friends={friends.map(f => ({
+          id: f.playerId,
+          username: f.username,
+          displayName: f.displayName || f.username,
+          isOnline: f.isOnline,
+        }))}
+        roomMemberIds={members.map(m => m.playerId)}
+        onSuccess={() => {
+          setIsInviteModalOpen(false);
+          addActivity('Invites sent');
         }}
       />
     </main>

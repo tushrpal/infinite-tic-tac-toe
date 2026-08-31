@@ -15,6 +15,32 @@ const ROOM_EXPIRY_HOURS = 3;
 const ROOM_INACTIVITY_MINUTES = 30;
 
 /**
+ * Generate a unique 6-character room join code
+ */
+async function generateUniqueJoinCode(): Promise<string> {
+  const prisma = getPrismaClient();
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+  for (let attempt = 0; attempt < 10; attempt++) {
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    // Check if code is unique
+    const existing = await prisma.room.findUnique({
+      where: { joinCode: code },
+    });
+
+    if (!existing) {
+      return code;
+    }
+  }
+
+  throw new Error('Failed to generate unique join code');
+}
+
+/**
  * POST /rooms/create
  *
  * Create a new friend room
@@ -37,10 +63,13 @@ router.post('/create', requireAuth, roomLimiter, async (req, res) => {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + ROOM_EXPIRY_HOURS);
 
+    const joinCode = await generateUniqueJoinCode();
+
     const room = await prisma.room.create({
       data: {
         hostId,
         name: name || null,
+        joinCode,
         mode,
         status: 'WAITING',
         expiresAt,
@@ -361,6 +390,147 @@ router.post('/:roomId/join', requireAuth, defaultLimiter, async (req, res) => {
     res.json({ message: 'Joined room successfully', roomId });
   } catch (error) {
     console.error('Error joining room:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /rooms/join-by-code
+ *
+ * Join a room using a join code (bypasses friendship check)
+ */
+router.post('/join-by-code', requireAuth, defaultLimiter, async (req, res) => {
+  try {
+    const playerId = req.playerId!;
+    const { code } = req.body;
+
+    if (!code || typeof code !== 'string') {
+      return res.status(400).json({ error: 'code is required' });
+    }
+
+    const prisma = getPrismaClient();
+
+    const room = await prisma.room.findUnique({
+      where: { joinCode: code.toUpperCase() },
+      include: {
+        host: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            ratingMode1: true,
+            ratingMode2: true,
+          },
+        },
+        members: {
+          select: { playerId: true },
+          include: {
+            player: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                ratingMode1: true,
+                ratingMode2: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found with that code' });
+    }
+
+    if (room.status === 'CLOSED') {
+      return res.status(409).json({ error: 'Room is closed' });
+    }
+
+    // Check if already a member
+    if (room.members.some((m) => m.playerId === playerId)) {
+      // Already in room, return room details
+      return res.json(room);
+    }
+
+    // Check if room is full (max 8 players)
+    if (room.members.length >= 8) {
+      return res.status(409).json({ error: 'Room is full' });
+    }
+
+    // Add member
+    await prisma.roomMember.create({
+      data: {
+        roomId: room.id,
+        playerId,
+      },
+    });
+
+    // Get player info for broadcast
+    const player = await prisma.player.findUnique({
+      where: { id: playerId },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        ratingMode1: true,
+        ratingMode2: true,
+      },
+    });
+
+    // Broadcast to all room members
+    wsManager.emitRoomMemberJoined(room.id, {
+      roomId: room.id,
+      member: player,
+      memberCount: room.members.length + 1,
+    });
+
+    // Return updated room
+    const updatedRoom = await prisma.room.findUnique({
+      where: { id: room.id },
+      include: {
+        host: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            ratingMode1: true,
+            ratingMode2: true,
+          },
+        },
+        player1: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+          },
+        },
+        player2: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+          },
+        },
+        members: {
+          include: {
+            player: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                ratingMode1: true,
+                ratingMode2: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.json(updatedRoom);
+  } catch (error) {
+    console.error('Error joining room by code:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -215,11 +215,12 @@ model RecentOpponent {
 }
 
 model Room {
-  id     String     @id @default(cuid())
-  hostId String
-  name   String?
-  mode   Int
-  status RoomStatus @default(WAITING)
+  id       String     @id @default(cuid())
+  hostId   String
+  name     String?
+  joinCode String     @unique
+  mode     Int
+  status   RoomStatus @default(WAITING)
 
   player1Id String?
   player2Id String?
@@ -240,6 +241,7 @@ model Room {
   @@index([hostId, status])
   @@index([expiresAt])
   @@index([lastActivityAt])
+  @@index([joinCode])
 }
 
 model RoomMember {
