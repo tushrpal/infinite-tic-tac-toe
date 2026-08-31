@@ -1,6 +1,19 @@
 import { apiRequest } from './api';
 import type { Room, RoomListItem, RoomInvite } from '@/ws/types';
 
+/**
+ * Get authentication headers with session token
+ */
+function getAuthHeaders(): HeadersInit {
+  const sessionToken = typeof window !== 'undefined'
+    ? localStorage.getItem('infinite-ttt-session-token')
+    : null;
+
+  return sessionToken
+    ? { 'Authorization': `Bearer ${sessionToken}` }
+    : {};
+}
+
 export interface CreateRoomParams {
   name?: string | null;
   mode: 1 | 2;
@@ -26,6 +39,7 @@ export interface RespondToInviteParams {
 export async function createRoom(params: CreateRoomParams): Promise<Room> {
   return apiRequest<Room>('/rooms/create', {
     method: 'POST',
+    headers: getAuthHeaders(),
     body: JSON.stringify(params),
   });
 }
@@ -34,21 +48,27 @@ export async function createRoom(params: CreateRoomParams): Promise<Room> {
  * Get list of my active rooms
  */
 export async function getRooms(): Promise<RoomListItem[]> {
-  return apiRequest<RoomListItem[]>('/rooms');
+  return apiRequest<RoomListItem[]>('/rooms', {
+    headers: getAuthHeaders(),
+  });
 }
 
 /**
  * Get list of joinable friend rooms
  */
 export async function getAvailableRooms(): Promise<RoomListItem[]> {
-  return apiRequest<RoomListItem[]>('/rooms/available');
+  return apiRequest<RoomListItem[]>('/rooms/available', {
+    headers: getAuthHeaders(),
+  });
 }
 
 /**
  * Get full room details by ID
  */
 export async function getRoom(roomId: string): Promise<Room> {
-  return apiRequest<Room>(`/rooms/${roomId}`);
+  return apiRequest<Room>(`/rooms/${roomId}`, {
+    headers: getAuthHeaders(),
+  });
 }
 
 /**
@@ -57,6 +77,7 @@ export async function getRoom(roomId: string): Promise<Room> {
 export async function joinRoom(roomId: string): Promise<Room> {
   return apiRequest<Room>(`/rooms/${roomId}/join`, {
     method: 'POST',
+    headers: getAuthHeaders(),
   });
 }
 
@@ -66,6 +87,7 @@ export async function joinRoom(roomId: string): Promise<Room> {
 export async function leaveRoom(roomId: string): Promise<void> {
   return apiRequest<void>(`/rooms/${roomId}/leave`, {
     method: 'POST',
+    headers: getAuthHeaders(),
   });
 }
 
@@ -75,6 +97,7 @@ export async function leaveRoom(roomId: string): Promise<void> {
 export async function closeRoom(roomId: string): Promise<void> {
   return apiRequest<void>(`/rooms/${roomId}/close`, {
     method: 'POST',
+    headers: getAuthHeaders(),
   });
 }
 
@@ -84,6 +107,7 @@ export async function closeRoom(roomId: string): Promise<void> {
 export async function toggleReady(roomId: string): Promise<{ isReady: boolean }> {
   return apiRequest<{ isReady: boolean }>(`/rooms/${roomId}/ready`, {
     method: 'POST',
+    headers: getAuthHeaders(),
   });
 }
 
@@ -96,6 +120,7 @@ export async function assignPlayers(
 ): Promise<void> {
   return apiRequest<void>(`/rooms/${roomId}/assign-players`, {
     method: 'POST',
+    headers: getAuthHeaders(),
     body: JSON.stringify(params),
   });
 }
@@ -106,6 +131,7 @@ export async function assignPlayers(
 export async function startGame(roomId: string): Promise<{ matchId: string }> {
   return apiRequest<{ matchId: string }>(`/rooms/${roomId}/start-game`, {
     method: 'POST',
+    headers: getAuthHeaders(),
   });
 }
 
@@ -118,6 +144,7 @@ export async function invitePlayers(
 ): Promise<{ inviteIds: string[] }> {
   return apiRequest<{ inviteIds: string[] }>(`/rooms/${roomId}/invite`, {
     method: 'POST',
+    headers: getAuthHeaders(),
     body: JSON.stringify(params),
   });
 }
@@ -126,7 +153,9 @@ export async function invitePlayers(
  * Get pending room invites
  */
 export async function getPendingInvites(): Promise<RoomInvite[]> {
-  return apiRequest<RoomInvite[]>('/room-invites');
+  return apiRequest<RoomInvite[]>('/room-invites', {
+    headers: getAuthHeaders(),
+  });
 }
 
 /**
@@ -138,6 +167,7 @@ export async function respondToInvite(
 ): Promise<void> {
   return apiRequest<void>(`/room-invites/${inviteId}/respond`, {
     method: 'POST',
+    headers: getAuthHeaders(),
     body: JSON.stringify(params),
   });
 }
