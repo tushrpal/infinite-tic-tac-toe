@@ -5,7 +5,8 @@
  * Accessible modal dialog with animations
  */
 
-import { Fragment, useEffect, useCallback, type ReactNode } from "react";
+import { Fragment, useEffect, useCallback, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/helpers";
 import { UI } from "@/lib/constants";
 import { useFocusTrap, useFocusReturn } from "@/lib/accessibility";
@@ -36,6 +37,12 @@ export function Modal({
   // Accessibility: trap focus within modal and return focus on close
   const modalRef = useFocusTrap(isOpen);
   useFocusReturn(isOpen);
+
+  // Portal target is only available after mount (avoids SSR document access)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Handle escape key
   useEffect(() => {
@@ -73,7 +80,7 @@ export function Modal({
     [closeOnOverlayClick, onClose],
   );
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const sizeStyles = {
     sm: "max-w-sm",
@@ -85,7 +92,7 @@ export function Modal({
   // Full screen on mobile for better UX
   const isMobileFullScreen = size === "lg" || size === "xl";
 
-  return (
+  return createPortal(
     <Fragment>
       {/* Overlay */}
       <div
@@ -174,7 +181,8 @@ export function Modal({
           )}
         </div>
       </div>
-    </Fragment>
+    </Fragment>,
+    document.body,
   );
 }
 

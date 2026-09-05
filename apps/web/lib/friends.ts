@@ -118,11 +118,26 @@ export async function searchPlayers(query: string): Promise<PlayerSearchResult[]
 export async function sendFriendRequest(
   payload: SendFriendRequestPayload
 ): Promise<FriendRequest> {
-  return apiRequest<FriendRequest>('/friends/request', {
+  const item = await apiRequest<any>('/friends/request', {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
   });
+
+  // Transform backend response (nested requester/addressee) to frontend flat format
+  return {
+    friendshipId: item.id,
+    requesterId: item.requester?.id || '',
+    requesterUsername: item.requester?.username || '',
+    requesterDisplayName: item.requester?.displayName,
+    requesterRating: item.requester?.ratingMode1 || 0,
+    addresseeId: item.addressee?.id || '',
+    addresseeUsername: item.addressee?.username || '',
+    addresseeDisplayName: item.addressee?.displayName,
+    addresseeRating: item.addressee?.ratingMode1 || 0,
+    status: 'PENDING',
+    createdAt: item.createdAt,
+  };
 }
 
 /**
@@ -134,7 +149,10 @@ export async function respondToFriendRequest(
   return apiRequest<{ success: boolean }>('/friends/respond', {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      friendshipId: payload.friendshipId,
+      action: payload.accept ? 'ACCEPT' : 'DECLINE',
+    }),
   });
 }
 
@@ -152,7 +170,7 @@ export async function removeFriend(friendshipId: string): Promise<{ success: boo
  * Cancel a pending friend request (for requester only)
  */
 export async function cancelFriendRequest(friendshipId: string): Promise<{ success: boolean }> {
-  return apiRequest<{ success: boolean }>(`/friends/request/${friendshipId}`, {
+  return apiRequest<{ success: boolean }>(`/friends/${friendshipId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });

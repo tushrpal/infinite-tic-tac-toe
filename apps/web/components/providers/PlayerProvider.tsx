@@ -40,7 +40,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const { update: updateSession } = useSession();
 
   // OAuth state
-  const [oauthData, setOAuthData] = useState<OAuthCallbackResponse["oauthData"] | null>(null);
+  const [oauthData, setOAuthData] = useState<
+    (OAuthCallbackResponse["oauthData"] & { suggestedUsername?: string }) | null
+  >(null);
 
   const loadPlayer = async () => {
     setIsLoading(true);
@@ -123,7 +125,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           oauthData.provider,
           oauthData.oauthId,
           oauthData.email,
-          displayName
+          displayName,
+          oauthData.suggestedUsername!
         );
 
         console.log('OAuth registration successful:', newPlayer);
@@ -164,7 +167,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (response.isNewUser) {
         // New OAuth user - show username modal
         console.log('New OAuth user - showing username modal');
-        setOAuthData(response.oauthData || null);
+        setOAuthData(
+          response.oauthData
+            ? { ...response.oauthData, suggestedUsername: response.suggestedUsername }
+            : null
+        );
         setNeedsRegistration(true);
         setIsRegistering(false);
       } else {

@@ -51,6 +51,7 @@ export interface OAuthCallbackResponse {
   displayName?: string;
   rating?: number;
   sessionToken?: string;
+  suggestedUsername?: string;
   oauthData?: {
     provider: string;
     oauthId: string;
@@ -212,11 +213,12 @@ export async function registerWithOAuth(
   provider: string,
   oauthId: string,
   email: string,
-  displayName: string
+  displayName: string,
+  username: string
 ): Promise<PlayerProfile> {
   const response = await apiRequest<PlayerProfile & { sessionToken: string }>('/auth/oauth/register', {
     method: 'POST',
-    body: JSON.stringify({ provider, oauthId, email, displayName }),
+    body: JSON.stringify({ provider, oauthId, email, displayName, username }),
   });
 
   setStoredPlayerId(response.playerId);

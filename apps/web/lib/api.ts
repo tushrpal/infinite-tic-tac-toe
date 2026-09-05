@@ -1,9 +1,27 @@
-const DEFAULT_LOCAL_API_URL = 'http://localhost:3000';
+const DEFAULT_LOCAL_API_PORT = 4000;
+const DEFAULT_LOCAL_API_URL = `http://localhost:${DEFAULT_LOCAL_API_PORT}`;
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || DEFAULT_LOCAL_API_URL;
 
 function normalizeBaseUrl(url: string): string {
   return url.replace(/\/+$/, '');
+}
+
+function getBackendPort(): number {
+  const envApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+
+  if (envApiUrl) {
+    try {
+      const port = new URL(envApiUrl).port;
+      if (port) {
+        return Number(port);
+      }
+    } catch {
+      // ignore malformed env value, fall through to default
+    }
+  }
+
+  return DEFAULT_LOCAL_API_PORT;
 }
 
 function unique(values: string[]): string[] {
@@ -34,7 +52,7 @@ function getApiBaseCandidates(): string[] {
 
   if (process.env.NODE_ENV !== 'production') {
     if (typeof window !== 'undefined') {
-      const hostBase = `${window.location.protocol}//${window.location.hostname}:3000`;
+      const hostBase = `${window.location.protocol}//${window.location.hostname}:${getBackendPort()}`;
       candidates.push(normalizeBaseUrl(hostBase));
     }
 

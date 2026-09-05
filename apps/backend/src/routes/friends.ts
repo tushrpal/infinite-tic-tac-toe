@@ -146,6 +146,79 @@ router.post('/request', requireAuth, friendRequestLimiter, async (req, res) => {
 });
 
 /**
+ * GET /friends/search
+ *
+ * Search for players by username (min 2 chars), excluding self and blocked players
+ *
+ * Query params: q=string
+ *
+ * Returns: Array of PlayerSearchResult
+ */
+router.get('/search', requireAuth, defaultLimiter, async (req, res) => {
+  try {
+    const playerId = req.playerId!;
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+
+    if (q.length < 2) {
+      return res.json([]);
+    }
+
+    const prisma = getPrismaClient();
+
+    const [players, relationships] = await Promise.all([
+      prisma.player.findMany({
+        where: {
+          username: { contains: q, mode: 'insensitive' },
+          id: { not: playerId },
+        },
+        select: { id: true, username: true, displayName: true, ratingMode1: true },
+        take: 20,
+      }),
+      prisma.friendship.findMany({
+        where: {
+          OR: [{ requesterId: playerId }, { addresseeId: playerId }],
+        },
+        select: { requesterId: true, addresseeId: true, status: true },
+      }),
+    ]);
+
+    const relByOther = new Map<string, { status: string; direction: 'out' | 'in' }>();
+    for (const r of relationships) {
+      const otherId = r.requesterId === playerId ? r.addresseeId : r.requesterId;
+      relByOther.set(otherId, {
+        status: r.status,
+        direction: r.requesterId === playerId ? 'out' : 'in',
+      });
+    }
+
+    const results = players
+      .filter((p) => relByOther.get(p.id)?.status !== 'BLOCKED')
+      .map((p) => {
+        const rel = relByOther.get(p.id);
+        let relationshipStatus: 'none' | 'friend' | 'pending_sent' | 'pending_received' = 'none';
+        if (rel?.status === 'ACCEPTED') {
+          relationshipStatus = 'friend';
+        } else if (rel?.status === 'PENDING') {
+          relationshipStatus = rel.direction === 'out' ? 'pending_sent' : 'pending_received';
+        }
+
+        return {
+          playerId: p.id,
+          username: p.username,
+          displayName: p.displayName ?? undefined,
+          rating: p.ratingMode1,
+          relationshipStatus,
+        };
+      });
+
+    res.json(results);
+  } catch (error) {
+    console.error('Error searching players:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * GET /friends
  *
  * Get current player's friends list (status=ACCEPTED only)
