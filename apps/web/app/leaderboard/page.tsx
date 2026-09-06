@@ -28,6 +28,7 @@ type LeaderboardEntry = {
 
 type LeaderboardResponse = {
   leaderboard: LeaderboardEntry[];
+  hasMore?: boolean;
 };
 
 type LeagueLeaderboardResponse = {
@@ -78,32 +79,51 @@ export default function LeaderboardPage() {
     loadUserLeague();
   }, []);
 
-  const loadMoreLeagueEntries = useCallback(async () => {
-    if (!userLeague || isLoadingMore || !hasMore) return;
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
 
     setIsLoadingMore(true);
     try {
-      const data = await apiRequest<LeagueLeaderboardResponse>(
-        `/leaderboard/league/${userLeague.league}?offset=${players.length}&limit=${ITEMS_PER_PAGE}`
-      );
+      if (selectedMode === "my-league") {
+        if (!userLeague) return;
 
-      const normalized = data.entries.map((entry) => ({
-        username: entry.username,
-        name: entry.displayName,
-        rating: entry.rating,
-        playerId: entry.playerId,
-        league: entry.league,
-        leagueColor: entry.leagueColor,
-      }));
+        const data = await apiRequest<LeagueLeaderboardResponse>(
+          `/leaderboard/league/${userLeague.league}?offset=${players.length}&limit=${ITEMS_PER_PAGE}`
+        );
 
-      setPlayers((prev) => [...prev, ...normalized]);
-      setHasMore(data.hasMore);
+        const normalized = data.entries.map((entry) => ({
+          username: entry.username,
+          name: entry.displayName,
+          rating: entry.rating,
+          playerId: entry.playerId,
+          league: entry.league,
+          leagueColor: entry.leagueColor,
+        }));
+
+        setPlayers((prev) => [...prev, ...normalized]);
+        setHasMore(data.hasMore);
+      } else {
+        const endpoint = selectedMode === "all"
+          ? `/leaderboard?offset=${players.length}&limit=${ITEMS_PER_PAGE}`
+          : `/leaderboard?mode=${selectedMode}&offset=${players.length}&limit=${ITEMS_PER_PAGE}`;
+
+        const data = await apiRequest<LeaderboardResponse>(endpoint);
+        const normalized = data.leaderboard.map((entry) => ({
+          username: entry.username,
+          name: entry.displayName,
+          rating: entry.rating,
+          playerId: entry.playerId,
+        }));
+
+        setPlayers((prev) => [...prev, ...normalized]);
+        setHasMore(data.hasMore ?? false);
+      }
     } catch (error) {
       console.error("Failed to load more entries:", error);
     } finally {
       setIsLoadingMore(false);
     }
-  }, [userLeague, players.length, isLoadingMore, hasMore]);
+  }, [selectedMode, userLeague, players.length, isLoadingMore, hasMore]);
 
   useEffect(() => {
     let isActive = true;
@@ -141,8 +161,8 @@ export default function LeaderboardPage() {
           }
         } else {
           const endpoint = selectedMode === "all"
-            ? "/leaderboard"
-            : `/leaderboard?mode=${selectedMode}`;
+            ? `/leaderboard?limit=${ITEMS_PER_PAGE}`
+            : `/leaderboard?mode=${selectedMode}&limit=${ITEMS_PER_PAGE}`;
 
           const data = await apiRequest<LeaderboardResponse | LeaderboardEntry[]>(
             endpoint,
@@ -160,7 +180,7 @@ export default function LeaderboardPage() {
           }));
           if (isActive) {
             setPlayers(normalized);
-            setHasMore(false);
+            setHasMore(!Array.isArray(data) ? (data.hasMore ?? false) : false);
             setHasError(false);
           }
         }
@@ -314,10 +334,10 @@ export default function LeaderboardPage() {
                   </div>
                 </div>
               ))}
-              {selectedMode === "my-league" && hasMore && (
+              {hasMore && (
                 <div className="border-t border-board-grid/50 py-4 text-center">
                   <button
-                    onClick={loadMoreLeagueEntries}
+                    onClick={loadMore}
                     disabled={isLoadingMore}
                     className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -325,7 +345,7 @@ export default function LeaderboardPage() {
                   </button>
                 </div>
               )}
-              {selectedMode === "my-league" && !hasMore && players.length >= ITEMS_PER_PAGE && (
+              {!hasMore && players.length >= ITEMS_PER_PAGE && (
                 <div className="border-t border-board-grid/50 py-4 text-center text-text-muted text-sm">
                   End of leaderboard
                 </div>

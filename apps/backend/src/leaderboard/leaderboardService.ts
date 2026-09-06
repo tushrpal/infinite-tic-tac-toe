@@ -46,7 +46,10 @@ function toLeaderboardEntries(players: Array<{ id: string; username: string | nu
   }));
 }
 
-export async function getGlobalLeaderboard(limit: number = DEFAULT_LIMIT): Promise<LeaderboardEntry[]> {
+export async function getGlobalLeaderboard(
+  limit: number = DEFAULT_LIMIT,
+  offset: number = 0,
+): Promise<{ entries: LeaderboardEntry[]; hasMore: boolean }> {
   const prisma = getPrismaClient();
   const take = normalizeLimit(limit);
 
@@ -74,26 +77,34 @@ export async function getGlobalLeaderboard(limit: number = DEFAULT_LIMIT): Promi
   });
 
   // Compute combined rating and sort
-  const playersWithCombinedRating = players
+  const sorted = players
     .map((player) => ({
       id: player.id,
       username: player.username,
       displayName: player.displayName,
       rating: player.ratingMode1 + player.ratingMode2,
     }))
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, take);
+    .sort((a, b) => b.rating - a.rating);
 
-  return playersWithCombinedRating.map((player, index) => ({
-    rank: index + 1,
-    playerId: player.id,
-    username: player.username ?? player.id,
-    displayName: player.displayName ?? player.username ?? player.id,
-    rating: player.rating,
-  }));
+  const page = sorted.slice(offset, offset + take);
+
+  return {
+    entries: page.map((player, index) => ({
+      rank: offset + index + 1,
+      playerId: player.id,
+      username: player.username ?? player.id,
+      displayName: player.displayName ?? player.username ?? player.id,
+      rating: player.rating,
+    })),
+    hasMore: offset + take < sorted.length,
+  };
 }
 
-export async function getLeaderboardByMode(mode: string, limit: number = DEFAULT_LIMIT): Promise<LeaderboardEntry[]> {
+export async function getLeaderboardByMode(
+  mode: string,
+  limit: number = DEFAULT_LIMIT,
+  offset: number = 0,
+): Promise<{ entries: LeaderboardEntry[]; hasMore: boolean }> {
   const prisma = getPrismaClient();
   const take = normalizeLimit(limit);
   const backendMode = toBackendMode(mode);
@@ -118,7 +129,10 @@ export async function getLeaderboardByMode(mode: string, limit: number = DEFAULT
       },
     },
     orderBy: { [ratingField]: 'desc' },
-    take,
+    skip: offset,
+    // Fetch one extra row to cheaply detect if there's a next page,
+    // without a separate COUNT(*) query.
+    take: take + 1,
     select: {
       id: true,
       username: true,
@@ -128,14 +142,20 @@ export async function getLeaderboardByMode(mode: string, limit: number = DEFAULT
     },
   });
 
+  const hasMore = players.length > take;
+  const page = players.slice(0, take);
+
   // Map to use the correct rating based on mode
-  return players.map((player, index) => ({
-    rank: index + 1,
-    playerId: player.id,
-    username: player.username ?? player.id,
-    displayName: player.displayName ?? player.username ?? player.id,
-    rating: backendMode === 'mode1' ? player.ratingMode1 : player.ratingMode2,
-  }));
+  return {
+    entries: page.map((player, index) => ({
+      rank: offset + index + 1,
+      playerId: player.id,
+      username: player.username ?? player.id,
+      displayName: player.displayName ?? player.username ?? player.id,
+      rating: backendMode === 'mode1' ? player.ratingMode1 : player.ratingMode2,
+    })),
+    hasMore,
+  };
 }
 
 /**

@@ -5,76 +5,86 @@
  * Watch recorded matches with playback controls
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { GameBoard } from "@/components/board/GameBoard";
 import { ScorePanel } from "@/components/hud/ScorePanel";
 import { Button } from "@/components/ui/Button";
 import { useReplay } from "@/hooks/useReplay";
-import { adaptBoard, adaptScore } from "@/lib/adapters/gameAdapter";
+import { adaptBoard } from "@/lib/adapters/gameAdapter";
+import { fetchMatch, type MatchResultPayload } from "@/lib/matches";
+import { fetchPlayerProfile } from "@/lib/player";
 import { ROUTES } from "@/lib/constants";
-import { cn, formatDuration } from "@/lib/helpers";
-import type { GameMode, Player, Move, MatchState } from "@/ws/types";
+import { cn, formatDuration, getRankFromRating } from "@/lib/helpers";
+import type { GameMode, Player, Move } from "@/ws/types";
 
-// Mock replay data - in real app this comes from API
-const mockReplayData = {
-  matchId: "mock-replay-123",
-  mode: "MODE_1" as GameMode,
-  boardSize: 3,
-  moveHistory: [
-    {
-      position: { row: 1, col: 1 },
-      player: "X" as Player,
-      moveNumber: 1,
-      timestamp: 0,
+interface ReplayPlayer {
+  username: string;
+  rating?: number;
+}
+
+interface ReplayData {
+  matchId: string;
+  mode: GameMode;
+  boardSize: number;
+  moveHistory: Move[];
+  players: { X: ReplayPlayer; O: ReplayPlayer };
+  winner: Player | null;
+  isDraw: boolean;
+  duration: number;
+  playedAt: number;
+}
+
+async function describePlayer(id: string, type: "human" | "bot"): Promise<ReplayPlayer> {
+  if (type === "bot") {
+    return { username: "Bot" };
+  }
+
+  try {
+    const profile = await fetchPlayerProfile(id);
+    return {
+      username: profile.displayName || profile.username || id,
+      rating: profile.rating,
+    };
+  } catch {
+    return { username: id };
+  }
+}
+
+function toReplayData(match: MatchResultPayload): ReplayData | null {
+  const game = match.games[0];
+  if (!game) return null;
+
+  const sortedMoves = [...game.moves].sort((a, b) => a.turn - b.turn);
+  const moveHistory: Move[] = sortedMoves.map((move, index) => ({
+    position: {
+      row: Math.floor(move.index / game.boardSize),
+      col: move.index % game.boardSize,
     },
-    {
-      position: { row: 0, col: 0 },
-      player: "O" as Player,
-      moveNumber: 2,
-      timestamp: 1000,
-    },
-    {
-      position: { row: 0, col: 1 },
-      player: "X" as Player,
-      moveNumber: 3,
-      timestamp: 2000,
-    },
-    {
-      position: { row: 2, col: 1 },
-      player: "O" as Player,
-      moveNumber: 4,
-      timestamp: 3000,
-    },
-    {
-      position: { row: 2, col: 0 },
-      player: "X" as Player,
-      moveNumber: 5,
-      timestamp: 4000,
-    },
-    {
-      position: { row: 0, col: 2 },
-      player: "O" as Player,
-      moveNumber: 6,
-      timestamp: 5000,
-    },
-    {
-      position: { row: 2, col: 2 },
-      player: "X" as Player,
-      moveNumber: 7,
-      timestamp: 6000,
-    }, // X wins
-  ] as Move[],
-  players: {
-    X: { username: "Player1", rating: 1250 },
-    O: { username: "Player2", rating: 1180 },
-  },
-  winner: "X" as Player,
-  isDraw: false,
-  duration: 45000,
-  playedAt: Date.now() - 3600000,
-};
+    player: move.player,
+    moveNumber: index + 1,
+    timestamp: move.timestamp ?? 0,
+  }));
+
+  const firstTimestamp = sortedMoves[0]?.timestamp;
+  const lastTimestamp = sortedMoves[sortedMoves.length - 1]?.timestamp;
+  const duration = firstTimestamp != null && lastTimestamp != null
+    ? Math.max(0, lastTimestamp - firstTimestamp)
+    : 0;
+
+  return {
+    matchId: match.matchId,
+    mode: match.mode,
+    boardSize: game.boardSize,
+    moveHistory,
+    players: { X: { username: "..." }, O: { username: "..." } },
+    winner: game.winner,
+    isDraw: game.winner === null,
+    duration,
+    playedAt: match.createdAt,
+  };
+}
 
 export default function ReplayPage() {
   const params = useParams();
@@ -82,14 +92,47 @@ export default function ReplayPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [replayData, setReplayData] = useState<ReplayData | null>(null);
+  const [extraGamesCount, setExtraGamesCount] = useState(0);
 
-  // In real app, fetch replay data from API
   useEffect(() => {
-    // Simulate API fetch
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    let isActive = true;
+
+    async function load() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const match = await fetchMatch(matchId);
+        const data = toReplayData(match);
+        if (!data) {
+          throw new Error("This match has no recorded moves to replay.");
+        }
+
+        const [xInfo, yInfo] = await Promise.all([
+          match.players[0] ? describePlayer(match.players[0].id, match.players[0].type) : Promise.resolve({ username: "Player 1" }),
+          match.players[1] ? describePlayer(match.players[1].id, match.players[1].type) : Promise.resolve({ username: "Player 2" }),
+        ]);
+
+        if (!isActive) return;
+        setReplayData({ ...data, players: { X: xInfo, O: yInfo } });
+        setExtraGamesCount(Math.max(0, match.games.length - 1));
+      } catch (err) {
+        if (!isActive) return;
+        const status = (err as Error & { status?: number }).status;
+        setError(
+          status === 404
+            ? "This match doesn't exist or hasn't been recorded."
+            : "Failed to load this replay. Please try again."
+        );
+      } finally {
+        if (isActive) setIsLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      isActive = false;
+    };
   }, [matchId]);
 
   const {
@@ -109,74 +152,43 @@ export default function ReplayPage() {
     setPlaybackSpeed,
     progress,
   } = useReplay({
-    replayData: mockReplayData,
+    replayData: replayData ?? {
+      matchId,
+      mode: "MODE_1",
+      boardSize: 3,
+      moveHistory: [],
+      players: { X: { username: "" }, O: { username: "" } },
+      winner: null,
+      isDraw: false,
+      duration: 0,
+      playedAt: Date.now(),
+    },
     autoPlay: false,
     playbackSpeed: 1,
   });
 
-  // Build board state from frame
-  const buildBoardFromFrame = () => {
-    const board: (Player | null)[][] = Array(mockReplayData.boardSize)
-      .fill(null)
-      .map(() => Array(mockReplayData.boardSize).fill(null));
-
-    // Apply moves up to current frame
-    const movesToApply = mockReplayData.moveHistory.slice(0, frameIndex);
-    movesToApply.forEach((move) => {
-      board[move.position.row][move.position.col] = move.player;
-    });
-
-    return board;
-  };
-
-  const board = buildBoardFromFrame();
-  const currentPlayer: Player = frameIndex % 2 === 0 ? "X" : "O";
-  const isGameOver = frameIndex >= mockReplayData.moveHistory.length;
-  const winner = isGameOver ? mockReplayData.winner : null;
+  const { currentPlayer, isGameOver, winner, winInfo } = currentFrame.gameState;
 
   // Convert to UI state
-  const boardUIState = adaptBoard(
-    {
-      board,
-      boardSize: mockReplayData.boardSize,
-      currentPlayer,
-      moveHistory: mockReplayData.moveHistory.slice(0, frameIndex),
-      isGameOver,
-      winner,
-      winInfo:
-        isGameOver && winner
-          ? {
-              winner,
-              winningCells: [
-                { row: 2, col: 0 },
-                { row: 1, col: 1 },
-                { row: 0, col: 2 },
-              ], // Diagonal win for mock
-              winType: "anti-diagonal",
-            }
-          : null,
-      isDraw: isGameOver && !winner,
-      mode: mockReplayData.mode,
-      moveCount: frameIndex,
-    },
-    null,
+  const boardUIState = useMemo(
+    () => adaptBoard(currentFrame.gameState, null),
+    [currentFrame],
   );
 
-  // Mock score data
-  const scoreUIState = {
+  const scoreUIState = replayData ? {
     playerX: {
-      name: mockReplayData.players.X.username,
-      rating: mockReplayData.players.X.rating,
-      rank: { name: "Gold", color: "#ffd700" },
+      name: replayData.players.X.username,
+      rating: replayData.players.X.rating,
+      rank: replayData.players.X.rating ? getRankFromRating(replayData.players.X.rating) : undefined,
       isConnected: true,
     },
     playerO: {
-      name: mockReplayData.players.O.username,
-      rating: mockReplayData.players.O.rating,
-      rank: { name: "Silver", color: "#c0c0c0" },
+      name: replayData.players.O.username,
+      rating: replayData.players.O.rating,
+      rank: replayData.players.O.rating ? getRankFromRating(replayData.players.O.rating) : undefined,
       isConnected: true,
     },
-  };
+  } : null;
 
   if (isLoading) {
     return (
@@ -189,12 +201,12 @@ export default function ReplayPage() {
     );
   }
 
-  if (error) {
+  if (error || !replayData || !scoreUIState) {
     return (
       <main className="flex-1 flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <h2 className="text-xl font-semibold mb-2">Replay Not Found</h2>
-          <p className="text-text-secondary mb-6">{error}</p>
+          <p className="text-text-secondary mb-6">{error ?? "This replay is unavailable."}</p>
           <Link href={ROUTES.LEADERBOARD}>
             <Button>View Leaderboard</Button>
           </Link>
@@ -223,12 +235,17 @@ export default function ReplayPage() {
         <div className="p-4 rounded-xl bg-surface-elevated border border-board-grid">
           <div className="flex items-center justify-between text-sm">
             <span className="text-text-muted">
-              {mockReplayData.mode === "MODE_1" ? "Classic" : "Sliding"} Mode
+              {replayData.mode === "MODE_1" ? "Sliding" : "Classic"} Mode
             </span>
             <span className="text-text-muted">
-              {new Date(mockReplayData.playedAt).toLocaleDateString()}
+              {new Date(replayData.playedAt).toLocaleDateString()}
             </span>
           </div>
+          {extraGamesCount > 0 && (
+            <p className="text-xs text-text-muted mt-2">
+              This match had {extraGamesCount + 1} games - showing game 1.
+            </p>
+          )}
         </div>
 
         {/* Score Panel */}
@@ -245,19 +262,7 @@ export default function ReplayPage() {
           board={boardUIState}
           currentPlayer={currentPlayer}
           yourPlayer={null}
-          winInfo={
-            isGameOver && winner
-              ? {
-                  winner,
-                  winningCells: [
-                    { row: 2, col: 0 },
-                    { row: 1, col: 1 },
-                    { row: 0, col: 2 },
-                  ],
-                  winType: "anti-diagonal",
-                }
-              : null
-          }
+          winInfo={winInfo}
           isGameOver={isGameOver}
           disabled={true}
           showMoveNumbers={true}
@@ -332,11 +337,11 @@ export default function ReplayPage() {
         {isGameOver && (
           <div className="text-center p-4 rounded-xl bg-surface-elevated border border-board-grid">
             <p className="text-lg font-semibold mb-1">
-              {mockReplayData.isDraw ? "Draw" : `${winner} Wins!`}
+              {replayData.isDraw ? "Draw" : `${winner} Wins!`}
             </p>
             <p className="text-sm text-text-secondary">
-              {mockReplayData.moveHistory.length} moves •{" "}
-              {formatDuration(mockReplayData.duration)}
+              {replayData.moveHistory.length} moves
+              {replayData.duration > 0 && <> • {formatDuration(replayData.duration)}</>}
             </p>
           </div>
         )}

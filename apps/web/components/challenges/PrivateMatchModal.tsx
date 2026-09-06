@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useChallenges } from "@/components/providers/ChallengesProvider";
+import { AccountRequired } from "@/components/auth/AccountRequired";
 import { cn } from "@/lib/helpers";
 import type { GameMode, PrivateMatch } from "@/types/challenges";
 
@@ -112,6 +113,7 @@ export function PrivateMatchModal({ isOpen, onClose }: PrivateMatchModalProps) {
       title="Private Match"
       size="md"
     >
+      <AccountRequired feature="Private Matches">
       <div className="space-y-6">
         {!activePrivateMatch ? (
           <>
@@ -289,6 +291,7 @@ export function PrivateMatchModal({ isOpen, onClose }: PrivateMatchModalProps) {
           </>
         )}
       </div>
+      </AccountRequired>
     </Modal>
   );
 }

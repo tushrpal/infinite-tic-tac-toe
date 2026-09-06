@@ -20,10 +20,10 @@ export function RoomInviteNotification({
   const roomName = invite.room?.name ? `"${invite.room.name}"` : 'their room';
   const inviterName = invite.inviter?.displayName || 'Someone';
   const mode = invite.room?.mode === 1 ? 'Sliding' : 'Classic';
-  const memberCount = invite.room?.memberCount || 0;
+  const memberCount = invite.room?.memberCount;
 
   return (
-    <div className="fixed top-4 right-4 z-50 w-96 p-4 rounded-xl bg-surface-elevated border border-accent-primary/30 shadow-lg">
+    <div className="w-96 p-4 rounded-xl bg-surface-elevated border border-accent-primary/30 shadow-lg animate-slide-in">
       <div className="flex items-start justify-between gap-3 mb-3">
         <h3 className="font-semibold">📨 Room Invite</h3>
         <button
@@ -41,7 +41,8 @@ export function RoomInviteNotification({
 
       {invite.room && (
         <p className="text-sm text-text-secondary mb-4">
-          Mode: {mode} · {memberCount}/8 players
+          Mode: {mode}
+          {memberCount != null ? ` · ${memberCount}/8 players` : null}
         </p>
       )}
 

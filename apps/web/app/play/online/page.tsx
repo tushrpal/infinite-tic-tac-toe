@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useWebSocket, useSocketEvent } from "@/hooks/useWebSocket";
-import { usePlayer } from "@/hooks/usePlayer";
+import { usePlayer } from "@/components/providers/PlayerProvider";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/helpers";
 import type { GameMode } from "@/ws/types";

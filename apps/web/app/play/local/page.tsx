@@ -18,6 +18,60 @@ import { Modal } from "@/components/ui/Modal";
 import { ROUTES } from "@/lib/constants";
 import type { Player, WinInfo, Position } from "@/ws/types";
 import { adaptBoard } from "@/lib/adapters/gameAdapter";
+import { Modes } from "@infinite-ttt/game-engine";
+
+/**
+ * Rules for Mode 1 (Sliding) and Mode 2 (Classic) are delegated to the shared
+ * game engine instead of being reimplemented locally.
+ *
+ * The engine's win detectors return a boolean/winner but not the winning
+ * cells, so inferWinType + the Expanding Board win-line finder (reused below
+ * since "N-in-a-row on an NxN board" is the same rule as classic tic-tac-toe
+ * at N=3) fill in the winning line for the board highlight.
+ */
+function inferWinType(cells: Position[]): WinInfo["winType"] {
+  if (cells.every((c) => c.row === cells[0].row)) return "row";
+  if (cells.every((c) => c.col === cells[0].col)) return "column";
+  if (cells.every((c) => c.row === c.col)) return "diagonal";
+  return "anti-diagonal";
+}
+
+function findWinInfo(board: (Player | null)[][], boardSize: number, winner: Player): WinInfo | null {
+  const line = Modes.ExpandingBoard.checkWin(board, boardSize, winner);
+  return line ? { winner, winningCells: line, winType: inferWinType(line) } : null;
+}
+
+/**
+ * Replay Mode 1's full move history through the engine's reducer so its
+ * sliding-removal rule (oldest mark removed once a player has 3 on the
+ * board) is applied exactly as it is server-side.
+ */
+function replaySlidingMode(fullMoveHistory: Array<{ position: Position; player: Player }>) {
+  let state = Modes.Infinite3x3.createInitialState();
+  for (const move of fullMoveHistory) {
+    state = Modes.Infinite3x3.applyMove(state, move.player, move.position);
+  }
+
+  return {
+    board: state.board.map((row) => [...row]) as (Player | null)[][],
+    moveHistory: state.moveHistory.map((move) => ({
+      position: move.position,
+      player: move.player,
+      moveNumber: move.turn + 1,
+    })),
+    winInfo: state.winner ? findWinInfo(state.board, 3, state.winner) : null,
+  };
+}
+
+/**
+ * Win check for Mode 2 (fixed 3x3) and Mode 3 (N-in-a-row on an N x N board,
+ * boardSize grows each round) - both are the engine's Expanding Board win
+ * rule, just called with a different, fixed-per-call boardSize.
+ */
+function checkExpandingWinner(board: (Player | null)[][], boardSize: number): WinInfo | null {
+  const winner = Modes.ExpandingBoard.detectWinner(board, boardSize)?.winner ?? null;
+  return winner ? findWinInfo(board, boardSize, winner) : null;
+}
 
 // Extended game mode type for local play
 type LocalGameMode = "MODE_1" | "MODE_2" | "MODE_3";
@@ -31,6 +85,10 @@ type LocalGameState = {
     player: Player;
     moveNumber: number;
   }>;
+  // Mode 1 only: full, unfiltered move log used to replay the engine's
+  // sliding-removal rule from scratch on every move (moveHistory above is
+  // the already-filtered "currently on the board" view used for display).
+  fullMoveHistory: Array<{ position: Position; player: Player }>;
   isGameOver: boolean;
   winner: Player | null;
   isDraw: boolean;
@@ -51,104 +109,6 @@ function createEmptyBoard(size: number): (Player | null)[][] {
     .map(() => Array(size).fill(null));
 }
 
-// Dynamic win detection for N×N board (need N-in-a-row)
-function checkWinnerDynamic(
-  board: (Player | null)[][],
-  winLength: number,
-): WinInfo | null {
-  const size = board.length;
-
-  // Check all rows
-  for (let row = 0; row < size; row++) {
-    for (let col = 0; col <= size - winLength; col++) {
-      const cells: Position[] = [];
-      const firstVal = board[row][col];
-      if (!firstVal) continue;
-
-      let match = true;
-      for (let i = 0; i < winLength; i++) {
-        cells.push({ row, col: col + i });
-        if (board[row][col + i] !== firstVal) {
-          match = false;
-          break;
-        }
-      }
-      if (match) {
-        return { winner: firstVal, winningCells: cells, winType: "row" };
-      }
-    }
-  }
-
-  // Check all columns
-  for (let col = 0; col < size; col++) {
-    for (let row = 0; row <= size - winLength; row++) {
-      const cells: Position[] = [];
-      const firstVal = board[row][col];
-      if (!firstVal) continue;
-
-      let match = true;
-      for (let i = 0; i < winLength; i++) {
-        cells.push({ row: row + i, col });
-        if (board[row + i][col] !== firstVal) {
-          match = false;
-          break;
-        }
-      }
-      if (match) {
-        return { winner: firstVal, winningCells: cells, winType: "column" };
-      }
-    }
-  }
-
-  // Check diagonals (top-left to bottom-right)
-  for (let row = 0; row <= size - winLength; row++) {
-    for (let col = 0; col <= size - winLength; col++) {
-      const cells: Position[] = [];
-      const firstVal = board[row][col];
-      if (!firstVal) continue;
-
-      let match = true;
-      for (let i = 0; i < winLength; i++) {
-        cells.push({ row: row + i, col: col + i });
-        if (board[row + i][col + i] !== firstVal) {
-          match = false;
-          break;
-        }
-      }
-      if (match) {
-        return { winner: firstVal, winningCells: cells, winType: "diagonal" };
-      }
-    }
-  }
-
-  // Check anti-diagonals (top-right to bottom-left)
-  for (let row = 0; row <= size - winLength; row++) {
-    for (let col = winLength - 1; col < size; col++) {
-      const cells: Position[] = [];
-      const firstVal = board[row][col];
-      if (!firstVal) continue;
-
-      let match = true;
-      for (let i = 0; i < winLength; i++) {
-        cells.push({ row: row + i, col: col - i });
-        if (board[row + i][col - i] !== firstVal) {
-          match = false;
-          break;
-        }
-      }
-      if (match) {
-        return {
-          winner: firstVal,
-          winningCells: cells,
-          winType: "anti-diagonal",
-        };
-      }
-    }
-  }
-
-  return null;
-}
-
 export default function LocalPlayPage() {
   const [selectedMode, setSelectedMode] = useState<LocalGameMode>("MODE_1");
   const [gameStarted, setGameStarted] = useState(false);
@@ -164,6 +124,7 @@ export default function LocalPlayPage() {
         boardSize,
         currentPlayer: "X",
         moveHistory: [],
+        fullMoveHistory: [],
         isGameOver: false,
         winner: null,
         isDraw: false,
@@ -188,12 +149,14 @@ export default function LocalPlayPage() {
     if (!gameState) return;
 
     const newBoardSize = gameState.boardSize + 1;
-    // Loser starts next round, or X starts if it was a draw
-    const nextStarter: Player = gameState.isDraw
-      ? "X"
-      : gameState.winner === "X"
-        ? "O"
-        : "X";
+    // Starting player strictly alternates each round (round 1 always starts
+    // with X here) - this is the engine's documented fairness rule: it
+    // prevents a first-move advantage from compounding across the match,
+    // regardless of who won the previous round.
+    const nextStarter = Modes.ExpandingBoard.getRoundStartingPlayer(
+      gameState.roundNumber + 1,
+      "X",
+    );
 
     setGameState((prev) => {
       if (!prev) return prev;
@@ -203,6 +166,7 @@ export default function LocalPlayPage() {
         boardSize: newBoardSize,
         currentPlayer: nextStarter,
         moveHistory: [],
+        fullMoveHistory: [],
         isGameOver: false,
         winner: null,
         isDraw: false,
@@ -223,43 +187,42 @@ export default function LocalPlayPage() {
       setGameState((prev) => {
         if (!prev) return prev;
 
-        const newBoard = prev.board.map((r) => [...r]);
-        let removedPosition: Position | undefined;
+        const newMove = { position: { row, col }, player: prev.currentPlayer };
 
-        // Mode 1 (Infinite 3x3): Sliding rule - remove oldest mark if player has 3
+        let newBoard: (Player | null)[][];
+        let newMoveHistory: LocalGameState["moveHistory"];
+        let newFullMoveHistory = prev.fullMoveHistory;
+        let winInfo: WinInfo | null;
+
         if (prev.mode === "MODE_1") {
-          const playerMoves = prev.moveHistory.filter(
-            (m) => m.player === prev.currentPlayer,
-          );
-          if (playerMoves.length >= 3) {
-            const oldestMove = playerMoves[0];
-            newBoard[oldestMove.position.row][oldestMove.position.col] = null;
-            removedPosition = oldestMove.position;
-          }
+          // Sliding rule (oldest mark removed once a player has 3 on the
+          // board) is applied by replaying the whole game through the engine.
+          newFullMoveHistory = [...prev.fullMoveHistory, newMove];
+          const replayed = replaySlidingMode(newFullMoveHistory);
+          newBoard = replayed.board;
+          newMoveHistory = replayed.moveHistory;
+          winInfo = replayed.winInfo;
+        } else if (prev.mode === "MODE_2") {
+          newBoard = prev.board.map((r) => [...r]);
+          newBoard[row][col] = prev.currentPlayer;
+          newMoveHistory = [
+            ...prev.moveHistory,
+            { ...newMove, moveNumber: prev.moveCount + 1 },
+          ];
+          winInfo = checkExpandingWinner(newBoard, 3);
+        } else {
+          // Mode 3 (Expanding Board): win length scales with board size -
+          // this is the same "N-in-a-row on an NxN board" rule the engine
+          // implements, just called with the current round's board size.
+          newBoard = prev.board.map((r) => [...r]);
+          newBoard[row][col] = prev.currentPlayer;
+          newMoveHistory = [
+            ...prev.moveHistory,
+            { ...newMove, moveNumber: prev.moveCount + 1 },
+          ];
+          winInfo = checkExpandingWinner(newBoard, prev.boardSize);
         }
 
-        // Place new mark
-        newBoard[row][col] = prev.currentPlayer;
-
-        const newMoveHistory = [
-          ...prev.moveHistory.filter(
-            (m) =>
-              !(
-                removedPosition &&
-                m.position.row === removedPosition.row &&
-                m.position.col === removedPosition.col
-              ),
-          ),
-          {
-            position: { row, col },
-            player: prev.currentPlayer,
-            moveNumber: prev.moveCount + 1,
-          },
-        ];
-
-        // Check for winner - use board size as win length for Mode 3
-        const winLength = prev.mode === "MODE_3" ? prev.boardSize : 3;
-        const winInfo = checkWinnerDynamic(newBoard, winLength);
         const isGameOver = !!winInfo;
 
         // Check for draw (Mode 2 and Mode 3 can draw, Mode 1 cannot)
@@ -299,6 +262,7 @@ export default function LocalPlayPage() {
           board: newBoard,
           currentPlayer: prev.currentPlayer === "X" ? "O" : "X",
           moveHistory: newMoveHistory,
+          fullMoveHistory: newFullMoveHistory,
           isGameOver: isGameOver || isDraw,
           winner: winInfo?.winner ?? null,
           isDraw,

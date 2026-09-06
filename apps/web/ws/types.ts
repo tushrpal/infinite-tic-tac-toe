@@ -853,7 +853,7 @@ export interface RoomInvite {
     name: string | null;
     mode: 1 | 2;
     status: RoomStatus;
-    memberCount: number;
+    memberCount?: number;
   };
   inviter?: PlayerInfo;
 }

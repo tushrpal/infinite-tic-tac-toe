@@ -30,7 +30,7 @@ export interface InvitePlayersParams {
 }
 
 export interface RespondToInviteParams {
-  accepted: boolean;
+  action: 'ACCEPT' | 'DECLINE';
 }
 
 /**
@@ -164,9 +164,10 @@ export async function invitePlayers(
  * Get pending room invites
  */
 export async function getPendingInvites(): Promise<RoomInvite[]> {
-  return apiRequest<RoomInvite[]>('/room-invites', {
+  const { received } = await apiRequest<{ received: RoomInvite[] }>('/room-invites', {
     headers: getAuthHeaders(),
   });
+  return received;
 }
 
 /**

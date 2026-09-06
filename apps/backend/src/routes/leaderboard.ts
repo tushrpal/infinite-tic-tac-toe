@@ -48,27 +48,28 @@ function parseOffset(value: unknown): number {
 
 /**
  * GET /leaderboard
- * Optional query params: mode=mode1|mode2, limit=number
+ * Optional query params: mode=mode1|mode2, limit=number, offset=number
  */
 router.get('/', async (req, res) => {
   try {
     const limit = parseLimit(req.query.limit);
+    const offset = parseOffset(req.query.offset);
     const mode = parseMode(req.query.mode);
 
     if (req.query.mode && !mode) {
       return res.status(400).json({ error: 'Invalid mode. Must be mode1 or mode2.' });
     }
 
-    const leaderboard = mode
-      ? await getLeaderboardByMode(mode, limit)
-      : await getGlobalLeaderboard(limit);
+    const { entries, hasMore } = mode
+      ? await getLeaderboardByMode(mode, limit, offset)
+      : await getGlobalLeaderboard(limit, offset);
 
     // Prevent caching to ensure fresh leaderboard data
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    return res.status(200).json({ leaderboard, count: leaderboard.length });
+    return res.status(200).json({ leaderboard: entries, count: entries.length, hasMore });
   } catch (error) {
     console.error('Error loading leaderboard:', error);
     return res.status(500).json({ error: 'Failed to load leaderboard' });

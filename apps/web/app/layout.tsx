@@ -11,6 +11,8 @@ import { Navigation } from "@/components/layout/Navigation";
 import { ErrorBoundary } from "@/components/errors/ErrorBoundary";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingModal";
 import { ChallengeNotificationWrapper } from "@/components/challenges/ChallengeNotificationWrapper";
+import { RoomInviteNotificationWrapper } from "@/components/rooms/RoomInviteNotificationWrapper";
+import { AccountLinkingBannerWrapper } from "@/components/auth/AccountLinkingBannerWrapper";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -64,10 +66,13 @@ export default function RootLayout({
                     <ChallengesProvider>
                       <div className="flex flex-col min-h-screen">
                         <Navigation />
+                        <AccountLinkingBannerWrapper />
                         {children}
                       </div>
                       {/* Challenge Notifications */}
                       <ChallengeNotificationWrapper />
+                      {/* Room Invite Notifications */}
+                      <RoomInviteNotificationWrapper />
                       {/* Onboarding loads after main content */}
                       <OnboardingProvider>
                         {null}

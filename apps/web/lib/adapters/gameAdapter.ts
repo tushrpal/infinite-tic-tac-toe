@@ -296,28 +296,92 @@ export interface ReplayFrame {
 }
 
 /**
- * Generate replay frames from move history
- * This allows step-by-step replay without recalculating game logic
+ * Find a winning line on a board, if any, for an NxN board where a win is
+ * any full row/column/diagonal of the same non-null symbol.
+ */
+function findWinInfo(board: (Player | null)[][], boardSize: number): WinInfo | null {
+  const lineWinner = (cells: (Player | null)[]): Player | null => {
+    const first = cells[0];
+    if (first && cells.every((cell) => cell === first)) {
+      return first;
+    }
+    return null;
+  };
+
+  for (let row = 0; row < boardSize; row++) {
+    const cells = board[row];
+    const winner = lineWinner(cells);
+    if (winner) {
+      return {
+        winner,
+        winningCells: cells.map((_, col) => ({ row, col })),
+        winType: 'row',
+      };
+    }
+  }
+
+  for (let col = 0; col < boardSize; col++) {
+    const cells = board.map((r) => r[col]);
+    const winner = lineWinner(cells);
+    if (winner) {
+      return {
+        winner,
+        winningCells: cells.map((_, row) => ({ row, col })),
+        winType: 'column',
+      };
+    }
+  }
+
+  const diagonal = board.map((r, i) => r[i]);
+  const diagonalWinner = lineWinner(diagonal);
+  if (diagonalWinner) {
+    return {
+      winner: diagonalWinner,
+      winningCells: diagonal.map((_, i) => ({ row: i, col: i })),
+      winType: 'diagonal',
+    };
+  }
+
+  const antiDiagonal = board.map((r, i) => r[boardSize - 1 - i]);
+  const antiDiagonalWinner = lineWinner(antiDiagonal);
+  if (antiDiagonalWinner) {
+    return {
+      winner: antiDiagonalWinner,
+      winningCells: antiDiagonal.map((_, i) => ({ row: i, col: boardSize - 1 - i })),
+      winType: 'anti-diagonal',
+    };
+  }
+
+  return null;
+}
+
+/** Mode 1 (Sliding) allows at most this many marks on the board per player. */
+const SLIDING_MAX_MARKS_PER_PLAYER = 3;
+
+/**
+ * Generate replay frames from move history by actually reconstructing the
+ * board move by move (including Mode 1's sliding-removal rule), rather than
+ * just echoing the move list. Used to play back a stored match.
  */
 export function generateReplayFrames(
   initialBoardSize: number,
   mode: GameMode,
   moveHistory: Move[]
 ): ReplayFrame[] {
-  // The server should provide snapshots, but if not, we reconstruct
-  // Note: This is a simplified version - full implementation would need
-  // the game engine's state at each move
   const frames: ReplayFrame[] = [];
-  
-  // Initial empty state
-  const emptyBoard: (Player | null)[][] = Array(initialBoardSize)
+
+  const board: (Player | null)[][] = Array(initialBoardSize)
     .fill(null)
     .map(() => Array(initialBoardSize).fill(null));
+
+  // Tracks each player's marks in placement order, needed for the sliding
+  // rule (Mode 1: oldest mark is removed once a player has 3 on the board).
+  const marksByPlayer: Record<Player, Position[]> = { X: [], O: [] };
 
   frames.push({
     frameNumber: 0,
     gameState: {
-      board: emptyBoard,
+      board: board.map((row) => [...row]),
       boardSize: initialBoardSize,
       currentPlayer: 'X',
       moveHistory: [],
@@ -331,18 +395,52 @@ export function generateReplayFrames(
     move: null,
   });
 
-  // Each subsequent frame adds a move
-  // In a real implementation, this would come from server snapshots
+  // Once the game ends (win or draw), later frames - which shouldn't exist
+  // for well-formed match data, but are handled defensively - just repeat
+  // this outcome rather than recomputing it from a board that's no longer
+  // being updated.
+  let isGameOver = false;
+  let finalWinInfo: WinInfo | null = null;
+  let finalIsDraw = false;
+
   moveHistory.forEach((move, index) => {
+    let frameMove = move;
+
+    if (!isGameOver) {
+      if (mode === 'MODE_1' && marksByPlayer[move.player].length >= SLIDING_MAX_MARKS_PER_PLAYER) {
+        const oldest = marksByPlayer[move.player].shift()!;
+        board[oldest.row][oldest.col] = null;
+        frameMove = { ...move, removedPosition: oldest };
+      }
+
+      board[move.position.row][move.position.col] = move.player;
+      marksByPlayer[move.player].push(move.position);
+
+      const winInfo = findWinInfo(board, initialBoardSize);
+      const isBoardFull = board.every((row) => row.every((cell) => cell !== null));
+
+      if (winInfo || isBoardFull) {
+        isGameOver = true;
+        finalWinInfo = winInfo;
+        finalIsDraw = !winInfo && isBoardFull;
+      }
+    }
+
     frames.push({
       frameNumber: index + 1,
       gameState: {
-        ...frames[frames.length - 1].gameState,
-        moveCount: index + 1,
+        board: board.map((row) => [...row]),
+        boardSize: initialBoardSize,
         currentPlayer: move.player === 'X' ? 'O' : 'X',
         moveHistory: moveHistory.slice(0, index + 1),
+        isGameOver,
+        winner: finalWinInfo?.winner ?? null,
+        winInfo: finalWinInfo,
+        isDraw: finalIsDraw,
+        mode,
+        moveCount: index + 1,
       },
-      move,
+      move: frameMove,
     });
   });
 

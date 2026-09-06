@@ -7,6 +7,8 @@
 
 import { useState, lazy, Suspense } from "react";
 import { useFriends } from "@/components/providers/FriendsProvider";
+import { usePlayer } from "@/components/providers/PlayerProvider";
+import { AccountRequired } from "@/components/auth/AccountRequired";
 import { FriendsList } from "./FriendsList";
 import { FriendRequests } from "./FriendRequests";
 import { cn } from "@/lib/helpers";
@@ -23,6 +25,8 @@ interface FriendsPanelProps {
 }
 
 export function FriendsPanel({ onClose }: FriendsPanelProps) {
+  const { player } = usePlayer();
+  const isAuthenticated = !!player && player.isAnonymous === false;
   const { friends, receivedRequests, sentRequests } = useFriends();
   const [activeTab, setActiveTab] = useState<Tab>('friends');
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -62,18 +66,20 @@ export function FriendsPanel({ onClose }: FriendsPanelProps) {
       <div className="flex items-center justify-between p-4 border-b border-board-grid flex-shrink-0">
         <h2 className="text-lg font-semibold text-text-primary">Friends</h2>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsSearchModalOpen(true)}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-sm font-medium",
-              "bg-accent-primary text-white",
-              "hover:bg-accent-primary/90",
-              "transition-colors duration-150",
-              "focus:outline-none focus:ring-2 focus:ring-accent-primary"
-            )}
-          >
-            <SearchIcon />
-          </button>
+          {isAuthenticated && (
+            <button
+              onClick={() => setIsSearchModalOpen(true)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-sm font-medium",
+                "bg-accent-primary text-white",
+                "hover:bg-accent-primary/90",
+                "transition-colors duration-150",
+                "focus:outline-none focus:ring-2 focus:ring-accent-primary"
+              )}
+            >
+              <SearchIcon />
+            </button>
+          )}
           {onClose && (
             <button
               onClick={onClose}
@@ -92,48 +98,50 @@ export function FriendsPanel({ onClose }: FriendsPanelProps) {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-board-grid flex-shrink-0">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "flex-1 px-4 py-3 text-sm font-medium",
-              "border-b-2 transition-colors duration-150",
-              "focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-inset",
-              activeTab === tab.id
-                ? "border-accent-primary text-accent-primary"
-                : "border-transparent text-text-secondary hover:text-text-primary hover:bg-board-grid/50"
-            )}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <span>{tab.label}</span>
-              {tab.count > 0 && (
-                <span
-                  className={cn(
-                    "inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold",
-                    activeTab === tab.id
-                      ? "bg-accent-primary text-white"
-                      : tab.badge
-                      ? "bg-critical text-white"
-                      : "bg-board-grid text-text-secondary"
-                  )}
-                >
-                  {tab.count}
-                </span>
+      <AccountRequired feature="Friends">
+        {/* Tabs */}
+        <div className="flex border-b border-board-grid flex-shrink-0">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex-1 px-4 py-3 text-sm font-medium",
+                "border-b-2 transition-colors duration-150",
+                "focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-inset",
+                activeTab === tab.id
+                  ? "border-accent-primary text-accent-primary"
+                  : "border-transparent text-text-secondary hover:text-text-primary hover:bg-board-grid/50"
               )}
-            </div>
-          </button>
-        ))}
-      </div>
+            >
+              <div className="flex items-center justify-center gap-2">
+                <span>{tab.label}</span>
+                {tab.count > 0 && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold",
+                      activeTab === tab.id
+                        ? "bg-accent-primary text-white"
+                        : tab.badge
+                        ? "bg-critical text-white"
+                        : "bg-board-grid text-text-secondary"
+                    )}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === 'friends' && <FriendsList onChallenge={handleChallengeFriend} />}
-        {activeTab === 'received' && <FriendRequests tab="received" />}
-        {activeTab === 'sent' && <FriendRequests tab="sent" />}
-      </div>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {activeTab === 'friends' && <FriendsList onChallenge={handleChallengeFriend} />}
+          {activeTab === 'received' && <FriendRequests tab="received" />}
+          {activeTab === 'sent' && <FriendRequests tab="sent" />}
+        </div>
+      </AccountRequired>
 
       {/* Player Search Modal */}
       {isSearchModalOpen && (

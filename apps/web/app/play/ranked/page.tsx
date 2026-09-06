@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { RankBadge } from "@/components/hud/RankBadge";
 import { BotMatchOfferModal } from "@/components/modals/BotMatchOfferModal";
 import { useWebSocket, useSocketEvent } from "@/hooks/useWebSocket";
-import { usePlayer } from "@/hooks/usePlayer";
+import { usePlayer } from "@/components/providers/PlayerProvider";
 import { ROUTES, RANKS } from "@/lib/constants";
 import { cn, getRankFromRating, getRankProgress } from "@/lib/helpers";
 import type { GameMode } from "@/ws/types";

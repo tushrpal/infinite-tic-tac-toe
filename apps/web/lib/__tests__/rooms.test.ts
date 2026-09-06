@@ -31,6 +31,7 @@ describe('Room API Functions', () => {
 
     expect(api.apiRequest).toHaveBeenCalledWith('/rooms/create', {
       method: 'POST',
+      headers: {},
       body: JSON.stringify({
         name: 'Test Room',
         mode: 1,
@@ -50,7 +51,7 @@ describe('Room API Functions', () => {
 
     const result = await getRooms();
 
-    expect(api.apiRequest).toHaveBeenCalledWith('/rooms');
+    expect(api.apiRequest).toHaveBeenCalledWith('/rooms', { headers: {} });
     expect(result).toHaveLength(2);
   });
 
@@ -67,6 +68,7 @@ describe('Room API Functions', () => {
 
     expect(api.apiRequest).toHaveBeenCalledWith('/rooms/room-1/join', {
       method: 'POST',
+      headers: {},
     });
     expect(result.id).toBe('room-1');
   });

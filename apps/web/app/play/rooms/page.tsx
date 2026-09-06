@@ -7,12 +7,16 @@ import { Button } from '@/components/ui/Button';
 import { RoomCard } from '@/components/rooms/RoomCard';
 import { CreateRoomModal } from '@/components/rooms/CreateRoomModal';
 import { JoinByCodeModal } from '@/components/rooms/JoinByCodeModal';
+import { AccountRequired } from '@/components/auth/AccountRequired';
+import { usePlayer } from '@/components/providers/PlayerProvider';
 import { getRooms, getAvailableRooms, getPendingInvites, respondToInvite, joinRoom } from '@/lib/rooms';
 import { ROUTES } from '@/lib/constants';
 import type { RoomListItem, RoomInvite } from '@/ws/types';
 
 export default function RoomsHubPage() {
   const router = useRouter();
+  const { player } = usePlayer();
+  const isAuthenticated = !!player && player.isAnonymous === false;
   const [activeTab, setActiveTab] = useState<'my-rooms' | 'available'>('my-rooms');
   const [myRooms, setMyRooms] = useState<RoomListItem[]>([]);
   const [availableRooms, setAvailableRooms] = useState<RoomListItem[]>([]);
@@ -22,8 +26,12 @@ export default function RoomsHubPage() {
   const [isJoinByCodeModalOpen, setIsJoinByCodeModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (isAuthenticated) {
+      fetchData();
+    } else {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -59,7 +67,7 @@ export default function RoomsHubPage() {
 
   const handleRespondToInvite = async (inviteId: string, accepted: boolean) => {
     try {
-      await respondToInvite(inviteId, { accepted });
+      await respondToInvite(inviteId, { action: accepted ? 'ACCEPT' : 'DECLINE' });
       if (accepted) {
         const invite = pendingInvites.find((i) => i.id === inviteId);
         if (invite) {
@@ -91,6 +99,7 @@ export default function RoomsHubPage() {
           </p>
         </div>
 
+        <AccountRequired feature="Rooms">
         {/* Pending Invites */}
         {pendingInvites.length > 0 && (
           <div className="mb-8 p-6 rounded-xl bg-surface-elevated border border-accent-primary/30">
@@ -226,6 +235,7 @@ export default function RoomsHubPage() {
             </div>
           </div>
         </div>
+        </AccountRequired>
       </div>
 
       <CreateRoomModal

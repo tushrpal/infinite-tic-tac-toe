@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getPrivateMatchByCode, joinPrivateMatch } from "@/lib/challenges";
-import { usePlayer } from "@/hooks/usePlayer";
+import { usePlayer } from "@/components/providers/PlayerProvider";
 import { cn } from "@/lib/helpers";
 import type { PrivateMatch } from "@/types/challenges";
 

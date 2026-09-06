@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { usePlayer } from "@/hooks/usePlayer";
+import { usePlayer } from "@/components/providers/PlayerProvider";
 import { getRecentOpponents } from "@/lib/opponents";
 import { OpponentCard } from "./OpponentCard";
 import { ChallengeModal } from "@/components/challenges/ChallengeModal";

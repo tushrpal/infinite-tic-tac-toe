@@ -6,7 +6,7 @@
  */
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { usePlayer } from "@/hooks/usePlayer";
+import { usePlayer } from "@/components/providers/PlayerProvider";
 import { useSocketEvent } from "@/hooks/useWebSocket";
 import { announce } from "@/lib/accessibility";
 import {
@@ -57,11 +57,15 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Challenges/private matches are only available to accounts linked via OAuth -
+  // anonymous players have no session token, so these endpoints would just 401.
+  const isAuthenticated = !!player && player.isAnonymous === false;
+
   /**
    * Load challenges from API
    */
   const loadChallenges = useCallback(async () => {
-    if (!player) {
+    if (!isAuthenticated) {
       setIsLoading(false);
       return;
     }
@@ -79,13 +83,13 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [player]);
+  }, [isAuthenticated]);
 
   /**
-   * Initial load when player is available
+   * Initial load once the player is authenticated (OAuth-linked)
    */
   useEffect(() => {
-    if (player) {
+    if (isAuthenticated) {
       loadChallenges();
     } else {
       setSentChallenges([]);
@@ -93,7 +97,7 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
       setActivePrivateMatch(null);
       setIsLoading(false);
     }
-  }, [player, loadChallenges]);
+  }, [isAuthenticated, loadChallenges]);
 
   /**
    * Send a challenge

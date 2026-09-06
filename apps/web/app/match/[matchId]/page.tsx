@@ -211,6 +211,18 @@ export default function MatchPage() {
             {botInfo.isBotMatch && (
               <span className="ml-2 text-purple-400">
                 🤖 Bot Match
+                {botInfo.botDifficulty && (
+                  <span
+                    className={cn(
+                      "ml-1.5 capitalize",
+                      botInfo.botDifficulty === "easy" && "text-green-400",
+                      botInfo.botDifficulty === "medium" && "text-yellow-400",
+                      botInfo.botDifficulty === "hard" && "text-red-400"
+                    )}
+                  >
+                    ({botInfo.botDifficulty})
+                  </span>
+                )}
               </span>
             )}
           </div>

@@ -12,6 +12,7 @@ describe('Room Types', () => {
       id: 'room-1',
       hostId: 'player-1',
       name: 'Test Room',
+      joinCode: 'ABC123',
       mode: 1,
       status: 'WAITING',
       player1Id: null,

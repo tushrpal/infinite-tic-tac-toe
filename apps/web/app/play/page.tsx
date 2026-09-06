@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { ROUTES } from "@/lib/constants";
+import { PrivateMatchCard } from "@/components/challenges/PrivateMatchCard";
 
 export const metadata = {
   title: "Play - Infinite Tic-Tac-Toe",
@@ -55,6 +56,9 @@ export default function PlayPage() {
             badge="Social"
             badgeColor="text-purple-400"
           />
+
+          {/* Private Match */}
+          <PrivateMatchCard />
 
           {/* Online Quick Play */}
           <GameModeCard

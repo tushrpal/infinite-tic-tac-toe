@@ -138,6 +138,7 @@ router.post('/', defaultLimiter, async (req, res) => {
         displayName: true,
         ratingMode1: true,
         ratingMode2: true,
+        isAnonymous: true,
         createdAt: true,
       },
     });
@@ -147,6 +148,7 @@ router.post('/', defaultLimiter, async (req, res) => {
       username: player.username,
       displayName: player.displayName,
       rating: player.ratingMode1 + player.ratingMode2,
+      isAnonymous: player.isAnonymous,
       createdAt: player.createdAt,
     });
   } catch (error) {
@@ -300,6 +302,7 @@ router.get('/:playerId', async (req, res) => {
         displayName: true,
         ratingMode1: true,
         ratingMode2: true,
+        isAnonymous: true,
         createdAt: true,
       },
     });
@@ -315,6 +318,7 @@ router.get('/:playerId', async (req, res) => {
       rating: player.ratingMode1 + player.ratingMode2,
       ratingMode1: player.ratingMode1,
       ratingMode2: player.ratingMode2,
+      isAnonymous: player.isAnonymous,
       createdAt: player.createdAt,
     });
   } catch (error) {
