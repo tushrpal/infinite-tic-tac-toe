@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "@/styles/globals.css";
 import { ThemeProvider } from "@/hooks/useTheme";
@@ -13,6 +13,7 @@ import { OnboardingProvider } from "@/components/onboarding/OnboardingModal";
 import { ChallengeNotificationWrapper } from "@/components/challenges/ChallengeNotificationWrapper";
 import { RoomInviteNotificationWrapper } from "@/components/rooms/RoomInviteNotificationWrapper";
 import { AccountLinkingBannerWrapper } from "@/components/auth/AccountLinkingBannerWrapper";
+import { ServiceWorkerRegistration } from "@/components/providers/ServiceWorkerRegistration";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -43,6 +44,24 @@ export const metadata: Metadata = {
     description: "Challenge players worldwide in competitive Tic-Tac-Toe",
     type: "website",
   },
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Infinite TTT",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0f0f14",
 };
 
 export default function RootLayout({
@@ -57,6 +76,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-surface-base text-text-primary antialiased">
+        <ServiceWorkerRegistration />
         <ErrorBoundary>
           <AuthProvider>
             <ThemeProvider defaultThemeId="dark">
