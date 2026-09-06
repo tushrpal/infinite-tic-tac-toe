@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import type { MatchStorage } from '../storage/MatchStorage';
 import { isValidMatchResult } from '../validators/matchResultSchema';
+import { defaultLimiter } from '../middleware/rateLimiter';
 
 export function createMatchesRouter(store: MatchStorage) {
   const router = Router();
 
-  router.post('/', async (req, res) => {
+  router.post('/', defaultLimiter, async (req, res) => {
     if (!isValidMatchResult(req.body)) {
       return res.status(400).json({ error: 'Invalid MatchResult' });
     }

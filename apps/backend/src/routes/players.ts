@@ -11,6 +11,8 @@ import { getPrismaClient } from '../storage/prismaClient';
 import { getPlayerProfile } from '../profile/playerProfileService';
 import { getPlayerMatches } from '../profile/matchHistoryService';
 import { isValidUsername, isValidDisplayName, sanitizeUsername } from '../utils/validation';
+import { requireAuth } from '../middleware/requireAuth';
+import { defaultLimiter } from '../middleware/rateLimiter';
 
 const router = express.Router();
 
@@ -88,7 +90,7 @@ function parseMatchLimit(value: unknown): number {
  *   displayName?: string; // Optional, 1-50 chars
  * }
  */
-router.post('/', async (req, res) => {
+router.post('/', defaultLimiter, async (req, res) => {
   try {
     const prisma = getPrismaClient();
     const { username, displayName } = (req.body ?? {}) as { username?: string; displayName?: string };
@@ -323,10 +325,11 @@ router.get('/:playerId', async (req, res) => {
 
 /**
  * GET /players
- * 
+ *
  * List all players (for debugging/admin purposes).
+ * Requires authentication to prevent public roster enumeration.
  */
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, defaultLimiter, async (req, res) => {
   try {
     const prisma = getPrismaClient();
     const players = await prisma.player.findMany({
