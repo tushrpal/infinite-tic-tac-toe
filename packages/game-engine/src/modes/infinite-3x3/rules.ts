@@ -2,8 +2,8 @@
  * Game rules for Mode 1: Infinite 3×3 (Sliding Moves)
  */
 
-import type { Player, Position } from '../../core/types.js';
-import type { Board, Infinite3x3State, Cell } from './state.js';
+import type { Player, Position } from '../../core/types.ts';
+import type { Board, Infinite3x3State, Cell } from './state.ts';
 
 const BOARD_SIZE = 3;
 const MAX_MARKS_PER_PLAYER = 3;

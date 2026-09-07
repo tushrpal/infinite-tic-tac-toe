@@ -1,8 +1,8 @@
 /**
  * Mode 2: Expanding Board (Round-Based Tic-Tac-Toe)
- * 
+ *
  * Public API for the expanding board game mode.
- * 
+ *
  * Key features:
  * - Round-based gameplay
  * - Board expands after each round (3×3 → 4×4 → 5×5...)
@@ -18,9 +18,9 @@ export type {
   RoundResult,
   ExpandingBoardState,
   GameConfig,
-} from './types.js';
+} from './types.ts';
 
-export { DEFAULT_CONFIG } from './types.js';
+export { DEFAULT_CONFIG } from './types.ts';
 
 // Export state management
 export {
@@ -29,7 +29,7 @@ export {
   createNextRoundState,
   isValidPosition,
   isCellEmpty,
-} from './state.js';
+} from './state.ts';
 
 // Export game logic
 export {
@@ -37,10 +37,10 @@ export {
   applyMove,
   isRoundComplete,
   getRoundStartingPlayer,
-} from './reducer.js';
+} from './reducer.ts';
 
 // Export win detection
 export {
   checkWin,
   detectWinner,
-} from './winDetection.js';
+} from './winDetection.ts';

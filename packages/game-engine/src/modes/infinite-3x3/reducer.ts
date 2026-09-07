@@ -2,9 +2,9 @@
  * State reducer for Mode 1: Infinite 3×3 (Sliding Moves)
  */
 
-import type { Player, Position, Move } from '../../core/types';
-import type { Board, Infinite3x3State } from './state.js';
-import { isValidMove, getWinner, getMarkToRemove } from './rules.js';
+import type { Player, Position, Move } from '../../core/types.ts';
+import type { Board, Infinite3x3State } from './state.ts';
+import { isValidMove, getWinner, getMarkToRemove } from './rules.ts';
 
 /**
  * Create a new board with a mark placed at the given position
@@ -38,7 +38,7 @@ function removeMark(board: Board, position: Position): Board {
 
 /**
  * Apply a move to the game state and return the new state
- * 
+ *
  * If the move is invalid, returns the unchanged state.
  * This ensures the engine never throws during normal gameplay.
  */
@@ -71,15 +71,15 @@ export function applyMove(
     // Find the oldest mark by turn number (needed to remove from arrays)
     const oldestMark = currentPlayerMarks
       .sort((a, b) => a.turn - b.turn)[0];
-    
+
     // Remove oldest mark from board
     newBoard = removeMark(newBoard, markToRemove);
-    
+
     // Update player marks to remove the oldest one (by turn number)
     const updatedPlayerMarks = currentPlayerMarks
       .filter((m) => m.turn !== oldestMark.turn)
       .concat([move]);
-    
+
     // Remove the oldest mark from history (as per spec: "Remove oldest moves")
     const updatedMoveHistory = state.moveHistory
       .filter((m) => m.turn !== oldestMark.turn)

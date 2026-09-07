@@ -39,6 +39,9 @@ const nextConfig = {
     ],
   },
 
+  // Transpile workspace packages from source since `dist/` is gitignored
+  transpilePackages: ['@infinite-ttt/game-engine'],
+
   // Webpack optimizations
   webpack: (config, { isServer, dev }) => {
     if (!dev && !isServer) {

@@ -1,19 +1,19 @@
 /**
  * Public exports for the game engine package
- * 
+ *
  * This is the main entry point. Only exports that are part of
  * the stable public API should be exposed here.
  */
 
 // Core types and utilities
-export * from './core/types.js';
-export * from './core/errors.js';
+export * from './core/types.ts';
+export * from './core/errors.ts';
 
 // Game modes
-export * as Modes from './modes/index.js';
+export * as Modes from './modes/index.ts';
 
 // Re-export commonly used types from Mode 1 for convenience
-export type { Infinite3x3State, Board, Cell } from './modes/infinite-3x3/state.js';
+export type { Infinite3x3State, Board, Cell } from './modes/infinite-3x3/state.ts';
 
 // Re-export commonly used types from Mode 2
 export type {
@@ -22,4 +22,4 @@ export type {
   Cell as ExpandingCell,
   RoundResult,
   GameConfig,
-} from './modes/expanding-board/types.js';
+} from './modes/expanding-board/types.ts';
