@@ -397,16 +397,15 @@ export default function LocalPlayPage() {
 
               {/* Mode 3: Show round score */}
               {selectedMode === "MODE_3" && (
-                <div className="mt-2 flex justify-center gap-4 text-sm">
-                  <span className="text-playerX-primary">
+                <div className="mt-2 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-4 text-sm">
+                  <span className="text-playerX-primary font-semibold">
                     X: {gameState.roundWins.X}
                   </span>
-                  <span className="text-text-muted">
-                    Round {gameState.roundNumber} • {gameState.boardSize}×
-                    {gameState.boardSize} board • {gameState.boardSize}-in-a-row
-                    to win
+                  <span className="text-text-muted text-xs sm:text-sm text-center px-2">
+                    Round {gameState.roundNumber} · {gameState.boardSize}×
+                    {gameState.boardSize} · {gameState.boardSize}-in-a-row
                   </span>
-                  <span className="text-playerO-primary">
+                  <span className="text-playerO-primary font-semibold">
                     O: {gameState.roundWins.O}
                   </span>
                 </div>
@@ -454,11 +453,11 @@ export default function LocalPlayPage() {
             />
 
             {/* Controls */}
-            <div className="flex gap-4 justify-center">
-              <Button variant="secondary" onClick={resetGame}>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+              <Button variant="secondary" onClick={resetGame} className="w-full sm:w-auto">
                 New Game
               </Button>
-              <Button variant="ghost" onClick={() => setGameStarted(false)}>
+              <Button variant="ghost" onClick={() => setGameStarted(false)} className="w-full sm:w-auto">
                 Change Mode
               </Button>
             </div>

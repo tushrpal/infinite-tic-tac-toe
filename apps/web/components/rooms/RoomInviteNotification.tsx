@@ -24,12 +24,12 @@ export function RoomInviteNotification({
   const memberCount = invite.room?.memberCount;
 
   return (
-    <div className="w-96 p-4 rounded-xl bg-surface-elevated border border-accent-primary/30 shadow-lg animate-slide-in">
+    <div className="w-full max-w-md p-4 rounded-xl bg-surface-elevated border border-accent-primary/30 shadow-lg animate-slide-in">
       <div className="flex items-start justify-between gap-3 mb-3">
         <h3 className="font-semibold">📨 Room Invite</h3>
         <button
           onClick={onDismiss}
-          className="text-text-muted hover:text-text-primary transition-colors"
+          className="no-touch-target text-text-muted hover:text-text-primary transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2"
           aria-label="Dismiss"
         >
           ×

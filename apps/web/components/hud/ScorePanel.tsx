@@ -30,7 +30,7 @@ export const ScorePanel = memo(function ScorePanel({
   className,
 }: ScorePanelProps) {
   return (
-    <div className={cn("flex items-stretch gap-4", "w-full", className)}>
+    <div className={cn("flex items-stretch gap-2 sm:gap-4", "w-full", className)}>
       <PlayerCard
         player="X"
         info={score.playerX}
@@ -39,8 +39,8 @@ export const ScorePanel = memo(function ScorePanel({
         isWinner={winner === "X"}
       />
 
-      <div className="flex items-center">
-        <span className="text-2xl font-bold text-text-muted">VS</span>
+      <div className="flex items-center px-0.5 sm:px-0">
+        <span className="text-lg sm:text-2xl font-bold text-text-muted">VS</span>
       </div>
 
       <PlayerCard
@@ -84,9 +84,9 @@ function PlayerCard({
   return (
     <div
       className={cn(
-        "flex-1",
-        "flex flex-col items-center gap-2",
-        "p-4 rounded-xl",
+        "flex-1 min-w-0",
+        "flex flex-col items-center gap-1 sm:gap-2",
+        "p-2 sm:p-4 rounded-xl",
         "bg-surface-elevated",
         "border-2 transition-colors duration-200",
         borderColor,
@@ -95,25 +95,25 @@ function PlayerCard({
       )}
     >
       {/* Player mark */}
-      <div className="w-10 h-10 flex items-center justify-center">
-        <div className="w-8 h-8">
+      <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
+        <div className="w-6 h-6 sm:w-8 sm:h-8">
           <PlayerMark player={player} />
         </div>
       </div>
 
       {/* Player name */}
-      <div className="flex items-center gap-2">
-        <span className="font-semibold text-text-primary truncate max-w-[120px]">
+      <div className="flex flex-col sm:flex-row items-center gap-0.5 sm:gap-2 w-full min-w-0">
+        <span className="font-semibold text-text-primary truncate max-w-full text-sm sm:text-base text-center">
           {info.name}
         </span>
         {isYou && (
-          <span className="text-xs px-1.5 py-0.5 rounded bg-accent-primary/20 text-accent-primary">
+          <span className="text-xs px-1.5 py-0.5 rounded bg-accent-primary/20 text-accent-primary shrink-0">
             You
           </span>
         )}
         {info.isBot && (
-          <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
-            🤖 Bot
+          <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 shrink-0">
+            🤖
           </span>
         )}
       </div>
@@ -138,11 +138,11 @@ function PlayerCard({
       <div className="flex items-center gap-1.5">
         <div
           className={cn(
-            "w-2 h-2 rounded-full",
+            "w-2 h-2 rounded-full shrink-0",
             info.isConnected ? "bg-accent-success" : "bg-accent-error",
           )}
         />
-        <span className="text-xs text-text-muted">
+        <span className="text-xs text-text-muted hidden sm:inline">
           {info.isConnected ? "Connected" : "Disconnected"}
         </span>
       </div>

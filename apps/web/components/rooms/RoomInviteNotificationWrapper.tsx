@@ -72,15 +72,16 @@ export function RoomInviteNotificationWrapper() {
   if (invites.length === 0) return null;
 
   return (
-    <div className="fixed top-20 right-4 z-[150] space-y-3">
+    <div className="fixed fixed-notifications z-[150] space-y-3 max-w-md mx-auto sm:mx-0 sm:left-auto sm:right-4 sm:max-w-md pointer-events-none">
       {invites.map((invite) => (
-        <RoomInviteNotification
-          key={invite.id}
-          invite={invite}
-          onAccept={() => handleAccept(invite)}
-          onDecline={() => handleDecline(invite)}
-          onDismiss={() => dismiss(invite.id)}
-        />
+        <div key={invite.id} className="pointer-events-auto">
+          <RoomInviteNotification
+            invite={invite}
+            onAccept={() => handleAccept(invite)}
+            onDecline={() => handleDecline(invite)}
+            onDismiss={() => dismiss(invite.id)}
+          />
+        </div>
       ))}
     </div>
   );

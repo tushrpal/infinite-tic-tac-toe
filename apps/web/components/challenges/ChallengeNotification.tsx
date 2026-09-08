@@ -187,13 +187,14 @@ export function ChallengeNotificationContainer({
   if (receivedChallenges.length === 0) return null;
 
   return (
-    <div className="fixed top-20 right-4 z-[150] space-y-3 max-w-md">
+    <div className="fixed fixed-notifications z-[150] space-y-3 max-w-md mx-auto sm:mx-0 sm:left-auto sm:right-4 sm:max-w-md pointer-events-none">
       {receivedChallenges.map((challenge) => (
-        <ChallengeNotification
-          key={challenge.challengeId}
-          challenge={challenge}
-          onNavigateToMatch={onNavigateToMatch}
-        />
+        <div key={challenge.challengeId} className="pointer-events-auto">
+          <ChallengeNotification
+            challenge={challenge}
+            onNavigateToMatch={onNavigateToMatch}
+          />
+        </div>
       ))}
     </div>
   );

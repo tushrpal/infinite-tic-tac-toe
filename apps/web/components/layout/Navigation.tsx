@@ -39,11 +39,11 @@ export function Navigation() {
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
-    <nav className="border-b border-board-grid bg-surface-elevated/80 backdrop-blur-sm sticky top-0 z-50">
+    <nav className="border-b border-board-grid bg-surface-elevated/80 backdrop-blur-sm sticky top-0 z-50 safe-top">
       <div className="max-w-6xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href={ROUTES.HOME} className="font-display font-bold text-xl" onClick={closeMobileMenu}>
+          <Link href={ROUTES.HOME} className="font-display font-bold text-lg sm:text-xl" onClick={closeMobileMenu}>
             <span className="text-playerX-primary">Infinite</span>
             <span className="text-text-primary"> TTT</span>
           </Link>
@@ -141,7 +141,7 @@ export function Navigation() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-text-primary hover:bg-board-grid transition-colors"
+            className="md:hidden no-touch-target p-2 rounded-lg text-text-primary hover:bg-board-grid transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Toggle menu"
             aria-expanded={isMobileMenuOpen}
           >
@@ -149,9 +149,15 @@ export function Navigation() {
           </button>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu — overlay drawer */}
         {isMobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 border-t border-board-grid pt-4 animate-slide-in">
+          <>
+            <div
+              className="md:hidden fixed inset-0 top-[57px] bg-surface-overlay z-40"
+              onClick={closeMobileMenu}
+              aria-hidden="true"
+            />
+            <div className="md:hidden relative z-50 mt-4 pb-4 border-t border-board-grid pt-4 animate-slide-in">
             <div className="flex flex-col gap-4">
               <Link
                 href={ROUTES.PLAY}
@@ -248,6 +254,7 @@ export function Navigation() {
               )}
             </div>
           </div>
+          </>
         )}
       </div>
 

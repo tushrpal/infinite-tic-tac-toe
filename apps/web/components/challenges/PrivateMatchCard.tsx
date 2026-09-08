@@ -17,28 +17,30 @@ export function PrivateMatchCard() {
         onClick={() => setIsOpen(true)}
         className="block w-full text-left group"
       >
-        <div className="flex items-center gap-6 p-6 rounded-xl bg-surface-elevated border border-board-grid hover:border-accent-primary/50 transition-all hover:shadow-lg hover:shadow-accent-primary/5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 p-4 sm:p-6 rounded-xl bg-surface-elevated border border-board-grid hover:border-accent-primary/50 transition-all hover:shadow-lg hover:shadow-accent-primary/5">
           {/* Icon */}
-          <div className="flex-shrink-0 w-16 h-16 flex items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary group-hover:bg-accent-primary/20 transition-colors">
-            <PrivateMatchIcon />
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-xl font-semibold group-hover:text-accent-primary transition-colors">
-                Private Match
-              </h2>
-              <span className="text-xs font-medium text-purple-400">Invite Code</span>
+          <div className="flex items-center gap-4 sm:contents">
+            <div className="flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary group-hover:bg-accent-primary/20 transition-colors">
+              <PrivateMatchIcon />
             </div>
-            <p className="text-sm text-text-secondary">
-              Generate a shareable code and play a one-off match with anyone
-            </p>
-          </div>
 
-          {/* Arrow */}
-          <div className="flex-shrink-0 text-text-muted group-hover:text-accent-primary group-hover:translate-x-1 transition-all">
-            <ArrowIcon />
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <h2 className="text-lg sm:text-xl font-semibold group-hover:text-accent-primary transition-colors">
+                  Private Match
+                </h2>
+                <span className="text-xs font-medium text-purple-400">Invite Code</span>
+              </div>
+              <p className="text-sm text-text-secondary">
+                Generate a shareable code and play a one-off match with anyone
+              </p>
+            </div>
+
+            {/* Arrow */}
+            <div className="hidden sm:flex flex-shrink-0 text-text-muted group-hover:text-accent-primary group-hover:translate-x-1 transition-all">
+              <ArrowIcon />
+            </div>
           </div>
         </div>
       </button>

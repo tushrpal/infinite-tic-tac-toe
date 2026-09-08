@@ -283,11 +283,12 @@ export function LeaderboardClient({
           )}
         </div>
 
-        <div className="rounded-lg border border-board-grid overflow-hidden bg-surface-elevated">
-          <div className="bg-board-grid/10 flex items-center px-4 py-3">
-            <div className="w-20 text-sm font-semibold text-text-secondary">Rank</div>
-            <div className="flex-1 text-sm font-semibold text-text-secondary">Player Name</div>
-            <div className="w-32 text-right text-sm font-semibold text-text-secondary">Rating</div>
+        <div className="rounded-lg border border-board-grid overflow-hidden bg-surface-elevated overflow-x-auto">
+          <div className="min-w-[320px]">
+          <div className="bg-board-grid/10 flex items-center px-3 sm:px-4 py-3">
+            <div className="w-12 sm:w-20 text-sm font-semibold text-text-secondary shrink-0">Rank</div>
+            <div className="flex-1 min-w-0 text-sm font-semibold text-text-secondary">Player</div>
+            <div className="w-24 sm:w-32 text-right text-sm font-semibold text-text-secondary shrink-0">Rating</div>
           </div>
 
           {isLoading ? (
@@ -309,25 +310,25 @@ export function LeaderboardClient({
               {players.map((player, index) => (
                 <div
                   key={`${player.playerId}-${index}`}
-                  className="border-t border-board-grid/50 hover:bg-board-grid/30 transition-colors flex items-center px-4 py-3"
+                  className="border-t border-board-grid/50 hover:bg-board-grid/30 transition-colors flex items-center px-3 sm:px-4 py-3"
                 >
-                  <div className="w-20 font-semibold">{index + 1}</div>
-                  <div className="flex-1">
+                  <div className="w-12 sm:w-20 font-semibold shrink-0">{index + 1}</div>
+                  <div className="flex-1 min-w-0">
                     <Link href={`${ROUTES.PROFILE}?playerId=${player.playerId}`}>
                       <div>
                         {player.name && (
-                          <div className="font-semibold text-text-primary hover:underline">
+                          <div className="font-semibold text-text-primary hover:underline truncate">
                             {player.name}
                           </div>
                         )}
-                        <div className="text-xs text-text-muted">@{player.username}</div>
+                        <div className="text-xs text-text-muted truncate">@{player.username}</div>
                       </div>
                     </Link>
                   </div>
-                  <div className="w-32 text-right font-mono flex items-center justify-end gap-2">
+                  <div className="w-24 sm:w-32 text-right font-mono flex items-center justify-end gap-1 sm:gap-2 shrink-0">
                     {player.league && player.leagueColor && (
                       <span
-                        className="text-xs px-2 py-1 rounded"
+                        className="text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded hidden sm:inline"
                         style={{ backgroundColor: `${player.leagueColor}20`, color: player.leagueColor }}
                       >
                         {player.league}
@@ -355,6 +356,7 @@ export function LeaderboardClient({
               )}
             </>
           )}
+          </div>
         </div>
       </div>
     </main>

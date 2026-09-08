@@ -25,17 +25,17 @@ export default function PlayPage() {
   const expanding = getOnlineModeInfo("MODE_2");
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+    <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-12">
       <div className="w-full max-w-2xl">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 sm:mb-12">
           <Link
             href={ROUTES.HOME}
             className="text-sm text-text-secondary hover:text-text-primary transition-colors mb-4 inline-block"
           >
             ← Back to Home
           </Link>
-          <h1 className="text-4xl font-display font-bold mb-4">
+          <h1 className="text-2xl sm:text-4xl font-display font-bold mb-4">
             Select Game Mode
           </h1>
           <p className="text-text-secondary">Choose how you want to play</p>
@@ -174,25 +174,27 @@ function GameModeCard({
 }) {
   return (
     <Link href={href as any} className="block group">
-      <div className="flex items-center gap-6 p-6 rounded-xl bg-surface-elevated border border-board-grid hover:border-accent-primary/50 transition-all hover:shadow-lg hover:shadow-accent-primary/5">
-        <div className="flex-shrink-0 w-16 h-16 flex items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary group-hover:bg-accent-primary/20 transition-colors">
-          {icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-xl font-semibold group-hover:text-accent-primary transition-colors">
-              {title}
-            </h2>
-            {badge && (
-              <span className={`text-xs font-medium ${badgeColor}`}>
-                {badge}
-              </span>
-            )}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 p-4 sm:p-6 rounded-xl bg-surface-elevated border border-board-grid hover:border-accent-primary/50 transition-all hover:shadow-lg hover:shadow-accent-primary/5">
+        <div className="flex items-center gap-4 sm:contents">
+          <div className="flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary group-hover:bg-accent-primary/20 transition-colors">
+            {icon}
           </div>
-          <p className="text-sm text-text-secondary">{description}</p>
-        </div>
-        <div className="flex-shrink-0 text-text-muted group-hover:text-accent-primary group-hover:translate-x-1 transition-all">
-          <ArrowIcon />
+          <div className="flex-1 min-w-0 sm:order-none">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h2 className="text-lg sm:text-xl font-semibold group-hover:text-accent-primary transition-colors">
+                {title}
+              </h2>
+              {badge && (
+                <span className={`text-xs font-medium ${badgeColor}`}>
+                  {badge}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-text-secondary">{description}</p>
+          </div>
+          <div className="hidden sm:flex flex-shrink-0 text-text-muted group-hover:text-accent-primary group-hover:translate-x-1 transition-all">
+            <ArrowIcon />
+          </div>
         </div>
       </div>
     </Link>

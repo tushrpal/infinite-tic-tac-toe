@@ -73,7 +73,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const sizeStyles = {
-      sm: "h-8 px-3 text-sm",
+      sm: "no-touch-target h-8 px-3 text-sm min-h-8",
       md: "h-10 px-4 text-base",
       lg: "h-12 px-6 text-lg",
     };

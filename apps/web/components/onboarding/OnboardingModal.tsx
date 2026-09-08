@@ -49,14 +49,15 @@ export function OnboardingModal() {
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-[251] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[251] flex items-end sm:items-center justify-center p-0 sm:p-4 safe-bottom">
         <div
           className={cn(
-            "relative w-full max-w-2xl",
-            "bg-surface-elevated rounded-xl shadow-2xl",
+            "relative w-full sm:max-w-2xl",
+            "bg-surface-elevated sm:rounded-xl shadow-2xl",
             "border-2 border-accent-primary",
             "animate-scale-in",
-            "flex flex-col max-h-[90vh]"
+            "flex flex-col max-h-[100dvh] sm:max-h-[90vh]",
+            "rounded-t-xl sm:rounded-xl",
           )}
           role="dialog"
           aria-modal="true"

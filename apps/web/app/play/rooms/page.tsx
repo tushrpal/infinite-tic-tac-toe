@@ -84,17 +84,17 @@ export default function RoomsHubPage() {
   const displayedRooms = activeTab === 'my-rooms' ? myRooms : availableRooms;
 
   return (
-    <main className="flex-1 flex flex-col px-4 py-12">
+    <main className="flex-1 flex flex-col px-4 py-8 sm:py-12">
       <div className="w-full max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Link
             href={ROUTES.PLAY}
             className="text-sm text-text-secondary hover:text-text-primary transition-colors mb-4 inline-block"
           >
             ← Back to Play Menu
           </Link>
-          <h1 className="text-4xl font-display font-bold mb-2">Rooms</h1>
+          <h1 className="text-2xl sm:text-4xl font-display font-bold mb-2">Rooms</h1>
           <p className="text-text-secondary">
             Create a lobby for up to 8 friends to play multiple games
           </p>
@@ -111,9 +111,9 @@ export default function RoomsHubPage() {
               {pendingInvites.map((invite) => (
                 <div
                   key={invite.id}
-                  className="flex items-center justify-between gap-4 p-4 rounded-lg bg-background border border-board-grid"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-4 rounded-lg bg-background border border-board-grid"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-medium">
                       {invite.inviter?.username} invited you to{' '}
                       {invite.room?.name ? `"${invite.room.name}"` : 'their room'}
@@ -125,7 +125,7 @@ export default function RoomsHubPage() {
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 shrink-0">
                     <Button
                       onClick={() => handleRespondToInvite(invite.id, true)}
                       variant="primary"
@@ -149,7 +149,7 @@ export default function RoomsHubPage() {
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column - Room Browser */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 order-2 lg:order-1">
             {/* Tabs */}
             <div className="flex gap-4 mb-6 border-b border-board-grid">
               <button
@@ -201,12 +201,12 @@ export default function RoomsHubPage() {
             )}
           </div>
 
-          {/* Right Column - Create Room */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-4 space-y-4">
+          {/* Right Column - Create Room (shown first on mobile) */}
+          <div className="lg:col-span-1 order-1 lg:order-2">
+            <div className="lg:sticky lg:top-4 space-y-4">
               {/* Create Room Card */}
-              <div className="p-6 rounded-xl bg-surface-elevated border border-board-grid">
-                <h2 className="text-xl font-semibold mb-4">Create a Room</h2>
+              <div className="p-4 sm:p-6 rounded-xl bg-surface-elevated border border-board-grid">
+                <h2 className="text-lg sm:text-xl font-semibold mb-4">Create a Room</h2>
                 <p className="text-sm text-text-secondary mb-6">
                   Create a lobby for up to 8 friends to play multiple games
                 </p>
@@ -220,8 +220,8 @@ export default function RoomsHubPage() {
               </div>
 
               {/* Join by Code Card */}
-              <div className="p-6 rounded-xl bg-surface-elevated border border-board-grid">
-                <h2 className="text-xl font-semibold mb-4">Join by Code</h2>
+              <div className="p-4 sm:p-6 rounded-xl bg-surface-elevated border border-board-grid">
+                <h2 className="text-lg sm:text-xl font-semibold mb-4">Join by Code</h2>
                 <p className="text-sm text-text-secondary mb-6">
                   Have a room code? Enter it to join instantly
                 </p>

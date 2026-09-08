@@ -71,10 +71,10 @@ export default function WatchMatchPage() {
         : "waiting";
 
   return (
-    <main className="flex-1 flex flex-col px-4 py-6">
-      <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
+    <main className="flex-1 flex flex-col px-3 sm:px-4 py-4 sm:py-6">
+      <div className="w-full max-w-2xl mx-auto flex flex-col gap-3 sm:gap-6">
         {connectionState.status !== "connected" && (
-          <div className="p-3 rounded-lg bg-accent-warning/10 border border-accent-warning text-center flex items-center justify-center gap-2">
+          <div className="order-1 p-3 rounded-lg bg-accent-warning/10 border border-accent-warning text-center flex items-center justify-center gap-2">
             {connectionState.status === "reconnecting" && (
               <div className="w-4 h-4 rounded-full border-2 border-accent-warning border-t-transparent animate-spin" />
             )}
@@ -86,19 +86,19 @@ export default function WatchMatchPage() {
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-4">
+        <div className="order-2 sm:order-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <Link
             href={ROUTES.HOME}
             className="text-sm text-text-secondary hover:text-text-primary transition-colors"
           >
             ← Home
           </Link>
-          <div className="text-sm text-text-muted">
+          <div className="text-xs sm:text-sm text-text-muted truncate">
             Match: {matchId.slice(0, 8)}...
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-3 rounded-lg border border-board-grid bg-surface-elevated">
+        <div className="order-3 sm:order-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-lg border border-board-grid bg-surface-elevated">
           <div className="text-sm text-text-secondary">
             <ModeBadge mode={matchState.board.mode} />
           </div>
@@ -122,42 +122,50 @@ export default function WatchMatchPage() {
           </div>
         </div>
 
-        <ScorePanel
-          score={matchState.score}
-          currentPlayer={matchState.turn.currentPlayer}
-          yourPlayer={null}
-          isGameOver={matchState.isGameOver}
-          winner={matchState.winner}
-        />
+        <div className="order-4 sm:order-6">
+          <TurnIndicator
+            currentPlayer={matchState.turn.currentPlayer}
+            yourPlayer={null}
+            isYourTurn={false}
+            isGameOver={matchState.isGameOver}
+            winner={matchState.winner}
+            isDraw={matchState.isDraw}
+            showDraw={getOnlineModeInfo(matchState.board.mode).canDraw}
+          />
+        </div>
 
-        <TurnIndicator
-          currentPlayer={matchState.turn.currentPlayer}
-          yourPlayer={null}
-          isYourTurn={false}
-          isGameOver={matchState.isGameOver}
-          winner={matchState.winner}
-          isDraw={matchState.isDraw}
-          showDraw={getOnlineModeInfo(matchState.board.mode).canDraw}
-        />
+        <div className="order-5 sm:order-7">
+          <GameBoard
+            board={matchState.board}
+            currentPlayer={matchState.turn.currentPlayer}
+            yourPlayer={null}
+            winInfo={matchState.winInfo}
+            isGameOver={matchState.isGameOver}
+            disabled={true}
+            showMoveNumbers={true}
+          />
+        </div>
 
-        <GameBoard
-          board={matchState.board}
-          currentPlayer={matchState.turn.currentPlayer}
-          yourPlayer={null}
-          winInfo={matchState.winInfo}
-          isGameOver={matchState.isGameOver}
-          disabled={true}
-          showMoveNumbers={true}
-        />
+        <div className="order-6 sm:order-5">
+          <ScorePanel
+            score={matchState.score}
+            currentPlayer={matchState.turn.currentPlayer}
+            yourPlayer={null}
+            isGameOver={matchState.isGameOver}
+            winner={matchState.winner}
+          />
+        </div>
 
-        <MatchTimer
-          matchStartedAt={rawMatchState.startedAt}
-          isGameOver={matchState.isGameOver}
-          showTurnTimer={false}
-        />
+        <div className="order-7 sm:order-8">
+          <MatchTimer
+            matchStartedAt={rawMatchState.startedAt}
+            isGameOver={matchState.isGameOver}
+            showTurnTimer={false}
+          />
+        </div>
 
         {viewStatus === "finished" && (
-          <div className="text-center p-4 rounded-xl bg-surface-elevated border border-board-grid">
+          <div className="order-8 text-center p-4 rounded-xl bg-surface-elevated border border-board-grid">
             <p className="text-lg font-semibold mb-1">
               {matchState.isDraw && getOnlineModeInfo(matchState.board.mode).canDraw
                 ? "Match Ended in a Draw"

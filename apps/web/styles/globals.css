@@ -316,10 +316,10 @@ body {
     max-width: 95vw;
   }
 
-  /* Larger touch targets on mobile */
-  button {
+  /* Touch-friendly targets — opt out with .no-touch-target */
+  button:not(.no-touch-target),
+  [role="button"]:not(.no-touch-target) {
     min-height: 44px;
-    min-width: 44px;
   }
 
   /* Better text sizes for readability */
@@ -356,12 +356,26 @@ body {
     padding-right: env(safe-area-inset-right);
   }
 
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
   .sticky-top {
     top: env(safe-area-inset-top);
   }
 
   .sticky-bottom {
     bottom: env(safe-area-inset-bottom);
+  }
+
+  .fixed-notifications {
+    top: calc(4.5rem + env(safe-area-inset-top));
+    left: max(1rem, env(safe-area-inset-left));
+    right: max(1rem, env(safe-area-inset-right));
   }
 }
 
