@@ -41,32 +41,48 @@ export default function OpenGraphImage() {
             padding: "48px",
           }}
         >
-          {/* Mini board preview */}
+          {/* Mini board preview — flex only (Satori/OG does not support CSS grid) */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 64px)",
-              gap: "8px",
-              marginBottom: "40px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              marginBottom: 40,
             }}
           >
-            {["X", "", "O", "", "X", "", "O", "", "X"].map((mark, i) => (
+            {[
+              ["X", "", "O"],
+              ["", "X", ""],
+              ["O", "", "X"],
+            ].map((row, rowIndex) => (
               <div
-                key={i}
-                style={{
-                  width: 64,
-                  height: 64,
-                  background: "#16161d",
-                  borderRadius: 8,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 32,
-                  fontWeight: 700,
-                  color: mark === "X" ? "#00d4ff" : mark === "O" ? "#ff6b9d" : "transparent",
-                }}
+                key={rowIndex}
+                style={{ display: "flex", flexDirection: "row", gap: 8 }}
               >
-                {mark}
+                {row.map((mark, colIndex) => (
+                  <div
+                    key={colIndex}
+                    style={{
+                      width: 64,
+                      height: 64,
+                      background: "#16161d",
+                      borderRadius: 8,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 32,
+                      fontWeight: 700,
+                      color:
+                        mark === "X"
+                          ? "#00d4ff"
+                          : mark === "O"
+                            ? "#ff6b9d"
+                            : "transparent",
+                    }}
+                  >
+                    {mark}
+                  </div>
+                ))}
               </div>
             ))}
           </div>
