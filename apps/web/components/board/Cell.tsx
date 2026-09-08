@@ -21,6 +21,12 @@ export interface CellProps {
   showMoveNumbers?: boolean;
   isHovered?: boolean;
   hoverPreview?: Player | null;
+  /**
+   * Position of the mark that will be removed next (infinite mode) — when set
+   * to the current cell's position, applies a "will be removed" visual hint.
+   * For beginners only.
+   */
+  nextRemovalPosition?: { row: number; col: number } | null;
 }
 
 export const Cell = memo(function Cell({
@@ -31,6 +37,7 @@ export const Cell = memo(function Cell({
   showMoveNumbers = false,
   isHovered = false,
   hoverPreview = null,
+  nextRemovalPosition = null,
 }: CellProps) {
   const isTouch = useTouchDevice();
   const [isTouchActive, setIsTouchActive] = useState(false);
@@ -90,7 +97,7 @@ export const Cell = memo(function Cell({
         !cell.isPlayable && !cell.value && "cell--disabled",
         cell.isLastMove && "cell--last-move",
         cell.isWinningCell && "ring-2 ring-accent-success",
-        cell.isAboutToBeRemoved && "cell--will-remove",
+        (cell.isAboutToBeRemoved || !!nextRemovalPosition) && "cell--will-remove",
         cell.value === "X" && "cell--x",
         cell.value === "O" && "cell--o",
         // Hover and touch states
@@ -133,7 +140,7 @@ export const Cell = memo(function Cell({
       )}
 
       {/* About to be removed warning indicator */}
-      {cell.isAboutToBeRemoved && (
+      {(cell.isAboutToBeRemoved || !!nextRemovalPosition) && (
         <div className="absolute inset-0 bg-accent-warning/20 rounded-[inherit] animate-pulse-soft" />
       )}
 

@@ -113,6 +113,43 @@ export function getRankFromRating(rating: number) {
 }
 
 /**
+ * Check if a rank is beginner (Gold or below)
+ * Used to show helpful UI hints like the sliding rule highlight
+ */
+export function isBeginnerRank(rating: number): boolean {
+  const rank = getRankFromRating(rating);
+  // Beginner ranks: Bronze, Silver, Gold
+  const beginnerRanks = ['Bronze', 'Silver', 'Gold'];
+  return beginnerRanks.includes(rank.name);
+}
+
+/**
+ * Find the position of the mark that will be removed next for a player in infinite mode.
+ * Returns null if the player has fewer than 3 marks (no removal will happen).
+ *
+ * @param moveHistory - Array of moves in the game
+ * @param player - The player to check
+ * @returns The Position of the oldest mark that will be removed, or null
+ */
+export function getNextRemovalPosition(
+  moveHistory: { player: Player; position: Position; turn?: number }[],
+  player: Player
+): Position | null {
+  const playerMoves = moveHistory.filter((m) => m.player === player);
+  if (playerMoves.length < 3) {
+    return null;
+  }
+  // The oldest move is the one that will be removed
+  // Sort by turn if available, otherwise by index (earlier in history = older)
+  const sorted = [...playerMoves].sort((a, b) => {
+    const turnA = a.turn ?? moveHistory.indexOf(a);
+    const turnB = b.turn ?? moveHistory.indexOf(b);
+    return turnA - turnB;
+  });
+  return sorted[0]?.position ?? null;
+}
+
+/**
  * Get progress to next rank
  */
 export function getRankProgress(rating: number): { current: number; next: number; progress: number } {

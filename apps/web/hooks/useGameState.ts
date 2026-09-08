@@ -23,6 +23,7 @@ interface UseGameStateOptions {
 
 interface UseGameStateReturn {
   matchState: MatchUIState | null;
+  rawMatchState: MatchState | null;
   result: MatchResultUIState | null;
   yourPlayer: Player | null;
   isLoading: boolean;
@@ -306,6 +307,7 @@ export function useGameState(options: UseGameStateOptions): UseGameStateReturn {
 
   return {
     matchState,
+    rawMatchState,
     result,
     yourPlayer,
     isLoading,

@@ -23,7 +23,7 @@ import { useBotMatch } from "@/hooks/useBotMatch";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { ConnectionStatus, OfflineBanner } from "@/components/feedback/ConnectionStatus";
 import { ROUTES } from "@/lib/constants";
-import { cn } from "@/lib/helpers";
+import { cn, isBeginnerRank } from "@/lib/helpers";
 import type { MatchResultUIState } from "@/lib/adapters/gameAdapter";
 
 export default function MatchPage() {
@@ -98,6 +98,7 @@ export default function MatchPage() {
 
   const {
     matchState,
+    rawMatchState,
     result,
     yourPlayer,
     isLoading,
@@ -121,6 +122,14 @@ export default function MatchPage() {
 
   // Bot match info
   const botInfo = useBotMatch({ matchState, yourPlayer });
+
+  // Whether to show the sliding-rule "this mark will be removed" hint.
+  // Only for beginners (Gold or below) in infinite (MODE_1) mode.
+  const currentPlayerRating = rawMatchState?.players[matchState?.turn.currentPlayer ?? 'X']?.rating;
+  const showRemovalHint =
+    matchState?.board.mode === 'MODE_1' &&
+    currentPlayerRating !== undefined &&
+    isBeginnerRank(currentPlayerRating);
 
   // Handle cell click
   const handleCellClick = useCallback(
@@ -274,6 +283,10 @@ export default function MatchPage() {
           isGameOver={matchState.isGameOver}
           onCellClick={handleCellClick}
           disabled={!matchState.turn.isYourTurn || matchState.isGameOver}
+          mode={matchState.board.mode}
+          moveHistory={
+            showRemovalHint ? rawMatchState?.gameState.moveHistory : undefined
+          }
         />
 
         {/* Match Timer */}

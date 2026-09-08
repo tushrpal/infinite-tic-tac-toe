@@ -7,11 +7,11 @@
  */
 
 import { memo, useState, useCallback, type MouseEvent } from "react";
-import { cn } from "@/lib/helpers";
+import { cn, getNextRemovalPosition } from "@/lib/helpers";
 import { Cell } from "./Cell";
 import { BoardOverlay } from "./BoardOverlay";
 import type { BoardUIState } from "@/lib/adapters/gameAdapter";
-import type { Player, WinInfo } from "@/ws/types";
+import type { Player, WinInfo, GameMode } from "@/ws/types";
 
 export interface GameBoardProps {
   board: BoardUIState;
@@ -23,6 +23,16 @@ export interface GameBoardProps {
   showMoveNumbers?: boolean;
   disabled?: boolean;
   className?: string;
+  /**
+   * Move history used to compute the next-removal highlight in infinite (MODE_1) mode.
+   * If omitted, the highlight is not shown.
+   */
+  moveHistory?: { player: Player; position: { row: number; col: number }; turn?: number }[];
+  /**
+   * Game mode. Only MODE_1 (sliding) supports the next-removal highlight.
+   * Default: 'MODE_1'
+   */
+  mode?: GameMode;
 }
 
 export const GameBoard = memo(function GameBoard({
@@ -35,6 +45,8 @@ export const GameBoard = memo(function GameBoard({
   showMoveNumbers = false,
   disabled = false,
   className,
+  moveHistory,
+  mode = 'MODE_1',
 }: GameBoardProps) {
   const [hoveredCell, setHoveredCell] = useState<{
     row: number;
@@ -63,6 +75,13 @@ export const GameBoard = memo(function GameBoard({
     !disabled &&
     !isGameOver &&
     (yourPlayer === null || currentPlayer === yourPlayer);
+
+  // Compute the next-removal position for infinite (sliding) mode
+  // This highlights the mark that will disappear when the 4th mark is placed
+  const nextRemovalPosition =
+    mode === 'MODE_1' && moveHistory && moveHistory.length > 0 && !isGameOver
+      ? getNextRemovalPosition(moveHistory, currentPlayer)
+      : null;
 
   // Generate grid template based on board size
   const gridStyle = {
@@ -105,6 +124,14 @@ export const GameBoard = memo(function GameBoard({
                     hoverPreview={
                       canShowHoverPreview && isHovered && cell.isPlayable
                         ? currentPlayer
+                        : null
+                    }
+                    nextRemovalPosition={
+                      nextRemovalPosition &&
+                      cell.value === currentPlayer &&
+                      rowIndex === nextRemovalPosition.row &&
+                      colIndex === nextRemovalPosition.col
+                        ? nextRemovalPosition
                         : null
                     }
                   />
