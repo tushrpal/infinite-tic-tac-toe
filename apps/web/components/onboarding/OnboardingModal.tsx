@@ -165,18 +165,18 @@ function GameModesPreview() {
     <div className="mt-8 grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
       <div className="p-4 rounded-lg bg-surface-base border border-board-grid">
         <div className="text-2xl mb-2">🎯</div>
-        <h3 className="font-semibold text-text-primary mb-1">Classic Mode</h3>
+        <h3 className="font-semibold text-text-primary mb-1">Expanding Mode</h3>
         <p className="text-sm text-text-secondary">
-          Traditional rules, quick matches
+          Board grows each round — long-term strategy
         </p>
       </div>
       <div className="p-4 rounded-lg bg-accent-primary/10 border-2 border-accent-primary">
-        <div className="text-2xl mb-2">♾️</div>
+        <div className="text-2xl mb-2">⚡</div>
         <h3 className="font-semibold text-text-primary mb-1">
           Sliding Mode <span className="text-accent-primary">⭐</span>
         </h3>
         <p className="text-sm text-text-secondary">
-          Pieces disappear, endless strategy
+          Marks disappear — no draws, endless strategy
         </p>
       </div>
     </div>

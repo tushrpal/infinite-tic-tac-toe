@@ -13,6 +13,7 @@ import { useWebSocket, useSocketEvent } from "@/hooks/useWebSocket";
 import { usePlayer } from "@/components/providers/PlayerProvider";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/helpers";
+import { getOnlineModeInfo } from "@/lib/gameModes";
 import type { GameMode } from "@/ws/types";
 
 type QueueState = "idle" | "queuing" | "match-found";
@@ -137,13 +138,11 @@ export default function OnlinePlayPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <ModeButton
                     mode="MODE_1"
-                    label="Sliding"
                     selected={selectedMode === "MODE_1"}
                     onClick={() => setSelectedMode("MODE_1")}
                   />
                   <ModeButton
                     mode="MODE_2"
-                    label="Classic"
                     selected={selectedMode === "MODE_2"}
                     onClick={() => setSelectedMode("MODE_2")}
                   />
@@ -209,15 +208,15 @@ function ConnectionStatus({ status }: { status: string }) {
 // Mode Selection Button
 function ModeButton({
   mode,
-  label,
   selected,
   onClick,
 }: {
   mode: GameMode;
-  label: string;
   selected: boolean;
   onClick: () => void;
 }) {
+  const info = getOnlineModeInfo(mode);
+
   return (
     <button
       onClick={onClick}
@@ -235,11 +234,9 @@ function ModeButton({
           selected ? "text-accent-primary" : "text-text-primary",
         )}
       >
-        {label}
+        {info.icon} {info.label}
       </span>
-      <span className="text-xs text-text-muted">
-        {mode === "MODE_1" ? "3 in a row" : "Marks slide"}
-      </span>
+      <span className="text-xs text-text-muted">{info.shortDescription}</span>
     </button>
   );
 }

@@ -5,7 +5,7 @@
  * Real-time online game view
  */
 
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Route } from "next";
@@ -14,6 +14,8 @@ import { TurnIndicator } from "@/components/hud/TurnIndicator";
 import { ScorePanel } from "@/components/hud/ScorePanel";
 import { MatchTimer } from "@/components/hud/MatchTimer";
 import { BotThinkingIndicator } from "@/components/hud/BotThinkingIndicator";
+import { MarkCountPanel } from "@/components/hud/MarkCountPanel";
+import { ModeBadge } from "@/components/hud/ModeBadge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
@@ -24,6 +26,8 @@ import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { ConnectionStatus, OfflineBanner } from "@/components/feedback/ConnectionStatus";
 import { ROUTES } from "@/lib/constants";
 import { cn, isBeginnerRank } from "@/lib/helpers";
+import { countMarksOnBoard, getOnlineModeInfo } from "@/lib/gameModes";
+import { announce } from "@/lib/accessibility";
 import type { MatchResultUIState } from "@/lib/adapters/gameAdapter";
 
 export default function MatchPage() {
@@ -38,6 +42,7 @@ export default function MatchPage() {
   const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
   const [showDisconnectWarning, setShowDisconnectWarning] = useState(false);
   const [disconnectTimeout, setDisconnectTimeout] = useState(0);
+  const prevTurnRef = useRef<{ player: string; isGameOver: boolean } | null>(null);
 
   const handleMatchEnd = useCallback((result: MatchResultUIState) => {
     setShowResultModal(true);
@@ -134,16 +139,60 @@ export default function MatchPage() {
   // Handle cell click
   const handleCellClick = useCallback(
     (row: number, col: number) => {
-      console.log("[MatchPage] handleCellClick", {
-        row,
-        col,
-        isYourTurn: matchState?.turn.isYourTurn,
-      });
       if (matchState?.turn.isYourTurn) {
         makeMove({ row, col });
       }
     },
     [matchState, makeMove],
+  );
+
+  // Screen reader announcements for turn changes and game end
+  useEffect(() => {
+    if (!matchState) return;
+
+    const prev = prevTurnRef.current;
+    const current = {
+      player: matchState.turn.currentPlayer,
+      isGameOver: matchState.isGameOver,
+    };
+
+    if (prev && !prev.isGameOver && matchState.isGameOver) {
+      if (matchState.isDraw && getOnlineModeInfo(matchState.board.mode).canDraw) {
+        announce("Game over. It's a draw.", "assertive");
+      } else if (matchState.winner === yourPlayer) {
+        announce("You win!", "assertive");
+      } else if (matchState.winner) {
+        announce("You lose.", "assertive");
+      }
+    } else if (
+      prev &&
+      !matchState.isGameOver &&
+      prev.player !== current.player
+    ) {
+      if (matchState.turn.isYourTurn) {
+        announce("Your turn.", "polite");
+      } else if (yourPlayer) {
+        announce("Opponent's turn.", "polite");
+      }
+    }
+
+    prevTurnRef.current = current;
+  }, [
+    matchState?.turn.currentPlayer,
+    matchState?.turn.isYourTurn,
+    matchState?.isGameOver,
+    matchState?.winner,
+    matchState?.isDraw,
+    matchState?.board.mode,
+    yourPlayer,
+  ]);
+
+  const markCounts = useMemo(
+    () =>
+      matchState
+        ? countMarksOnBoard(matchState.board.cells)
+        : { X: 0, O: 0 },
+    [matchState?.board.cells],
   );
 
   // Handle forfeit
@@ -200,6 +249,9 @@ export default function MatchPage() {
   }
 
   const watchUrl = `/watch/${matchId}` as Route;
+  const isSlidingMode = matchState.board.mode === "MODE_1";
+  const showDraw = getOnlineModeInfo(matchState.board.mode).canDraw;
+  const matchStartedAt = rawMatchState?.startedAt ?? null;
 
   return (
     <main className="flex-1 flex flex-col px-4 py-6">
@@ -244,9 +296,7 @@ export default function MatchPage() {
             >
               Share Watch Link
             </Link>
-            <span>
-              {matchState.board.mode === "MODE_1" ? "Sliding" : "Classic"} Mode
-            </span>
+            <ModeBadge mode={matchState.board.mode} />
           </div>
         </div>
 
@@ -272,7 +322,15 @@ export default function MatchPage() {
           isGameOver={matchState.isGameOver}
           winner={matchState.winner}
           isDraw={matchState.isDraw}
+          showDraw={showDraw}
         />
+
+        {isSlidingMode && !matchState.isGameOver && (
+          <MarkCountPanel
+            markCounts={markCounts}
+            currentPlayer={matchState.turn.currentPlayer}
+          />
+        )}
 
         {/* Game Board */}
         <GameBoard
@@ -291,7 +349,7 @@ export default function MatchPage() {
 
         {/* Match Timer */}
         <MatchTimer
-          matchStartedAt={Date.now() - 60000} // Placeholder
+          matchStartedAt={matchStartedAt}
           isGameOver={matchState.isGameOver}
           showTurnTimer={false}
         />
@@ -348,7 +406,7 @@ export default function MatchPage() {
                   🎊
                 </div>
               </div>
-            ) : matchState.isDraw ? (
+            ) : matchState.isDraw && showDraw ? (
               // Draw - Handshake
               <div className="w-24 h-24 mx-auto flex items-center justify-center rounded-full bg-gradient-to-br from-gray-400 to-gray-600">
                 <span className="text-5xl">🤝</span>
@@ -367,14 +425,14 @@ export default function MatchPage() {
               "text-4xl font-bold mb-2 animate-[fadeInUp_0.5s_ease-out]",
               matchState.winner === yourPlayer
                 ? "text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500"
-                : matchState.isDraw
+                : matchState.isDraw && showDraw
                   ? "text-text-secondary"
                   : "text-accent-error",
             )}
           >
             {matchState.winner === yourPlayer
               ? "Victory!"
-              : matchState.isDraw
+              : matchState.isDraw && showDraw
                 ? "It's a Draw!"
                 : "Defeat"}
           </h2>
@@ -384,7 +442,7 @@ export default function MatchPage() {
               ? botInfo.isBotMatch
                 ? `You defeated the ${botInfo.botDifficulty} bot!`
                 : "Congratulations! You played brilliantly!"
-              : matchState.isDraw
+              : matchState.isDraw && showDraw
                 ? "A well-fought battle!"
                 : botInfo.isBotMatch
                   ? `The ${botInfo.botDifficulty} bot won this time. Try again!`

@@ -17,6 +17,8 @@ export interface TurnIndicatorProps {
   isGameOver: boolean;
   winner: Player | null;
   isDraw: boolean;
+  /** When false, draw state is hidden (e.g. sliding mode cannot draw) */
+  showDraw?: boolean;
   className?: string;
 }
 
@@ -27,14 +29,17 @@ export const TurnIndicator = memo(function TurnIndicator({
   isGameOver,
   winner,
   isDraw,
+  showDraw = true,
   className,
 }: TurnIndicatorProps) {
+  const effectiveDraw = isDraw && showDraw;
+
   // Determine display text
   let statusText: string;
   let statusColor: string;
 
   if (isGameOver) {
-    if (isDraw) {
+    if (effectiveDraw) {
       statusText = "It's a Draw!";
       statusColor = "text-text-secondary";
     } else if (winner) {

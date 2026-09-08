@@ -3,6 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/Button';
 import type { RoomListItem } from '@/ws/types';
+import { getRoomModeLabel } from '@/lib/gameModes';
 
 interface RoomCardProps {
   room: RoomListItem;
@@ -12,7 +13,7 @@ interface RoomCardProps {
 
 export function RoomCard({ room, onJoin, isMember = false }: RoomCardProps) {
   const displayName = room.name || `${room.host.displayName || room.host.username}'s Room`;
-  const modeLabel = room.mode === 1 ? 'Sliding' : 'Classic';
+  const modeLabel = getRoomModeLabel(room.mode);
 
   const statusConfig = {
     WAITING: { label: 'Open', color: 'text-accent-success' },

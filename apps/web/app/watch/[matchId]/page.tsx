@@ -10,6 +10,8 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import { useSpectatorMatch } from "@/hooks/useSpectatorMatch";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/helpers";
+import { getOnlineModeInfo } from "@/lib/gameModes";
+import { ModeBadge } from "@/components/hud/ModeBadge";
 
 function statusLabel(status: "waiting" | "live" | "finished"): string {
   if (status === "waiting") return "Waiting";
@@ -98,7 +100,7 @@ export default function WatchMatchPage() {
 
         <div className="flex items-center justify-between p-3 rounded-lg border border-board-grid bg-surface-elevated">
           <div className="text-sm text-text-secondary">
-            {matchState.board.mode === "MODE_1" ? "Sliding" : "Classic"} Mode
+            <ModeBadge mode={matchState.board.mode} />
           </div>
           <div className="flex items-center gap-3">
             <span
@@ -135,6 +137,7 @@ export default function WatchMatchPage() {
           isGameOver={matchState.isGameOver}
           winner={matchState.winner}
           isDraw={matchState.isDraw}
+          showDraw={getOnlineModeInfo(matchState.board.mode).canDraw}
         />
 
         <GameBoard
@@ -156,7 +159,7 @@ export default function WatchMatchPage() {
         {viewStatus === "finished" && (
           <div className="text-center p-4 rounded-xl bg-surface-elevated border border-board-grid">
             <p className="text-lg font-semibold mb-1">
-              {matchState.isDraw
+              {matchState.isDraw && getOnlineModeInfo(matchState.board.mode).canDraw
                 ? "Match Ended in a Draw"
                 : `${matchState.winner} Wins`}
             </p>

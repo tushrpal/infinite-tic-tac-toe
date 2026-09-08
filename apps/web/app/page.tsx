@@ -45,7 +45,7 @@ export default function HomePage() {
             <FeatureCard
               icon={<GameModeIcon />}
               title="Multiple Modes"
-              description="Classic 3-in-a-row or strategic sliding mode where old marks disappear"
+              description="Sliding mode where marks disappear, or Expanding mode with growing boards"
             />
             <FeatureCard
               icon={<OnlineIcon />}

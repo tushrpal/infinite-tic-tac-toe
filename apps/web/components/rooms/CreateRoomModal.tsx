@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { createRoom } from '@/lib/rooms';
+import { getRoomModeInfo } from '@/lib/gameModes';
 
 interface CreateRoomModalProps {
   isOpen: boolean;
@@ -103,9 +104,9 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
                 className="w-4 h-4"
               />
               <div>
-                <div className="font-medium">⚡ Sliding (MODE_1)</div>
+                <div className="font-medium">{getRoomModeInfo(1).icon} {getRoomModeInfo(1).label}</div>
                 <div className="text-sm text-text-secondary">
-                  Marks slide after 3 placed
+                  {getRoomModeInfo(1).shortDescription}
                 </div>
               </div>
             </label>
@@ -120,9 +121,9 @@ export function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRoomModalP
                 className="w-4 h-4"
               />
               <div>
-                <div className="font-medium">🎯 Classic (MODE_2)</div>
+                <div className="font-medium">{getRoomModeInfo(2).icon} {getRoomModeInfo(2).label}</div>
                 <div className="text-sm text-text-secondary">
-                  Traditional tic-tac-toe
+                  {getRoomModeInfo(2).shortDescription}
                 </div>
               </div>
             </label>

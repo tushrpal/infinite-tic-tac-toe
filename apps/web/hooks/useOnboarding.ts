@@ -43,7 +43,7 @@ export const onboardingSteps: OnboardingStep[] = [
   {
     id: 'game-modes',
     title: 'Choose Your Game Mode',
-    description: 'Play Classic mode for traditional rules, or try Sliding mode where pieces disappear after 6 moves, creating an endless strategic challenge!',
+    description: 'Try Sliding mode where marks disappear after 3 placed, or Expanding mode where the board grows each round.',
     icon: '♾️',
   },
   {

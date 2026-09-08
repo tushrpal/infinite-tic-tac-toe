@@ -78,29 +78,31 @@ export const basicRules: GameRule[] = [
 
 export const gameModes = [
   {
-    id: "classic",
-    name: "Classic Mode",
-    description: "Traditional Tic-Tac-Toe rules. The game ends when someone wins or all 9 cells are filled.",
+    id: "sliding",
+    name: "Sliding Mode",
+    description:
+      "Fixed 3×3 board. After placing 3 marks, your oldest mark disappears on your next move. No draws possible.",
     rules: [
-      "Standard 3x3 grid",
-      "First to get 3 in a row wins",
-      "Game ends in draw if board fills up",
-      "Quick matches, typically under 1 minute",
+      "Fixed 3×3 grid",
+      "Max 3 marks per player on the board",
+      "4th mark removes your oldest mark",
+      "First to 3-in-a-row wins — no draws",
     ],
-    icon: "🎯",
+    icon: "⚡",
+    highlight: true,
   },
   {
-    id: "sliding",
-    name: "Sliding Mode (Mode 1)",
-    description: "An infinite twist! After 6 moves (3 per player), the oldest piece slides off the board when a new piece is placed.",
+    id: "expanding",
+    name: "Expanding Mode",
+    description:
+      "Round-based play. Board expands after each round (3×3 → 4×4 → 5×5). Win N-in-a-row on an N×N board.",
     rules: [
-      "Game never ends in a draw",
-      "Your oldest mark disappears when you place your 4th mark",
-      "Forces dynamic strategy and adaptation",
-      "Matches can last longer but are more engaging",
+      "Starts on a 3×3 board",
+      "Board grows after each round",
+      "Win condition scales with board size",
+      "Marks persist for the entire round",
     ],
-    icon: "♾️",
-    highlight: true,
+    icon: "🎯",
   },
 ];
 

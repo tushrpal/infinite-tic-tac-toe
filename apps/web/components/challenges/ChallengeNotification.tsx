@@ -8,6 +8,7 @@
 import { useState, useEffect } from "react";
 import { useChallenges } from "@/components/providers/ChallengesProvider";
 import { cn } from "@/lib/helpers";
+import { getChallengeModeLabel } from "@/lib/gameModes";
 import type { Challenge } from "@/types/challenges";
 
 interface ChallengeNotificationProps {
@@ -92,7 +93,7 @@ export function ChallengeNotification({ challenge, onNavigateToMatch }: Challeng
   };
 
   const getModeName = (mode: string): string => {
-    return mode === 'mode1' ? 'Classic 3x3' : 'Ultimate TTT';
+    return getChallengeModeLabel(mode);
   };
 
   if (timeLeft === 0) return null;

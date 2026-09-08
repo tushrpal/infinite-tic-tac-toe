@@ -41,6 +41,11 @@
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #475569;
+  --text-tertiary: #64748b;
+
+  --critical: #ef4444;
+  --critical-foreground: #ffffff;
+  --border-subtle: #1e293b;
 
   --glow-color: var(--accent-primary);
 
@@ -77,6 +82,11 @@
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
+  --text-tertiary: #64748b;
+
+  --critical: #dc2626;
+  --critical-foreground: #ffffff;
+  --border-subtle: #e2e8f0;
 }
 
 /* Neon theme */

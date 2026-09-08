@@ -9,6 +9,7 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useChallenges } from "@/components/providers/ChallengesProvider";
 import { cn } from "@/lib/helpers";
+import { getChallengeModeInfo } from "@/lib/gameModes";
 import type { GameMode } from "@/types/challenges";
 import type { Friend } from "@/types/friends";
 
@@ -143,10 +144,10 @@ export function ChallengeModal({ isOpen, onClose, friend }: ChallengeModalProps)
             >
               <div className="text-center">
                 <div className="text-lg font-semibold text-text-primary mb-1">
-                  Mode 1
+                  {getChallengeModeInfo('mode1').icon} {getChallengeModeInfo('mode1').label}
                 </div>
                 <div className="text-xs text-text-secondary">
-                  Classic 3x3
+                  {getChallengeModeInfo('mode1').shortDescription}
                 </div>
               </div>
             </button>
@@ -162,10 +163,10 @@ export function ChallengeModal({ isOpen, onClose, friend }: ChallengeModalProps)
             >
               <div className="text-center">
                 <div className="text-lg font-semibold text-text-primary mb-1">
-                  Mode 2
+                  {getChallengeModeInfo('mode2').icon} {getChallengeModeInfo('mode2').label}
                 </div>
                 <div className="text-xs text-text-secondary">
-                  Ultimate TTT
+                  {getChallengeModeInfo('mode2').shortDescription}
                 </div>
               </div>
             </button>

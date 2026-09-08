@@ -13,6 +13,7 @@ import { useRoomEvents } from '@/hooks/useRoomEvents';
 import { startGame, invitePlayers } from '@/lib/rooms';
 import { getFriends } from '@/lib/friends';
 import { ROUTES } from '@/lib/constants';
+import { getRoomModeLabel } from '@/lib/gameModes';
 import { usePlayer } from '@/components/providers/PlayerProvider';
 import type { PlayerInfo } from '@/ws/types';
 import type { Friend } from '@/types/friends';
@@ -159,7 +160,7 @@ export default function RoomLobbyPage() {
   }
 
   const displayName = room.name || `${room.host.username}'s Room`;
-  const modeLabel = room.mode === 1 ? 'Sliding' : 'Classic';
+  const modeLabel = getRoomModeLabel(room.mode);
   const statusLabel = {
     WAITING: 'Open',
     ACTIVE: 'In Game',

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/Button';
 import type { RoomInvite } from '@/ws/types';
+import { getRoomModeLabel } from '@/lib/gameModes';
 
 interface RoomInviteNotificationProps {
   invite: RoomInvite;
@@ -19,7 +20,7 @@ export function RoomInviteNotification({
 }: RoomInviteNotificationProps) {
   const roomName = invite.room?.name ? `"${invite.room.name}"` : 'their room';
   const inviterName = invite.inviter?.displayName || 'Someone';
-  const mode = invite.room?.mode === 1 ? 'Sliding' : 'Classic';
+  const mode = invite.room?.mode ? getRoomModeLabel(invite.room.mode) : 'Unknown';
   const memberCount = invite.room?.memberCount;
 
   return (

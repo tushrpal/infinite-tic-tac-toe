@@ -13,6 +13,7 @@ import { useWebSocket, useSocketEvent } from "@/hooks/useWebSocket";
 import { usePlayer } from "@/components/providers/PlayerProvider";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/helpers";
+import { getOnlineModeInfo } from "@/lib/gameModes";
 import type { GameMode } from "@/ws/types";
 
 type BotDifficulty = 'easy' | 'medium' | 'hard';
@@ -37,12 +38,12 @@ const DIFFICULTY_INFO: Record<BotDifficulty, { name: string; description: string
 
 const MODE_INFO: Record<GameMode, { name: string; description: string }> = {
   MODE_1: {
-    name: 'Infinite 3×3',
-    description: '3×3 board with sliding rule',
+    name: getOnlineModeInfo("MODE_1").label,
+    description: getOnlineModeInfo("MODE_1").shortDescription,
   },
   MODE_2: {
-    name: 'Expanding Board',
-    description: 'Board grows with each round',
+    name: getOnlineModeInfo("MODE_2").label,
+    description: getOnlineModeInfo("MODE_2").shortDescription,
   },
 };
 

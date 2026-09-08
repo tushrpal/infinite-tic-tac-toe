@@ -43,6 +43,14 @@ const config: Config = {
           primary: 'var(--text-primary)',
           secondary: 'var(--text-secondary)',
           muted: 'var(--text-muted)',
+          tertiary: 'var(--text-tertiary)',
+        },
+        critical: {
+          DEFAULT: 'var(--critical)',
+          foreground: 'var(--critical-foreground)',
+        },
+        border: {
+          subtle: 'var(--border-subtle)',
         },
       },
       fontFamily: {

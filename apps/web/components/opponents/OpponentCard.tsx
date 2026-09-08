@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useFriends } from "@/components/providers/FriendsProvider";
 import { useChallenges } from "@/components/providers/ChallengesProvider";
 import { cn } from "@/lib/helpers";
+import { getChallengeModeLabel } from "@/lib/gameModes";
 import type { RecentOpponent, MatchOutcome } from "@/types/opponents";
 import type { Friend } from "@/types/friends";
 
@@ -75,7 +76,7 @@ export function OpponentCard({ opponent, onChallengeClick }: OpponentCardProps) 
   };
 
   const getModeName = (mode: string): string => {
-    return mode === 'mode1' ? 'Classic' : 'Ultimate';
+    return getChallengeModeLabel(mode);
   };
 
   const formatLastPlayed = (timestamp: string): string => {

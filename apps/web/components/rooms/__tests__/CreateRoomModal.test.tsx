@@ -31,7 +31,7 @@ describe('CreateRoomModal', () => {
 
     expect(screen.getByLabelText(/Room Name/i)).toBeTruthy();
     expect(screen.getByLabelText(/Sliding/i)).toBeTruthy();
-    expect(screen.getByLabelText(/Classic/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Expanding/i)).toBeTruthy();
     expect(screen.getByLabelText(/Max Players/i)).toBeTruthy();
   });
 

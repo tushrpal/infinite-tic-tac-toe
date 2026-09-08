@@ -15,6 +15,7 @@ import { useWebSocket, useSocketEvent } from "@/hooks/useWebSocket";
 import { usePlayer } from "@/components/providers/PlayerProvider";
 import { ROUTES, RANKS } from "@/lib/constants";
 import { cn, getRankFromRating, getRankProgress } from "@/lib/helpers";
+import { getOnlineModeInfo } from "@/lib/gameModes";
 import type { GameMode } from "@/ws/types";
 
 type QueueState = "idle" | "queuing" | "match-found";
@@ -213,12 +214,12 @@ export default function RankedPlayPage() {
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <ModeButton
-                    label="Sliding"
+                    mode="MODE_1"
                     selected={selectedMode === "MODE_1"}
                     onClick={() => setSelectedMode("MODE_1")}
                   />
                   <ModeButton
-                    label="Classic"
+                    mode="MODE_2"
                     selected={selectedMode === "MODE_2"}
                     onClick={() => setSelectedMode("MODE_2")}
                   />
@@ -322,25 +323,29 @@ export default function RankedPlayPage() {
 }
 
 function ModeButton({
-  label,
+  mode,
   selected,
   onClick,
 }: {
-  label: string;
+  mode: GameMode;
   selected: boolean;
   onClick: () => void;
 }) {
+  const info = getOnlineModeInfo(mode);
+
   return (
     <button
       onClick={onClick}
       className={cn(
-        "p-4 rounded-xl border-2 transition-all font-semibold",
+        "p-4 rounded-xl border-2 transition-all",
+        "flex flex-col items-center gap-1",
         selected
           ? "border-accent-warning bg-accent-warning/10 text-accent-warning"
           : "border-board-grid bg-surface-elevated text-text-primary hover:border-text-muted",
       )}
     >
-      {label}
+      <span className="font-semibold">{info.icon} {info.label}</span>
+      <span className="text-xs text-text-muted font-normal">{info.shortDescription}</span>
     </button>
   );
 }

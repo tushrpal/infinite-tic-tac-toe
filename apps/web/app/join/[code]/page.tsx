@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { getPrivateMatchByCode, joinPrivateMatch } from "@/lib/challenges";
 import { usePlayer } from "@/components/providers/PlayerProvider";
 import { cn } from "@/lib/helpers";
+import { getChallengeModeLabel } from "@/lib/gameModes";
 import type { PrivateMatch } from "@/types/challenges";
 
 export default function JoinPrivateMatchPage({ params }: { params: { code: string } }) {
@@ -62,7 +63,7 @@ export default function JoinPrivateMatchPage({ params }: { params: { code: strin
   };
 
   const getModeName = (mode: string): string => {
-    return mode === 'mode1' ? 'Classic 3x3' : 'Ultimate TTT';
+    return getChallengeModeLabel(mode);
   };
 
   if (isLoadingPlayer || isLoading) {

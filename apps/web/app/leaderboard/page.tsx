@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
 import { apiRequest } from "@/lib/api";
 import { cn } from "@/lib/helpers";
+import { getOnlineModeInfo } from "@/lib/gameModes";
 import { getStoredPlayerId } from "@/lib/player";
 
 type LeaderboardPlayer = {
@@ -246,7 +247,7 @@ export default function LeaderboardPage() {
                 : "bg-surface-elevated text-text-secondary hover:text-text-primary"
             )}
           >
-            Mode 1 (Sliding)
+            Mode 1 ({getOnlineModeInfo("MODE_1").label})
           </button>
           <button
             onClick={() => setSelectedMode("mode2")}
@@ -257,7 +258,7 @@ export default function LeaderboardPage() {
                 : "bg-surface-elevated text-text-secondary hover:text-text-primary"
             )}
           >
-            Mode 2 (Classic)
+            Mode 2 ({getOnlineModeInfo("MODE_2").label})
           </button>
           {userLeague && (
             <button

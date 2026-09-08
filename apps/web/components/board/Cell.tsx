@@ -44,12 +44,6 @@ export const Cell = memo(function Cell({
 
   const handleClick = (e: MouseEvent) => {
     e.preventDefault();
-    console.log("[Cell] clicked", {
-      row,
-      col,
-      isPlayable: cell.isPlayable,
-      value: cell.value,
-    });
     if (cell.isPlayable && onClick) {
       onClick(row, col);
     }

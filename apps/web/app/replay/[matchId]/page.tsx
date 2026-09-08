@@ -13,6 +13,7 @@ import { ScorePanel } from "@/components/hud/ScorePanel";
 import { Button } from "@/components/ui/Button";
 import { useReplay } from "@/hooks/useReplay";
 import { adaptBoard } from "@/lib/adapters/gameAdapter";
+import { ModeBadge } from "@/components/hud/ModeBadge";
 import { fetchMatch, type MatchResultPayload } from "@/lib/matches";
 import { fetchPlayerProfile } from "@/lib/player";
 import { ROUTES } from "@/lib/constants";
@@ -235,7 +236,7 @@ export default function ReplayPage() {
         <div className="p-4 rounded-xl bg-surface-elevated border border-board-grid">
           <div className="flex items-center justify-between text-sm">
             <span className="text-text-muted">
-              {replayData.mode === "MODE_1" ? "Sliding" : "Classic"} Mode
+              <ModeBadge mode={replayData.mode} />
             </span>
             <span className="text-text-muted">
               {new Date(replayData.playedAt).toLocaleDateString()}

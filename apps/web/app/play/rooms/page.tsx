@@ -11,6 +11,7 @@ import { AccountRequired } from '@/components/auth/AccountRequired';
 import { usePlayer } from '@/components/providers/PlayerProvider';
 import { getRooms, getAvailableRooms, getPendingInvites, respondToInvite, joinRoom } from '@/lib/rooms';
 import { ROUTES } from '@/lib/constants';
+import { getRoomModeLabel } from '@/lib/gameModes';
 import type { RoomListItem, RoomInvite } from '@/ws/types';
 
 export default function RoomsHubPage() {
@@ -120,7 +121,7 @@ export default function RoomsHubPage() {
                     {invite.room && (
                       <p className="text-sm text-text-secondary mt-1">
                         {invite.room.memberCount}/8 players · Mode:{' '}
-                        {invite.room.mode === 1 ? 'Sliding' : 'Classic'}
+                        {getRoomModeLabel(invite.room.mode)}
                       </p>
                     )}
                   </div>

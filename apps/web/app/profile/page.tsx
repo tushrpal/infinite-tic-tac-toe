@@ -15,6 +15,8 @@ import {
   type PlayerStatsProfile,
 } from "@/lib/player";
 import { AccountLinking } from "@/components/profile/AccountLinking";
+import { ThemePicker } from "@/components/settings/ThemePicker";
+import { getOnlineModeInfo, getChallengeModeLabel } from "@/lib/gameModes";
 
 type Streak = {
   type: "win" | "loss" | "draw";
@@ -271,11 +273,11 @@ function ProfileContent() {
                   <div className="mt-2 flex gap-4 text-sm">
                     <div>
                       <div className="font-semibold">{profile.ratingMode1}</div>
-                      <div className="text-xs text-text-muted">Mode 1</div>
+                      <div className="text-xs text-text-muted">{getOnlineModeInfo("MODE_1").label}</div>
                     </div>
                     <div>
                       <div className="font-semibold">{profile.ratingMode2}</div>
-                      <div className="text-xs text-text-muted">Mode 2</div>
+                      <div className="text-xs text-text-muted">{getOnlineModeInfo("MODE_2").label}</div>
                     </div>
                   </div>
                 </div>
@@ -304,6 +306,12 @@ function ProfileContent() {
                 <span>{profile.losses}L</span>
               </div>
             </section>
+
+            {viewingOwnProfile && (
+              <section className="rounded-xl border border-board-grid bg-surface-elevated p-6">
+                <ThemePicker />
+              </section>
+            )}
 
             {/* Account Linking - Only show on own profile */}
             {viewingOwnProfile && (
@@ -395,7 +403,7 @@ function ProfileContent() {
                                 </span>
                               )}
                               <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-board-grid/60 text-text-secondary">
-                                {match.mode === 'mode1' ? 'Mode 1' : 'Mode 2'}
+                                {getChallengeModeLabel(match.mode)}
                               </span>
                             </div>
                           </div>
