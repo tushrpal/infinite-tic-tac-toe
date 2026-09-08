@@ -2,12 +2,23 @@ import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
 import { PrivateMatchCard } from "@/components/challenges/PrivateMatchCard";
 import { getOnlineModeInfo } from "@/lib/gameModes";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { KEYWORD_CLUSTERS } from "@/lib/seo/keywords";
+import { PUBLIC_ROUTES } from "@/lib/seo/config";
 import type { GameMode } from "@/ws/types";
 
-export const metadata = {
-  title: "Play - Infinite Tic-Tac-Toe",
-  description: "Choose your game mode and start playing",
-};
+export const metadata = buildPageMetadata({
+  title: "Play",
+  description:
+    "Choose how to play Infinite Tic-Tac-Toe — ranked matchmaking, online quick play, practice vs AI bots, local 2-player, or private rooms with friends.",
+  path: PUBLIC_ROUTES.play,
+  keywords: [
+    ...KEYWORD_CLUSTERS.primary,
+    ...KEYWORD_CLUSTERS.competitive,
+    ...KEYWORD_CLUSTERS.social,
+    ...KEYWORD_CLUSTERS.practice,
+  ],
+});
 
 export default function PlayPage() {
   const sliding = getOnlineModeInfo("MODE_1");

@@ -1,0 +1,83 @@
+# Infinite Tic-Tac-Toe (Infinite TTT)
+
+> Free online multiplayer tic-tac-toe with Sliding and Expanding modes, ranked Elo matchmaking, AI bots, and friend challenges.
+
+## Entity
+
+Infinite Tic-Tac-Toe (Infinite TTT) is a free, browser-based multiplayer tic-tac-toe game with two unique modes — Sliding (marks disappear after three placements, eliminating draws) and Expanding (board grows from 3×3 to 5×5 across rounds) — plus ranked Elo matchmaking, AI practice bots, friend challenges, private rooms, live spectating, and match replays.
+
+## Canonical URLs
+
+- Home: /
+- Play hub: /play
+- Online quick play: /play/online
+- Ranked matchmaking: /play/ranked
+- Practice vs AI bots: /play/practice
+- Local 2-player: /play/local
+- Friend rooms: /play/rooms
+- Global leaderboard: /leaderboard
+- How to play & FAQ: /how-to-play
+- About: /about
+
+## Game Modes
+
+### Sliding Mode
+Fixed 3×3 board. Each player can have at most 3 marks on the board. On the 4th placement, the oldest mark is removed. First to three-in-a-row wins. No draws are possible.
+
+### Expanding Mode
+Round-based play on progressively larger boards: 3×3 → 4×4 → 5×5. Win condition scales — need N-in-a-row on an N×N board. Marks persist for the entire round.
+
+## Key Features
+
+- Real-time online multiplayer (WebSocket)
+- Ranked Elo rating system with Bronze → Grandmaster tiers
+- Global leaderboard
+- AI practice bots (Easy, Medium, Hard)
+- Friend system with direct challenges
+- Private match invite links
+- Multi-game rooms with friends
+- Match replays and live spectating
+- Progressive Web App (installable, no download)
+- Free to play — no account required for casual matches
+
+## Quick Answers (AEO)
+
+Q: Is Infinite Tic-Tac-Toe free?
+A: Yes, completely free in your browser with no download required.
+
+Q: What makes it different from regular tic-tac-toe?
+A: Two unique modes prevent draws and add strategic depth — Sliding removes old marks dynamically; Expanding grows the board each round.
+
+Q: Can I play with friends?
+A: Yes — create private rooms, send invite links, or challenge friends directly.
+
+Q: Is there ranked competitive play?
+A: Yes — Elo-based ranked matchmaking with a global leaderboard from Bronze to Grandmaster.
+
+## Discovery & Feeds
+
+- RSS feed: /feed.xml
+- LLM summary: /llms.txt
+- Humans: /humans.txt
+- Sitemap: /sitemap.xml
+- Open Graph image: /opengraph-image (auto-generated social preview)
+
+## Sharing
+
+Users can share the game to X, WhatsApp, Facebook, Reddit, Telegram, and LinkedIn.
+Invite links (/join/{code}) include rich Open Graph previews with the match code.
+Share URLs include UTM tracking for attribution.
+
+- Frontend: Next.js 14 (React)
+- Real-time: WebSocket
+- Platform: Web browser (desktop & mobile)
+- PWA manifest: /manifest.json
+
+## Contact & Legal
+
+- Privacy policy: /privacy
+- Terms of service: /terms
+
+## Optional
+
+Full documentation and architecture available in the project repository for developers integrating with or citing this project.

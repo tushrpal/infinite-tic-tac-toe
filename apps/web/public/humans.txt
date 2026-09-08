@@ -1,0 +1,24 @@
+/* TEAM */
+Project: Infinite Tic-Tac-Toe (Infinite TTT)
+Site: https://infinite-ttt.com
+Description: Free online multiplayer tic-tac-toe with ranked play
+
+/* THANKS */
+Players worldwide who compete on the leaderboard
+Next.js, React, and the open-source community
+
+/* TECHNOLOGY */
+Frontend: Next.js 14, React, Tailwind CSS
+Real-time: WebSocket
+Database: PostgreSQL (Prisma)
+Platform: Progressive Web App
+
+/* DISCOVERY */
+LLM summary: /llms.txt
+RSS feed: /feed.xml
+Sitemap: /sitemap.xml
+
+/* SITE */
+Last update: 2026-09-08
+Language: English
+Standards: HTML5, CSS3, JSON-LD, Open Graph, RSS 2.0

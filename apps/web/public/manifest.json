@@ -1,7 +1,11 @@
 {
   "name": "Infinite Tic-Tac-Toe",
   "short_name": "Infinite TTT",
-  "description": "A modern, competitive Tic-Tac-Toe game with online multiplayer, rankings, and more.",
+  "description": "Free online multiplayer tic-tac-toe with Sliding and Expanding modes, ranked Elo matchmaking, AI bots, and friend challenges. No download required.",
+  "categories": ["games", "entertainment"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

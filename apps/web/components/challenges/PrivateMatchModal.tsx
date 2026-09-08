@@ -11,6 +11,12 @@ import { useChallenges } from "@/components/providers/ChallengesProvider";
 import { AccountRequired } from "@/components/auth/AccountRequired";
 import { cn } from "@/lib/helpers";
 import { getChallengeModeInfo } from "@/lib/gameModes";
+import {
+  copyShareLink,
+  getDefaultShareTitle,
+  getInviteShareText,
+  nativeShare,
+} from "@/lib/share";
 import type { GameMode, PrivateMatch } from "@/types/challenges";
 
 interface PrivateMatchModalProps {
@@ -68,20 +74,24 @@ export function PrivateMatchModal({ isOpen, onClose }: PrivateMatchModalProps) {
   const handleShareLink = async () => {
     if (!activePrivateMatch) return;
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Join my Tic-Tac-Toe match!',
-          text: `Join my private match with code: ${activePrivateMatch.code}`,
-          url: activePrivateMatch.joinUrl,
-        });
-      } catch (err) {
-        // User cancelled or share failed
-        console.log("Share cancelled or failed:", err);
+    const shared = await nativeShare({
+      url: activePrivateMatch.joinUrl,
+      title: getDefaultShareTitle(),
+      text: getInviteShareText(activePrivateMatch.code),
+      campaign: "match_invite",
+      source: "native",
+    });
+
+    if (!shared) {
+      const copied = await copyShareLink({
+        url: activePrivateMatch.joinUrl,
+        campaign: "match_invite",
+        source: "copy",
+      });
+      if (copied) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       }
-    } else {
-      // Fallback to copy link
-      handleCopyLink();
     }
   };
 

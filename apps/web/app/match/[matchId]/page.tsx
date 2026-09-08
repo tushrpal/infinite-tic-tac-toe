@@ -27,6 +27,8 @@ import { ConnectionStatus, OfflineBanner } from "@/components/feedback/Connectio
 import { ROUTES } from "@/lib/constants";
 import { cn, isBeginnerRank } from "@/lib/helpers";
 import { countMarksOnBoard, getOnlineModeInfo } from "@/lib/gameModes";
+import { getMatchWinShareText } from "@/lib/share";
+import { ShareButtons } from "@/components/share/ShareButtons";
 import { announce } from "@/lib/accessibility";
 import type { MatchResultUIState } from "@/lib/adapters/gameAdapter";
 
@@ -508,6 +510,28 @@ export default function MatchPage() {
               </div>
             </div>
           ) : null}
+
+          {/* Share victory / match to social feeds */}
+          {matchState.isGameOver && (
+            <div className="mb-6 p-4 rounded-xl border border-board-grid bg-surface-elevated/50">
+              <p className="text-sm text-text-secondary mb-3 text-center">
+                {matchState.winner === yourPlayer
+                  ? "Share your victory!"
+                  : "Challenge friends to beat you!"}
+              </p>
+              <ShareButtons
+                campaign="match_win"
+                text={
+                  matchState.winner === yourPlayer
+                    ? getMatchWinShareText(
+                        getOnlineModeInfo(matchState.board.mode).label
+                      )
+                    : undefined
+                }
+                variant="icons"
+              />
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
