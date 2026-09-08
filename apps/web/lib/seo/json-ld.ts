@@ -17,7 +17,7 @@ export function organizationSchema(): JsonLd {
     name: SITE.name,
     alternateName: [SITE.shortName, "Infinite TTT", "infinite-ttt"],
     url,
-    logo: `${url}/icons/icon-512.png`,
+    logo: `${url}/web-app-manifest-512x512.png`,
     description: ENTITY_DEFINITION,
     sameAs: [],
   };
