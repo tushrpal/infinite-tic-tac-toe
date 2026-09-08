@@ -2,6 +2,10 @@ import type { GameResult, MatchResult } from '@infinite-ttt/shared';
 import type { Prisma } from '@prisma/client';
 import type { MatchStorage } from './MatchStorage';
 import { getPrismaClient } from './prismaClient';
+import {
+  isReplayAvailable,
+  pruneReplaysForPlayer,
+} from '../jobs/replayRetention';
 
 export class DbMatchStorage implements MatchStorage {
   async saveMatch(matchResult: MatchResult): Promise<void> {
@@ -79,6 +83,12 @@ export class DbMatchStorage implements MatchStorage {
         await tx.move.createMany({ data: moveRows });
       }
     });
+
+    for (const player of matchResult.players) {
+      if (player.type === 'human') {
+        await pruneReplaysForPlayer(player.id);
+      }
+    }
   }
 
   async getMatch(matchId: string): Promise<MatchResult | null> {
@@ -90,10 +100,15 @@ export class DbMatchStorage implements MatchStorage {
         moves: {
           orderBy: [{ gameIndex: 'asc' }, { turn: 'asc' }],
         },
+        _count: { select: { moves: true } },
       },
     });
 
     if (!match) {
+      return null;
+    }
+
+    if (!isReplayAvailable(match.payload, match._count.moves)) {
       return null;
     }
 
@@ -108,11 +123,14 @@ export class DbMatchStorage implements MatchStorage {
         moves: {
           orderBy: [{ gameIndex: 'asc' }, { turn: 'asc' }],
         },
+        _count: { select: { moves: true } },
       },
       orderBy: { createdAtMs: 'desc' },
     });
 
-    return matches.map((match) => this.mapDbMatchToMatchResult(match));
+    return matches
+      .filter((match) => isReplayAvailable(match.payload, match._count.moves))
+      .map((match) => this.mapDbMatchToMatchResult(match));
   }
 
   private mapDbMatchToMatchResult(match: {

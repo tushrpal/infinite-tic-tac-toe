@@ -1,4 +1,5 @@
 import { getPrismaClient } from '../storage/prismaClient';
+import { isReplayAvailable } from '../jobs/replayRetention';
 
 type MatchResultSummary = 'win' | 'loss' | 'draw';
 
@@ -10,6 +11,7 @@ type PlayerMatchSummary = {
   mode: string;
   isRanked: boolean;
   isBotMatch: boolean;
+  hasReplay: boolean;
   botDifficulty?: 'easy' | 'medium' | 'hard';
   opponentUsername?: string;
   opponentDisplayName?: string;
@@ -43,6 +45,8 @@ export async function getPlayerMatches(playerId: string, limit?: number): Promis
           mode: true,
           isRanked: true,
           difficulty: true,
+          payload: true,
+          _count: { select: { moves: true } },
           players: {
             select: {
               playerId: true,
@@ -84,6 +88,10 @@ export async function getPlayerMatches(playerId: string, limit?: number): Promis
                        (opponent?.player?.username?.startsWith('bot-') ?? false);
     const difficulty = matchPlayer.match?.difficulty;
     const botDifficulty = isBotMatch && difficulty ? (difficulty as 'easy' | 'medium' | 'hard') : undefined;
+    const hasReplay = isReplayAvailable(
+      matchPlayer.match?.payload,
+      matchPlayer.match?._count.moves ?? 0,
+    );
 
     return {
       matchId: matchPlayer.matchId,
@@ -93,6 +101,7 @@ export async function getPlayerMatches(playerId: string, limit?: number): Promis
       mode: matchPlayer.match?.mode ?? 'mode1',
       isRanked: matchPlayer.match?.isRanked ?? false,
       isBotMatch,
+      hasReplay,
       botDifficulty,
       opponentUsername: opponent?.player?.username,
       opponentDisplayName: opponent?.player?.displayName ?? undefined,

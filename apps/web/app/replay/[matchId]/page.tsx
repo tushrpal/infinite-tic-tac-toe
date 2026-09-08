@@ -122,7 +122,7 @@ export default function ReplayPage() {
         const status = (err as Error & { status?: number }).status;
         setError(
           status === 404
-            ? "This match doesn't exist or hasn't been recorded."
+            ? "Replay unavailable. Only your last 3 match replays are stored."
             : "Failed to load this replay. Please try again."
         );
       } finally {

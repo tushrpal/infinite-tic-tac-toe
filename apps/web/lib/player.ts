@@ -38,6 +38,7 @@ export type PlayerMatchSummary = {
   isRanked: boolean;
   isBotMatch: boolean;
   botDifficulty?: 'easy' | 'medium' | 'hard';
+  hasReplay?: boolean;
   opponentUsername?: string;
   opponentDisplayName?: string;
 };

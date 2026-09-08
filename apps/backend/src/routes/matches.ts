@@ -23,7 +23,10 @@ export function createMatchesRouter(store: MatchStorage) {
   router.get('/:matchId', async (req, res) => {
     const match = await store.getMatch(req.params.matchId);
     if (!match) {
-      return res.status(404).json({ error: 'Match not found' });
+      return res.status(404).json({
+        error: 'Match not found',
+        message: 'Replay is unavailable. Only the last 3 matches per player are kept.',
+      });
     }
 
     return res.json(match);

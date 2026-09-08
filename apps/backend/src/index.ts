@@ -8,6 +8,8 @@ import { startChallengeExpiryJob, stopChallengeExpiryJob } from './jobs/challeng
 import { startPrivateMatchExpiryJob, stopPrivateMatchExpiryJob } from './jobs/privateMatchExpiry';
 import { startRoomExpiryJob, stopRoomExpiryJob } from './jobs/roomExpiry';
 import { startMatchCleanupJob, stopMatchCleanupJob } from './jobs/matchCleanup';
+import { pruneReplaysForAllPlayers } from './jobs/replayRetention';
+import { REPLAYS_PER_PLAYER } from './config/replayRetention';
 
 const DEFAULT_PORT = 3000;
 
@@ -63,6 +65,11 @@ void bootstrapDependencies()
       startPrivateMatchExpiryJob();
       startRoomExpiryJob();
       startMatchCleanupJob();
+
+      // Backfill replay retention for existing matches (non-blocking)
+      void pruneReplaysForAllPlayers(REPLAYS_PER_PLAYER)
+        .then(() => console.log(`Replay retention applied (keep ${REPLAYS_PER_PLAYER} per player)`))
+        .catch((error) => console.error('Replay retention backfill failed:', error));
     });
   })
   .catch(() => {

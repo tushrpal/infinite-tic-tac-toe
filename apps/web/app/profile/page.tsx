@@ -350,7 +350,7 @@ function ProfileContent() {
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Recent Matches</h2>
                 <span className="text-xs text-text-muted">
-                  {matches.length} shown
+                  Replays kept for last 3 matches
                 </span>
               </div>
 
@@ -417,12 +417,21 @@ function ProfileContent() {
                         <div className="text-sm font-semibold">
                           {formatRatingDelta(match.ratingChange)}
                         </div>
-                        <Link
-                          href={ROUTES.REPLAY(match.matchId)}
-                          className="text-sm text-accent-primary hover:underline"
-                        >
-                          Replay
-                        </Link>
+                        {match.hasReplay !== false ? (
+                          <Link
+                            href={ROUTES.REPLAY(match.matchId)}
+                            className="text-sm text-accent-primary hover:underline"
+                          >
+                            Replay
+                          </Link>
+                        ) : (
+                          <span
+                            className="text-sm text-text-muted"
+                            title="Only your last 3 match replays are stored"
+                          >
+                            No replay
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
