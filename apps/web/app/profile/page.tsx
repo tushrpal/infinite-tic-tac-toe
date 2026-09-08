@@ -98,8 +98,10 @@ function ProfileContent() {
         }
 
         try {
-          const profileData = await fetchPlayerProfile(playerId);
-          const matchData = await fetchPlayerMatches(playerId, 20);
+          const [profileData, matchData] = await Promise.all([
+            fetchPlayerProfile(playerId),
+            fetchPlayerMatches(playerId, 20),
+          ]);
 
           if (isMounted) {
             setProfile(profileData);
@@ -114,8 +116,10 @@ function ProfileContent() {
         }
 
         const created = await ensurePlayer();
-        const profileData = await fetchPlayerProfile(created.playerId);
-        const matchData = await fetchPlayerMatches(created.playerId, 20);
+        const [profileData, matchData] = await Promise.all([
+          fetchPlayerProfile(created.playerId),
+          fetchPlayerMatches(created.playerId, 20),
+        ]);
 
         if (isMounted) {
           setProfile(profileData);

@@ -4,8 +4,16 @@ import type { MatchStorage } from './MatchStorage';
 import { getPrismaClient } from './prismaClient';
 import {
   isReplayAvailable,
-  pruneReplaysForPlayer,
+  scheduleReplayPruning,
 } from '../jobs/replayRetention';
+
+const DEFAULT_LIST_LIMIT = 20;
+const MAX_LIST_LIMIT = 100;
+
+export type MatchListResult = {
+  matches: MatchResult[];
+  hasMore: boolean;
+};
 
 export class DbMatchStorage implements MatchStorage {
   async saveMatch(matchResult: MatchResult): Promise<void> {
@@ -19,7 +27,7 @@ export class DbMatchStorage implements MatchStorage {
           update: {},
           create: {
             id: player.id,
-            username: player.id, // Fallback: use ID as username if player doesn't exist
+            username: player.id,
           },
         });
       }
@@ -36,6 +44,7 @@ export class DbMatchStorage implements MatchStorage {
           drawCount: matchResult.drawCount,
           createdAtMs: BigInt(matchResult.createdAt),
           payload: matchResult as unknown as Prisma.InputJsonValue,
+          replayStripped: false,
         },
         create: {
           id: matchResult.matchId,
@@ -48,6 +57,7 @@ export class DbMatchStorage implements MatchStorage {
           drawCount: matchResult.drawCount,
           createdAtMs: BigInt(matchResult.createdAt),
           payload: matchResult as unknown as Prisma.InputJsonValue,
+          replayStripped: false,
         },
       });
 
@@ -86,7 +96,7 @@ export class DbMatchStorage implements MatchStorage {
 
     for (const player of matchResult.players) {
       if (player.type === 'human') {
-        await pruneReplaysForPlayer(player.id);
+        scheduleReplayPruning(player.id);
       }
     }
   }
@@ -108,16 +118,23 @@ export class DbMatchStorage implements MatchStorage {
       return null;
     }
 
-    if (!isReplayAvailable(match.payload, match._count.moves)) {
+    if (!isReplayAvailable(match.payload, match._count.moves, match.replayStripped)) {
       return null;
     }
 
     return this.mapDbMatchToMatchResult(match);
   }
 
-  async getMatches(): Promise<MatchResult[]> {
+  async getMatches(limit = DEFAULT_LIST_LIMIT, offset = 0): Promise<MatchListResult> {
     const prisma = getPrismaClient();
+    const take = Math.min(Math.max(1, Math.floor(limit)), MAX_LIST_LIMIT);
+    const skip = Math.max(0, Math.floor(offset));
+
     const matches = await prisma.match.findMany({
+      where: {
+        replayStripped: false,
+        moves: { some: {} },
+      },
       include: {
         players: true,
         moves: {
@@ -126,11 +143,19 @@ export class DbMatchStorage implements MatchStorage {
         _count: { select: { moves: true } },
       },
       orderBy: { createdAtMs: 'desc' },
+      skip,
+      take: take + 1,
     });
 
-    return matches
-      .filter((match) => isReplayAvailable(match.payload, match._count.moves))
-      .map((match) => this.mapDbMatchToMatchResult(match));
+    const hasMore = matches.length > take;
+    const page = matches.slice(0, take);
+
+    return {
+      matches: page
+        .filter((match) => isReplayAvailable(match.payload, match._count.moves, match.replayStripped))
+        .map((match) => this.mapDbMatchToMatchResult(match)),
+      hasMore,
+    };
   }
 
   private mapDbMatchToMatchResult(match: {
@@ -157,7 +182,6 @@ export class DbMatchStorage implements MatchStorage {
       gameBoardSize: number;
     }>;
   }): MatchResult {
-    // Use canonical payload when available to preserve exact shape during migration.
     if (this.isMatchResultPayload(match.payload)) {
       return match.payload as unknown as MatchResult;
     }
@@ -229,8 +253,6 @@ export class DbMatchStorage implements MatchStorage {
   }
 
   private buildSymbolPlayerMap(matchResult: MatchResult): Record<'X' | 'O', string | undefined> {
-    // MatchResult is frozen and does not require symbol->id mapping in players.
-    // Prefer optional runtime symbol metadata when present, then fall back to [X, O] order.
     const players = matchResult.players as Array<MatchResult['players'][number] & { symbol?: 'X' | 'O' }>;
 
     let xPlayerId = players.find((player) => player.symbol === 'X')?.id;
@@ -257,7 +279,6 @@ export class DbMatchStorage implements MatchStorage {
       return playerId;
     }
 
-    // Keep persistence non-breaking for legacy/partial payloads.
     return `unknown:${matchId}:${playerSymbol}`;
   }
 }

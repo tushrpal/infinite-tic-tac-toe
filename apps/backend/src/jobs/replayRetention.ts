@@ -10,8 +10,12 @@ export function isReplayStrippedPayload(payload: unknown): boolean {
   return (payload as Record<string, unknown>)[STRIPPED_REPLAY_MARKER] === true;
 }
 
-export function isReplayAvailable(payload: unknown, moveCount: number): boolean {
-  if (isReplayStrippedPayload(payload)) {
+export function isReplayAvailable(
+  payload: unknown,
+  moveCount: number,
+  replayStripped = false,
+): boolean {
+  if (replayStripped || isReplayStrippedPayload(payload)) {
     return false;
   }
 
@@ -56,6 +60,7 @@ export async function stripMatchReplay(matchId: string): Promise<void> {
     prisma.match.update({
       where: { id: matchId },
       data: {
+        replayStripped: true,
         payload: {
           [STRIPPED_REPLAY_MARKER]: true,
           matchId,
@@ -63,6 +68,34 @@ export async function stripMatchReplay(matchId: string): Promise<void> {
       },
     }),
   ]);
+}
+
+async function countNewerMatchesByPlayer(
+  participantIds: string[],
+  createdAtMs: bigint,
+): Promise<Record<string, number>> {
+  const prisma = getPrismaClient();
+  const counts = await prisma.matchPlayer.groupBy({
+    by: ['playerId'],
+    where: {
+      playerId: { in: participantIds },
+      playerType: 'human',
+      match: {
+        createdAtMs: { gt: createdAtMs },
+      },
+    },
+    _count: { _all: true },
+  });
+
+  const newerCountByPlayer = Object.fromEntries(
+    participantIds.map((playerId) => [playerId, 0]),
+  ) as Record<string, number>;
+
+  for (const row of counts) {
+    newerCountByPlayer[row.playerId] = row._count._all;
+  }
+
+  return newerCountByPlayer;
 }
 
 async function pruneMatchReplayIfEligible(
@@ -77,6 +110,7 @@ async function pruneMatchReplayIfEligible(
       id: true,
       createdAtMs: true,
       payload: true,
+      replayStripped: true,
       _count: { select: { moves: true } },
       players: {
         where: { playerType: 'human' },
@@ -89,24 +123,15 @@ async function pruneMatchReplayIfEligible(
     return false;
   }
 
-  if (!isReplayAvailable(match.payload, match._count.moves)) {
+  if (!isReplayAvailable(match.payload, match._count.moves, match.replayStripped)) {
     return false;
   }
 
-  const newerCountByPlayer: Record<string, number> = {};
-
-  for (const participant of match.players) {
-    const newerCount = await prisma.matchPlayer.count({
-      where: {
-        playerId: participant.playerId,
-        playerType: 'human',
-        match: {
-          createdAtMs: { gt: match.createdAtMs },
-        },
-      },
-    });
-    newerCountByPlayer[participant.playerId] = newerCount;
-  }
+  const participantIds = match.players.map((participant) => participant.playerId);
+  const newerCountByPlayer = await countNewerMatchesByPlayer(
+    participantIds,
+    match.createdAtMs,
+  );
 
   if (!canStripReplayForParticipants(newerCountByPlayer, keep)) {
     return false;
@@ -135,6 +160,35 @@ export async function pruneReplaysForPlayer(
   for (const { matchId } of candidates) {
     await pruneMatchReplayIfEligible(matchId, keep);
   }
+}
+
+const pendingPruneByPlayer = new Set<string>();
+const scheduledPruneByPlayer = new Set<string>();
+
+/**
+ * Schedule replay pruning in the background without blocking match save.
+ */
+export function scheduleReplayPruning(
+  playerId: string,
+  keep: number = REPLAYS_PER_PLAYER,
+): void {
+  if (pendingPruneByPlayer.has(playerId) || scheduledPruneByPlayer.has(playerId)) {
+    return;
+  }
+
+  scheduledPruneByPlayer.add(playerId);
+  queueMicrotask(() => {
+    scheduledPruneByPlayer.delete(playerId);
+    pendingPruneByPlayer.add(playerId);
+
+    void pruneReplaysForPlayer(playerId, keep)
+      .catch((error) => {
+        console.error(`Replay pruning failed for player ${playerId}:`, error);
+      })
+      .finally(() => {
+        pendingPruneByPlayer.delete(playerId);
+      });
+  });
 }
 
 /**

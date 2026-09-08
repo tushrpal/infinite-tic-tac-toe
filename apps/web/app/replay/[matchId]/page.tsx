@@ -37,19 +37,28 @@ interface ReplayData {
   playedAt: number;
 }
 
-async function describePlayer(id: string, type: "human" | "bot"): Promise<ReplayPlayer> {
-  if (type === "bot") {
-    return { username: "Bot" };
+async function describePlayer(
+  player: MatchResultPayload["players"][number],
+): Promise<ReplayPlayer> {
+  if (player.type === "bot") {
+    return { username: player.username ?? "Bot" };
+  }
+
+  if (player.displayName || player.username) {
+    return {
+      username: player.displayName || player.username || player.id,
+      rating: player.rating,
+    };
   }
 
   try {
-    const profile = await fetchPlayerProfile(id);
+    const profile = await fetchPlayerProfile(player.id);
     return {
-      username: profile.displayName || profile.username || id,
+      username: profile.displayName || profile.username || player.id,
       rating: profile.rating,
     };
   } catch {
-    return { username: id };
+    return { username: player.id };
   }
 }
 
@@ -110,8 +119,8 @@ export default function ReplayPage() {
         }
 
         const [xInfo, yInfo] = await Promise.all([
-          match.players[0] ? describePlayer(match.players[0].id, match.players[0].type) : Promise.resolve({ username: "Player 1" }),
-          match.players[1] ? describePlayer(match.players[1].id, match.players[1].type) : Promise.resolve({ username: "Player 2" }),
+          match.players[0] ? describePlayer(match.players[0]) : Promise.resolve({ username: "Player 1" }),
+          match.players[1] ? describePlayer(match.players[1]) : Promise.resolve({ username: "Player 2" }),
         ]);
 
         if (!isActive) return;

@@ -4,10 +4,12 @@ type PlayerProfileStats = {
   playerId: string;
   username: string | null;
   displayName: string | null;
-  rating: number; // Combined rating (sum of both modes)
+  rating: number;
   ratingMode1: number;
   ratingMode2: number;
   createdAt: Date;
+  isAnonymous: boolean;
+  oauthProvider: string | null;
   matchesPlayed: number;
   wins: number;
   losses: number;
@@ -35,6 +37,8 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerProfileS
       ratingMode1: true,
       ratingMode2: true,
       createdAt: true,
+      isAnonymous: true,
+      oauthProvider: true,
     },
   });
 
@@ -42,43 +46,35 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerProfileS
     return null;
   }
 
-  const matchPlayers = await prisma.matchPlayer.findMany({
-    where: { playerId },
-    select: {
-      match: {
-        select: {
-          winner: true,
-        },
-      },
-    },
-  });
+  const [statsRow] = await prisma.$queryRaw<
+    Array<{ wins: bigint; losses: bigint; draws: bigint; total: bigint }>
+  >`
+    SELECT
+      COUNT(*) FILTER (WHERE m."winner" = ${playerId}) AS wins,
+      COUNT(*) FILTER (WHERE m."winner" IS NOT NULL AND m."winner" != ${playerId}) AS losses,
+      COUNT(*) FILTER (WHERE m."winner" IS NULL) AS draws,
+      COUNT(*) AS total
+    FROM "MatchPlayer" mp
+    INNER JOIN "Match" m ON m."id" = mp."matchId"
+    WHERE mp."playerId" = ${playerId}
+  `;
 
-  let wins = 0;
-  let losses = 0;
-  let draws = 0;
-
-  for (const matchPlayer of matchPlayers) {
-    const winnerId = matchPlayer.match?.winner ?? null;
-    if (!winnerId) {
-      draws += 1;
-    } else if (winnerId === playerId) {
-      wins += 1;
-    } else {
-      losses += 1;
-    }
-  }
-
-  const matchesPlayed = matchPlayers.length;
+  const wins = Number(statsRow?.wins ?? 0n);
+  const losses = Number(statsRow?.losses ?? 0n);
+  const draws = Number(statsRow?.draws ?? 0n);
+  const matchesPlayed = Number(statsRow?.total ?? 0n);
   const winRate = computeWinRate(wins, matchesPlayed);
 
   return {
     playerId: player.id,
     username: player.username,
     displayName: player.displayName,
-    rating: player.ratingMode1 + player.ratingMode2, // Combined rating
+    rating: player.ratingMode1 + player.ratingMode2,
     ratingMode1: player.ratingMode1,
     ratingMode2: player.ratingMode2,
     createdAt: player.createdAt,
+    isAnonymous: player.isAnonymous,
+    oauthProvider: player.oauthProvider,
     matchesPlayed,
     wins,
     losses,

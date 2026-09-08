@@ -110,11 +110,16 @@ model Match {
   drawCount       Int
   createdAtMs     BigInt
   payload         Json
+  replayStripped  Boolean          @default(false)
   persistedAt     DateTime         @default(now())
   roomId          String?
   players         MatchPlayer[]
   moves           Move[]
   recentOpponents RecentOpponent[]
+
+  @@index([createdAtMs])
+  @@index([mode, isRanked])
+  @@index([replayStripped])
 }
 
 model MatchPlayer {

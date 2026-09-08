@@ -18,6 +18,7 @@ describe('replayRetention', () => {
     it('returns false for stripped payloads', () => {
       expect(isReplayAvailable({ replayStripped: true }, 0)).toBe(false);
       expect(isReplayAvailable({ replayStripped: true }, 5)).toBe(false);
+      expect(isReplayAvailable(null, 5, true)).toBe(false);
     });
 
     it('returns true when moves or games payload exist', () => {

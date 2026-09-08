@@ -45,7 +45,7 @@ export async function getPlayerMatches(playerId: string, limit?: number): Promis
           mode: true,
           isRanked: true,
           difficulty: true,
-          payload: true,
+          replayStripped: true,
           _count: { select: { moves: true } },
           players: {
             select: {
@@ -78,19 +78,19 @@ export async function getPlayerMatches(playerId: string, limit?: number): Promis
       result = winnerId === playerId ? 'win' : 'loss';
     }
 
-    // Find opponent (the other player in the match)
     const opponent = matchPlayer.match?.players?.find(
-      (p) => p.playerId !== playerId
+      (p) => p.playerId !== playerId,
     );
 
-    // Detect bot matches: check playerType OR username pattern
     const isBotMatch = opponent?.playerType === 'bot' ||
                        (opponent?.player?.username?.startsWith('bot-') ?? false);
     const difficulty = matchPlayer.match?.difficulty;
     const botDifficulty = isBotMatch && difficulty ? (difficulty as 'easy' | 'medium' | 'hard') : undefined;
+    const moveCount = matchPlayer.match?._count.moves ?? 0;
     const hasReplay = isReplayAvailable(
-      matchPlayer.match?.payload,
-      matchPlayer.match?._count.moves ?? 0,
+      null,
+      moveCount,
+      matchPlayer.match?.replayStripped ?? false,
     );
 
     return {

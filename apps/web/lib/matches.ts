@@ -19,7 +19,13 @@ export interface MatchResultPayload {
   mode: "MODE_1" | "MODE_2";
   isRanked: boolean;
   difficulty: string;
-  players: Array<{ id: string; type: "human" | "bot" }>;
+  players: Array<{
+    id: string;
+    type: "human" | "bot";
+    username?: string;
+    displayName?: string;
+    rating?: number;
+  }>;
   games: MatchGamePayload[];
   winner: string | null;
   roundsPlayed: number;

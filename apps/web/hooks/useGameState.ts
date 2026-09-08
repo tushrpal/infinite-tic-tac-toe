@@ -5,7 +5,7 @@
  * Manages game state for a match, driven entirely by server events
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useWebSocket, useSocketEvent } from './useWebSocket';
 import { adaptMatchState, adaptMatchResult, type MatchUIState, type MatchResultUIState } from '@/lib/adapters/gameAdapter';
 import { getStoredPlayerId } from '@/lib/player';
@@ -303,7 +303,10 @@ export function useGameState(options: UseGameStateOptions): UseGameStateReturn {
   }, [socket, matchId]);
 
   // Compute UI state
-  const matchState = rawMatchState ? adaptMatchState(rawMatchState, yourPlayer) : null;
+  const matchState = useMemo(
+    () => (rawMatchState ? adaptMatchState(rawMatchState, yourPlayer) : null),
+    [rawMatchState, yourPlayer],
+  );
 
   return {
     matchState,

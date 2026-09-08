@@ -402,8 +402,10 @@ export function generateReplayFrames(
   let isGameOver = false;
   let finalWinInfo: WinInfo | null = null;
   let finalIsDraw = false;
+  const moveHistorySoFar: Move[] = [];
 
-  moveHistory.forEach((move, index) => {
+  for (let index = 0; index < moveHistory.length; index += 1) {
+    const move = moveHistory[index];
     let frameMove = move;
 
     if (!isGameOver) {
@@ -426,13 +428,15 @@ export function generateReplayFrames(
       }
     }
 
+    moveHistorySoFar.push(frameMove);
+
     frames.push({
       frameNumber: index + 1,
       gameState: {
         board: board.map((row) => [...row]),
         boardSize: initialBoardSize,
         currentPlayer: move.player === 'X' ? 'O' : 'X',
-        moveHistory: moveHistory.slice(0, index + 1),
+        moveHistory: moveHistorySoFar.slice(),
         isGameOver,
         winner: finalWinInfo?.winner ?? null,
         winInfo: finalWinInfo,
@@ -442,7 +446,7 @@ export function generateReplayFrames(
       },
       move: frameMove,
     });
-  });
+  }
 
   return frames;
 }

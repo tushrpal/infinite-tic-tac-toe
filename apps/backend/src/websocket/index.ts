@@ -375,6 +375,9 @@ class WebSocketManager {
   
   // Active matches
   private matches: Map<string, MatchState> = new Map();
+
+  // Created-at timestamps for active matches (avoids DB read on every move persist)
+  private matchCreatedAt: Map<string, number> = new Map();
   
   // Disconnect timeout timers (playerId -> timer)
   private disconnectTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
@@ -461,8 +464,10 @@ class WebSocketManager {
       const activeMatches = await this.matchManager.getActiveMatches();
 
       for (const snapshot of activeMatches) {
-        this.matches.set(snapshot.matchState.matchId, snapshot.matchState as MatchState);
-        this.engineStates.set(snapshot.matchState.matchId, snapshot.engineState);
+        const matchId = snapshot.matchState.matchId;
+        this.matches.set(matchId, snapshot.matchState as MatchState);
+        this.engineStates.set(matchId, snapshot.engineState);
+        this.matchCreatedAt.set(matchId, snapshot.createdAt);
       }
 
       if (activeMatches.length > 0) {
@@ -833,7 +838,8 @@ class WebSocketManager {
 
       this.matches.set(matchId, matchState);
       this.engineStates.set(matchId, initialEngineState);
-      await this.matchManager.createMatch(matchState, initialEngineState);
+      const snapshot = await this.matchManager.createMatch(matchState, initialEngineState);
+      this.matchCreatedAt.set(matchId, snapshot.createdAt);
 
       // Register bot instance with bot controller
       const botInstance = this.createBotInstance(botType, botDifficulty);
@@ -945,7 +951,9 @@ class WebSocketManager {
 
     this.matches.set(matchId, matchState);
     this.engineStates.set(matchId, initialEngineState);
-    void this.matchManager.createMatch(matchState, initialEngineState);
+    void this.matchManager.createMatch(matchState, initialEngineState).then((snapshot) => {
+      this.matchCreatedAt.set(matchId, snapshot.createdAt);
+    });
 
     // Update client states
     const clientX = this.clients.get(playerX.playerId);
@@ -1005,6 +1013,7 @@ class WebSocketManager {
     // Store match state with all properties (including bot flags)
     this.matches.set(matchId, matchState);
     this.engineStates.set(matchId, engineState);
+    this.matchCreatedAt.set(matchId, matchState.startedAt ?? Date.now());
 
     console.log(`🎮 Ranked match found: ${matchId.slice(0, 16)}`);
     console.log(`   isBotMatch: ${matchState.isBotMatch}, botPlayer: ${matchState.botPlayer}`);
@@ -1112,11 +1121,18 @@ class WebSocketManager {
       const recovered = await this.matchManager.recoverMatch(matchId);
       match = recovered?.matchState;
       engineState = recovered?.engineState;
+      if (recovered) {
+        this.matchCreatedAt.set(matchId, recovered.createdAt);
+      }
     }
 
     if (!match || !engineState) {
       this.send(ws, { type: 'ERROR', payload: { message: 'Match not found' } });
       return;
+    }
+
+    if (!this.matchCreatedAt.has(matchId)) {
+      this.matchCreatedAt.set(matchId, match.startedAt ?? Date.now());
     }
 
     this.matches.set(matchId, match);
@@ -1470,7 +1486,11 @@ class WebSocketManager {
     });
 
     // OPTIMIZATION 2: Persist asynchronously (don't block on Redis write)
-    this.matchManager.applyMove(matchId, { matchState: match, engineState: newEngineState })
+    this.matchManager.applyMove(
+      matchId,
+      { matchState: match, engineState: newEngineState },
+      this.matchCreatedAt.get(matchId) ?? match.startedAt ?? Date.now(),
+    )
       .catch(err => {
         console.error(`❌ Failed to persist move for match ${matchId.slice(0, 12)}:`, err);
         // TODO: Could implement retry logic or alert monitoring here
@@ -1610,7 +1630,11 @@ class WebSocketManager {
       });
 
       // Persist asynchronously
-      this.matchManager.applyMove(matchId, { matchState: match, engineState: newEngineState })
+      this.matchManager.applyMove(
+        matchId,
+        { matchState: match, engineState: newEngineState },
+        this.matchCreatedAt.get(matchId) ?? match.startedAt ?? Date.now(),
+      )
         .catch(err => {
           console.error(`❌ Failed to persist bot move for match ${matchId.slice(0, 12)}:`, err);
         });
@@ -1774,7 +1798,8 @@ class WebSocketManager {
 
     this.matches.set(newMatchId, newMatchState);
     this.engineStates.set(newMatchId, initialEngineState);
-    await this.matchManager.createMatch(newMatchState, initialEngineState);
+    const rematchSnapshot = await this.matchManager.createMatch(newMatchState, initialEngineState);
+    this.matchCreatedAt.set(newMatchId, rematchSnapshot.createdAt);
 
     // Clean up old match engine state
     this.engineStates.delete(payload.matchId);
@@ -1830,6 +1855,8 @@ class WebSocketManager {
 
     // Clean up old match
     this.matches.delete(payload.matchId);
+    this.engineStates.delete(payload.matchId);
+    this.matchCreatedAt.delete(payload.matchId);
     await this.matchManager.endMatch(payload.matchId);
   }
 
@@ -2035,6 +2062,7 @@ class WebSocketManager {
 
     this.matches.set(foundMatchId, match);
     this.engineStates.set(foundMatchId, engineState);
+    this.matchCreatedAt.set(foundMatchId, recovered.createdAt);
 
     // Clear disconnect timer
     this.clearDisconnectTimer(playerId);
@@ -2131,6 +2159,7 @@ class WebSocketManager {
 
     this.matches.delete(matchId);
     this.engineStates.delete(matchId);
+    this.matchCreatedAt.delete(matchId);
     await this.matchManager.endMatch(matchId);
     console.log(`🧹 Cleaned up match ${matchId.slice(0, 12)}`);
   }
@@ -2782,14 +2811,16 @@ class WebSocketManager {
     this.matches.set(matchId, matchState);
     this.engineStates.set(matchId, initEngineState(mode));
 
-    // Update challenge with matchId
+    const challengeSnapshot = await this.matchManager.saveMatchState(
+      matchState,
+      this.engineStates.get(matchId)!,
+    );
+    this.matchCreatedAt.set(matchId, challengeSnapshot.createdAt);
+
     await prisma.challenge.update({
       where: { id: challenge.id },
       data: { matchId, status: 'ACCEPTED' },
     });
-
-    // Store in Redis
-    await this.matchManager.saveMatchState(matchState, this.engineStates.get(matchId)!);
 
     // Send MATCH_FOUND to both players
     const challengerClient = this.clients.get(challenge.challengerId);

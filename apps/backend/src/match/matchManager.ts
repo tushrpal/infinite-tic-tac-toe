@@ -214,13 +214,27 @@ export class MatchManager {
     return snapshot;
   }
 
-  async applyMove(matchId: string, updatedState: { matchState: MatchState; engineState: EngineState }): Promise<MatchSnapshot | null> {
-    const snapshot = await this.recoverMatch(matchId);
-    if (!snapshot) return null;
+  async applyMove(
+    matchId: string,
+    updatedState: { matchState: MatchState; engineState: EngineState },
+    createdAt?: number,
+  ): Promise<MatchSnapshot | null> {
+    let resolvedCreatedAt = createdAt;
 
-    snapshot.matchState = updatedState.matchState;
-    snapshot.engineState = updatedState.engineState;
-    snapshot.currentTurn = getCurrentTurn(updatedState.engineState);
+    if (resolvedCreatedAt == null) {
+      const existing = await this.recoverMatch(matchId);
+      if (!existing) {
+        return null;
+      }
+      resolvedCreatedAt = existing.createdAt;
+    }
+
+    const snapshot: MatchSnapshot = {
+      matchState: updatedState.matchState,
+      engineState: updatedState.engineState,
+      currentTurn: getCurrentTurn(updatedState.engineState),
+      createdAt: resolvedCreatedAt,
+    };
 
     await this.saveSnapshot(snapshot);
     return snapshot;
@@ -345,11 +359,25 @@ export class MatchManager {
   }
 
   async findActiveMatchByPlayer(playerId: string): Promise<MatchSnapshot | null> {
-    const active = await this.getActiveMatches();
-    return active.find((snapshot) => {
-      const players = snapshot.matchState.players;
-      return players.X?.id === playerId || players.O?.id === playerId;
-    }) ?? null;
+    try {
+      const prisma = getPrismaClient();
+      const rows = await prisma.$queryRaw<Array<{ id: string; state: unknown }>>`
+        SELECT id, state
+        FROM "ActiveMatch"
+        WHERE status IN ('waiting', 'active')
+          AND (
+            state->'matchState'->'players'->'X'->>'id' = ${playerId}
+            OR state->'matchState'->'players'->'O'->>'id' = ${playerId}
+          )
+        LIMIT 1
+      `;
+
+      const match = rows[0];
+      return match ? (match.state as MatchSnapshot) : null;
+    } catch (error) {
+      console.warn('Failed to find active match by player:', error);
+      return null;
+    }
   }
 }
 
