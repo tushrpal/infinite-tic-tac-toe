@@ -1,4 +1,5 @@
 import type { Viewport } from "next";
+import Script from "next/script";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "@/styles/globals.css";
 import { buildRootMetadata } from "@/lib/seo/metadata";
@@ -56,7 +57,26 @@ export default function RootLayout({
       className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7401169722110446"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className="min-h-screen bg-surface-base text-text-primary antialiased">
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-SEV1SDLYRN"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-SEV1SDLYRN');
+          `}
+        </Script>
         <JsonLd data={globalSchemas()} />
         <ServiceWorkerRegistration />
         <ErrorBoundary>
