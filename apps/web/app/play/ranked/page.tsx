@@ -100,6 +100,18 @@ export default function RankedPlayPage() {
     [],
   );
 
+  // Handle errors (e.g. queue join failures) so they don't fail silently
+  useSocketEvent(
+    "ERROR",
+    (payload) => {
+      console.error("Ranked queue error:", payload);
+      setQueueState("idle");
+      setShowBotOffer(false);
+      alert(payload.message || "Failed to join ranked queue. Please try again.");
+    },
+    [],
+  );
+
   const joinQueue = useCallback(() => {
     if (isConnected && player?.playerId) {
       socket.joinQueue(

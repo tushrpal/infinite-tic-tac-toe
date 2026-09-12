@@ -9,12 +9,19 @@ function createRedisClient(): Redis {
     throw new Error('REDIS_URL is required in production');
   }
 
+  // Backs off up to 30s between reconnect attempts. A short cap here means
+  // that once a provider-side limit (e.g. Upstash's monthly request quota)
+  // is hit, every retry's AUTH/PING command consumes more of that same
+  // exhausted quota - hammering it every couple of seconds only prolongs
+  // the outage instead of giving it room to recover.
+  const retryStrategy = (times: number) => Math.min(times * 500, 30000);
+
   const client = redisUrl
     ? new Redis(redisUrl, {
         maxRetriesPerRequest: null,
         enableReadyCheck: true,
         connectTimeout: 10000,
-        retryStrategy: (times: number) => Math.min(times * 100, 2000),
+        retryStrategy,
       })
     : new Redis({
         host: '127.0.0.1',
@@ -22,7 +29,7 @@ function createRedisClient(): Redis {
         maxRetriesPerRequest: null,
         enableReadyCheck: true,
         connectTimeout: 10000,
-        retryStrategy: (times: number) => Math.min(times * 100, 2000),
+        retryStrategy,
       });
 
   client.on('connect', () => {

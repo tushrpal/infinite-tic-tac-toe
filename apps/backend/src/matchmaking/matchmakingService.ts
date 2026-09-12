@@ -359,22 +359,30 @@ export class MatchmakingService {
       }
     }
 
-    // Then try to match remaining players with each other
+    // Then try to match remaining players with each other.
+    // Reuse the queue snapshot already in memory instead of re-reading from
+    // Redis on every iteration - Redis usage is billed per command, and this
+    // loop previously doubled idle-tick command volume for no benefit.
+    let pairingQueue = queue;
     for (let i = 0; i < 50; i++) {
-      const queue = await this.readQueue(mode);
-      const pair = chooseClosestPair(queue);
+      const pair = chooseClosestPair(pairingQueue);
       if (!pair) {
         break;
       }
 
       const removed = await this.tryRemovePair(mode, pair[0].playerId, pair[1].playerId);
       if (!removed) {
+        // Contention with another process - refresh from source of truth.
+        pairingQueue = await this.readQueue(mode);
         continue;
       }
 
       try {
         await this.createRankedMatch(mode, pair[0], pair[1]);
         matchesCreated += 1;
+        pairingQueue = pairingQueue.filter(
+          (entry) => entry.playerId !== pair[0].playerId && entry.playerId !== pair[1].playerId
+        );
       } catch (error) {
         console.error('❌ Failed to create ranked match, re-queueing players', error);
         await Promise.all([

@@ -384,7 +384,12 @@ class WebSocketManager {
   
   // Disconnect timeout duration (60 seconds)
   private readonly DISCONNECT_TIMEOUT = 60000;
-  private readonly MATCHMAKING_TICK_MS = 3000;
+  // Kept in step with the 30s bot-fallback window. This used to be 3000ms,
+  // which polled Redis for both modes continuously even with an empty queue -
+  // that alone burned through the Upstash free-tier monthly request quota
+  // (500k) well before any real matchmaking traffic, causing every queue
+  // join to fail with "max requests limit exceeded".
+  private readonly MATCHMAKING_TICK_MS = 30000;
   private readonly DEFAULT_RATING = 200;
   private matchmakingTick: ReturnType<typeof setInterval> | null = null;
   
@@ -588,7 +593,7 @@ class WebSocketManager {
     const { playerId, username = 'Player', mode = 'MODE_1', isRanked = false } = payload;
 
     try {
-      const playerProfile = await this.loadPlayerProfile(playerId);
+      const playerProfile = await this.loadPlayerProfile(playerId, mode);
       if (!playerProfile) {
         this.send(ws, {
           type: 'ERROR',
@@ -757,7 +762,7 @@ class WebSocketManager {
     const { playerId, username = 'Player', mode = 'MODE_1', botDifficulty = 'medium' } = payload;
 
     try {
-      const playerProfile = await this.loadPlayerProfile(playerId);
+      const playerProfile = await this.loadPlayerProfile(playerId, mode);
       if (!playerProfile) {
         this.send(ws, {
           type: 'ERROR',
@@ -2306,7 +2311,7 @@ class WebSocketManager {
     }, 60000);
   }
 
-  private async loadPlayerProfile(playerId: string): Promise<{ id: string; rating: number; displayName: string | null } | null> {
+  private async loadPlayerProfile(playerId: string, mode: GameMode): Promise<{ id: string; rating: number; displayName: string | null } | null> {
     const prisma = getPrismaClient();
     const player = await prisma.player.findUnique({
       where: { id: playerId },
@@ -2317,12 +2322,9 @@ class WebSocketManager {
       return null;
     }
 
-    // For websocket, return combined rating (sum of both modes)
-    const combinedRating = player.ratingMode1 + player.ratingMode2;
-
     return {
       id: player.id,
-      rating: combinedRating,
+      rating: mode === 'MODE_1' ? player.ratingMode1 : player.ratingMode2,
       displayName: player.displayName,
     };
   }
