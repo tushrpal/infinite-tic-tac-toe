@@ -2,12 +2,12 @@
   "name": "@infinite-ttt/game-engine",
   "version": "1.0.0",
   "description": "Deterministic game engine for Infinite Tic-Tac-Toe",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "type": "module",

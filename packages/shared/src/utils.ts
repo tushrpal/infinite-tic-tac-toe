@@ -3,8 +3,8 @@
  * These helpers maintain type safety and provide common operations
  */
 
-import type { Player, Move } from './types/Move';
-import type { Cell, GameState } from './types/GameState';
+import type { Player, Move } from './types/Move.js';
+import type { Cell, GameState } from './types/GameState.js';
 
 /**
  * Get the opponent of a player

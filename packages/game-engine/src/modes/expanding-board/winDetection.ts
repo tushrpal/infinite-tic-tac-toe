@@ -4,8 +4,8 @@
  * Detects N-in-a-row where N = board size
  */
 
-import type { Player, Position } from '../../core/types';
-import type { Board } from './types';
+import type { Player, Position } from '../../core/types.js';
+import type { Board } from './types.js';
 
 /**
  * Check if a player has won by getting N-in-a-row

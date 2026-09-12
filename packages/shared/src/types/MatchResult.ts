@@ -17,7 +17,7 @@
  * Once frozen, DO NOT change shape without a major version bump.
  */
 
-import type { GameResult } from './GameResult';
+import type { GameResult } from './GameResult.js';
 
 /**
  * Player participant in a match

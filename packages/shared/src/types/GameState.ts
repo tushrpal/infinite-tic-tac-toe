@@ -20,7 +20,7 @@
  * Once frozen, DO NOT change shape without a major version bump.
  */
 
-import type { Player, Move } from './Move';
+import type { Player, Move } from './Move.js';
 
 /**
  * Cell state - can be empty or occupied by a player

@@ -17,7 +17,7 @@
  * Once frozen, DO NOT change shape without a major version bump.
  */
 
-import type { Player, Move } from './Move';
+import type { Player, Move } from './Move.js';
 
 /**
  * Result of a single completed game/round

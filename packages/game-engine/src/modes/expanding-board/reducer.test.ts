@@ -13,7 +13,7 @@ import {
   detectWinner,
   checkWin,
   type ExpandingBoardState,
-} from './index';
+} from './index.js';
 
 describe('Mode 2: Expanding Board', () => {
   describe('State Creation', () => {

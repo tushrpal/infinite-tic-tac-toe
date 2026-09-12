@@ -2,9 +2,9 @@
  * State creation and management for Mode 2: Expanding Board
  */
 
-import type { Player } from '../../core/types';
-import type { Board, ExpandingBoardState, GameConfig } from './types';
-import { DEFAULT_CONFIG } from './types';
+import type { Player } from '../../core/types.js';
+import type { Board, ExpandingBoardState, GameConfig } from './types.js';
+import { DEFAULT_CONFIG } from './types.js';
 
 /**
  * Create an empty board of size N×N

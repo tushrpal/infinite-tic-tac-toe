@@ -7,11 +7,11 @@
  * - Round completion
  */
 
-import type { Player, Position, Move } from '../../core/types';
-import { getNextPlayer } from '../../core/types';
-import type { Board, ExpandingBoardState, RoundResult } from './types';
-import { isValidPosition, isCellEmpty } from './state';
-import { detectWinner } from './winDetection';
+import type { Player, Position, Move } from '../../core/types.js';
+import { getNextPlayer } from '../../core/types.js';
+import type { Board, ExpandingBoardState, RoundResult } from './types.js';
+import { isValidPosition, isCellEmpty } from './state.js';
+import { detectWinner } from './winDetection.js';
 
 /**
  * Create a deep copy of the board

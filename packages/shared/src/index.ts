@@ -17,15 +17,15 @@
  */
 
 // Core types
-export type { Player, Move } from './types/Move';
-export type { Cell, GameState } from './types/GameState';
-export type { GameResult } from './types/GameResult';
+export type { Player, Move } from './types/Move.js';
+export type { Cell, GameState } from './types/GameState.js';
+export type { GameResult } from './types/GameResult.js';
 export type {
   MatchPlayer,
   GameMode,
   Difficulty,
   MatchResult,
-} from './types/MatchResult';
+} from './types/MatchResult.js';
 
 // Utility functions
 export {
@@ -40,4 +40,4 @@ export {
   hasWinner,
   createEmptyBoard,
   cloneGameState,
-} from './utils';
+} from './utils.js';

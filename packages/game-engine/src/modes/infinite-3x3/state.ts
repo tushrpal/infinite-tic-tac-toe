@@ -2,7 +2,7 @@
  * State definitions for Mode 1: Infinite 3×3 (Sliding Moves)
  */
 
-import type { Player, Position, Move } from '../../core/types';
+import type { Player, Position, Move } from '../../core/types.js';
 
 /**
  * Cell state on the board

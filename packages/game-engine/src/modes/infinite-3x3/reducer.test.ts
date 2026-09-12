@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createInitialState, applyMove, type Infinite3x3State } from './index';
-import type { Position } from '../../core/types';
+import { createInitialState, applyMove, type Infinite3x3State } from './index.js';
+import type { Position } from '../../core/types.js';
 
 describe('Infinite3x3 - Initial State', () => {
   it('should create an empty board', () => {
