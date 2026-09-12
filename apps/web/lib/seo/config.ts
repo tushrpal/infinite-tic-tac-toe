@@ -18,15 +18,30 @@ export const SITE = {
   priceCurrency: "USD",
 } as const;
 
-/** Resolve canonical site URL from env with safe localhost fallback. */
-export function getSiteUrl(): string {
-  const envUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    process.env.VERCEL_URL?.trim();
+/** Canonical production domain, used as a safety net if the env var is unset. */
+const PRODUCTION_SITE_URL = "https://www.infinitettt.com";
 
-  if (envUrl) {
-    const withProtocol = envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
+/** Resolve canonical site URL from env with safe fallbacks. */
+export function getSiteUrl(): string {
+  const explicitUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (explicitUrl) {
+    const withProtocol = explicitUrl.startsWith("http")
+      ? explicitUrl
+      : `https://${explicitUrl}`;
     return withProtocol.replace(/\/$/, "");
+  }
+
+  // NEXT_PUBLIC_SITE_URL should always be set in Vercel's Production env.
+  // Never fall back to VERCEL_URL in production: it's a unique, per-deployment
+  // URL (e.g. my-app-<hash>-<team>.vercel.app), not the custom domain, and
+  // using it here is what leaks preview URLs into the sitemap/canonical tags.
+  if (process.env.VERCEL_ENV === "production") {
+    return PRODUCTION_SITE_URL;
+  }
+
+  const previewUrl = process.env.VERCEL_URL?.trim();
+  if (previewUrl) {
+    return `https://${previewUrl}`.replace(/\/$/, "");
   }
 
   return "http://localhost:3000";
