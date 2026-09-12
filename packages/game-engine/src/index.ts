@@ -6,14 +6,14 @@
  */
 
 // Core types and utilities
-export * from './core/types.ts';
-export * from './core/errors.ts';
+export * from './core/types';
+export * from './core/errors';
 
 // Game modes
-export * as Modes from './modes/index.ts';
+export * as Modes from './modes/index';
 
 // Re-export commonly used types from Mode 1 for convenience
-export type { Infinite3x3State, Board, Cell } from './modes/infinite-3x3/state.ts';
+export type { Infinite3x3State, Board, Cell } from './modes/infinite-3x3/state';
 
 // Re-export commonly used types from Mode 2
 export type {
@@ -22,4 +22,4 @@ export type {
   Cell as ExpandingCell,
   RoundResult,
   GameConfig,
-} from './modes/expanding-board/types.ts';
+} from './modes/expanding-board/types';

@@ -2,9 +2,9 @@
  * State reducer for Mode 1: Infinite 3×3 (Sliding Moves)
  */
 
-import type { Player, Position, Move } from '../../core/types.ts';
-import type { Board, Infinite3x3State } from './state.ts';
-import { isValidMove, getWinner, getMarkToRemove } from './rules.ts';
+import type { Player, Position, Move } from '../../core/types';
+import type { Board, Infinite3x3State } from './state';
+import { isValidMove, getWinner, getMarkToRemove } from './rules';
 
 /**
  * Create a new board with a mark placed at the given position

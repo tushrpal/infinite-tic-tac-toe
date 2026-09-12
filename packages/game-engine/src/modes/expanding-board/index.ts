@@ -18,9 +18,9 @@ export type {
   RoundResult,
   ExpandingBoardState,
   GameConfig,
-} from './types.ts';
+} from './types';
 
-export { DEFAULT_CONFIG } from './types.ts';
+export { DEFAULT_CONFIG } from './types';
 
 // Export state management
 export {
@@ -29,7 +29,7 @@ export {
   createNextRoundState,
   isValidPosition,
   isCellEmpty,
-} from './state.ts';
+} from './state';
 
 // Export game logic
 export {
@@ -37,10 +37,10 @@ export {
   applyMove,
   isRoundComplete,
   getRoundStartingPlayer,
-} from './reducer.ts';
+} from './reducer';
 
 // Export win detection
 export {
   checkWin,
   detectWinner,
-} from './winDetection.ts';
+} from './winDetection';

@@ -2,7 +2,7 @@
  * Type definitions for Mode 2: Expanding Board (Round-Based)
  */
 
-import type { Player, Position, Move } from '../../core/types.ts';
+import type { Player, Position, Move } from '../../core/types';
 
 /**
  * Cell state on the board
