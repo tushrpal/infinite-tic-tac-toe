@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import type { OAuthProvider } from "@/lib/player";
+import { cn } from "@/lib/helpers";
 
 type OAuthButtonProps = {
   provider: OAuthProvider;
   onAuth?: (provider: OAuthProvider, userData: OAuthUserData) => void; // Now optional, unused with redirect flow
   disabled?: boolean;
   className?: string;
+  compact?: boolean;
+  onError?: (message: string) => void;
 };
 
 export type OAuthUserData = {
@@ -41,7 +44,7 @@ const PROVIDER_CONFIG = {
   },
 };
 
-export function OAuthButton({ provider, onAuth, disabled = false, className = "" }: OAuthButtonProps) {
+export function OAuthButton({ provider, onAuth, disabled = false, className = "", compact = false, onError }: OAuthButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const config = PROVIDER_CONFIG[provider];
@@ -59,10 +62,41 @@ export function OAuthButton({ provider, onAuth, disabled = false, className = ""
       });
     } catch (error) {
       console.error(`${provider} OAuth error:`, error);
-      setError('An unexpected error occurred');
+      const message = 'An unexpected error occurred';
+      setError(message);
+      onError?.(message);
       setIsLoading(false);
     }
   };
+
+  if (compact) {
+    const label = isLoading ? "Connecting..." : `Continue with ${config.name}`;
+    return (
+      <button
+        onClick={handleClick}
+        disabled={disabled || isLoading}
+        aria-label={label}
+        className={cn(
+          "flex items-center justify-center rounded-xl w-12 h-12",
+          "transition-colors duration-150 ease-out",
+          "active:scale-95",
+          "disabled:opacity-50 disabled:cursor-not-allowed",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-playerX-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated",
+          config.color,
+          className,
+        )}
+      >
+        {isLoading ? (
+          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+        ) : (
+          <span className="text-xl leading-none">{config.icon}</span>
+        )}
+      </button>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -87,6 +121,8 @@ type OAuthButtonGroupProps = {
 };
 
 export function OAuthButtonGroup({ onAuth, disabled = false }: OAuthButtonGroupProps) {
+  const [error, setError] = useState<string | null>(null);
+
   return (
     <div className="space-y-3">
       <div className="relative">
@@ -98,10 +134,12 @@ export function OAuthButtonGroup({ onAuth, disabled = false }: OAuthButtonGroupP
         </div>
       </div>
 
-      <div className="space-y-2">
-        <OAuthButton provider="google" onAuth={onAuth} disabled={disabled} className="w-full" />
-        <OAuthButton provider="discord" onAuth={onAuth} disabled={disabled} className="w-full" />
+      <div className="flex items-center justify-center gap-3">
+        <OAuthButton provider="google" onAuth={onAuth} disabled={disabled} compact onError={setError} />
+        <OAuthButton provider="discord" onAuth={onAuth} disabled={disabled} compact onError={setError} />
       </div>
+
+      {error && <p className="text-center text-sm text-accent-error">{error}</p>}
     </div>
   );
 }
