@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { linkAccountToOAuth, type OAuthProvider } from "@/lib/player";
 import { AccountConflictModal } from "./AccountConflictModal";
 
@@ -39,6 +39,7 @@ const PROVIDER_CONFIG = {
 };
 
 export function AccountLinking({ playerId, isAnonymous, linkedProviders }: AccountLinkingProps) {
+  const { update: updateSession } = useSession();
   const [linkingProvider, setLinkingProvider] = useState<OAuthProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -85,7 +86,9 @@ export function AccountLinking({ playerId, isAnonymous, linkedProviders }: Accou
         }
 
         const session = await sessionResponse.json();
-        if (!session?.user?.oauthId || !session?.user?.email) {
+        // Email is intentionally not required - some providers (e.g. a
+        // Discord account with no verified email) never send one.
+        if (!session?.user?.oauthId) {
           throw new Error('OAuth session missing required data');
         }
 
@@ -100,11 +103,14 @@ export function AccountLinking({ playerId, isAnonymous, linkedProviders }: Accou
           linkingPlayerId,
           linkingProvider,
           session.user.oauthId,
-          session.user.email
+          session.user.email || ''
         );
 
         if (linkResult.success) {
           setSuccess(`Successfully linked your ${PROVIDER_CONFIG[linkingProvider as OAuthProvider].name} account!`);
+          // Clear the freshOAuth flag now that linking is complete - otherwise
+          // a remount before the reload fires could re-enter OAuth auto-processing.
+          await updateSession();
           setTimeout(() => window.location.reload(), 1500);
         }
       } catch (err: any) {

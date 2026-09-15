@@ -6,12 +6,14 @@
 
 import express from 'express';
 import { getPrismaClient } from '../storage/prismaClient';
+import { Prisma } from '@prisma/client';
 import {
   createSession,
   validateSession,
   deleteSession,
   deleteAllPlayerSessions,
   generateUsernameFromEmail,
+  generateUsernameSeed,
   generateUsernameSuggestions,
   isValidOAuthProvider,
   updateLastLogin,
@@ -19,6 +21,11 @@ import {
 } from '../auth/authUtils';
 import { isValidUsername, sanitizeUsername } from '../utils/validation';
 import { randomUUID } from 'crypto';
+
+/** True when `error` is a Prisma unique-constraint violation (code P2002). */
+function isUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+}
 
 const router = express.Router();
 
@@ -38,8 +45,11 @@ function safeRandomUUID(): string {
  * {
  *   provider: 'google' | 'discord';
  *   oauthId: string;        // Provider's user ID
- *   email: string;
+ *   email?: string;         // May be absent, e.g. an unverified Discord email
  *   name?: string;          // User's display name from provider
+ *   playerId?: string;      // Current anonymous player, if any - will be
+ *                           // linked to this OAuth identity instead of
+ *                           // creating a brand-new account.
  * }
  *
  * Response:
@@ -48,19 +58,22 @@ function safeRandomUUID(): string {
  */
 router.post('/oauth/callback', async (req, res) => {
   try {
-    const { provider, oauthId, email, name } = req.body as {
+    const { provider, oauthId, email, name, playerId } = req.body as {
       provider?: string;
       oauthId?: string;
       email?: string;
       name?: string;
+      playerId?: string;
     };
 
-    console.log('OAuth callback received:', { provider, oauthId, email, name });
+    console.log('OAuth callback received:', { provider, oauthId, email, name, playerId });
 
-    // Validate input
-    if (!provider || !oauthId || !email) {
+    // Validate input. Email is intentionally not required here - some
+    // providers (e.g. Discord accounts with no verified email) never send
+    // one, and oauthId is what actually identifies the account.
+    if (!provider || !oauthId) {
       return res.status(400).json({
-        error: 'Missing required fields: provider, oauthId, email',
+        error: 'Missing required fields: provider, oauthId',
       });
     }
 
@@ -111,9 +124,83 @@ router.post('/oauth/callback', async (req, res) => {
       });
     }
 
+    // No account is linked to this OAuth identity yet. If the caller already
+    // has an anonymous player (they registered a username before signing in
+    // with OAuth), link this OAuth identity to that player instead of
+    // treating them as a brand-new signup - this preserves their username.
+    if (playerId) {
+      const anonymousPlayer = await prisma.player.findUnique({
+        where: { id: playerId },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          ratingMode1: true,
+          ratingMode2: true,
+          oauthProvider: true,
+        },
+      });
+
+      if (anonymousPlayer && !anonymousPlayer.oauthProvider) {
+        try {
+          await prisma.player.update({
+            where: { id: anonymousPlayer.id },
+            data: {
+              oauthProvider: provider,
+              oauthId,
+              oauthEmail: email || null,
+              isAnonymous: false,
+              lastLoginAt: new Date(),
+            },
+          });
+
+          const sessionToken = await createSession(anonymousPlayer.id);
+
+          console.log('Linked anonymous player to new OAuth identity:', {
+            playerId: anonymousPlayer.id,
+            username: anonymousPlayer.username,
+          });
+
+          return res.status(200).json({
+            playerId: anonymousPlayer.id,
+            username: anonymousPlayer.username,
+            displayName: anonymousPlayer.displayName,
+            rating: anonymousPlayer.ratingMode1 + anonymousPlayer.ratingMode2,
+            sessionToken,
+            isNewUser: false,
+          });
+        } catch (linkError) {
+          // Another concurrent request (e.g. a double-fired effect, or two
+          // tabs) may have linked this exact OAuth identity to a different
+          // player microseconds earlier, tripping the unique constraint.
+          // Fall back to logging into whichever account actually won.
+          if (!isUniqueConstraintError(linkError)) throw linkError;
+
+          const winner = await prisma.player.findUnique({
+            where: { oauthProvider_oauthId: { oauthProvider: provider, oauthId } },
+            select: { id: true, username: true, displayName: true, ratingMode1: true, ratingMode2: true },
+          });
+
+          if (winner) {
+            const sessionToken = await createSession(winner.id);
+            return res.status(200).json({
+              playerId: winner.id,
+              username: winner.username,
+              displayName: winner.displayName,
+              rating: winner.ratingMode1 + winner.ratingMode2,
+              sessionToken,
+              isNewUser: false,
+            });
+          }
+
+          throw linkError;
+        }
+      }
+    }
+
     // New OAuth user - return suggested username and OAuth data
     // Frontend will show username selection modal
-    const suggestedUsername = generateUsernameFromEmail(email);
+    const suggestedUsername = generateUsernameSeed(email, name, oauthId);
 
     console.log('New OAuth user, suggesting username:', suggestedUsername);
 
@@ -123,7 +210,7 @@ router.post('/oauth/callback', async (req, res) => {
       oauthData: {
         provider,
         oauthId,
-        email,
+        email: email || '',
         name: name || null,
       },
     });
@@ -143,7 +230,7 @@ router.post('/oauth/callback', async (req, res) => {
  * {
  *   provider: string;
  *   oauthId: string;
- *   email: string;
+ *   email?: string;         // May be absent, e.g. an unverified Discord email
  *   username: string;       // User's chosen username
  *   displayName?: string;
  * }
@@ -158,8 +245,8 @@ router.post('/oauth/register', async (req, res) => {
       displayName?: string;
     };
 
-    // Validate input
-    if (!provider || !oauthId || !email || !username) {
+    // Validate input. Email is intentionally not required - see /oauth/callback.
+    if (!provider || !oauthId || !username) {
       return res.status(400).json({
         error: 'Missing required fields',
       });
@@ -200,7 +287,7 @@ router.post('/oauth/register', async (req, res) => {
         displayName: displayName?.trim() || null,
         oauthProvider: provider,
         oauthId,
-        oauthEmail: email,
+        oauthEmail: email || null,
         isAnonymous: false,
         lastLoginAt: new Date(),
       },
@@ -240,7 +327,7 @@ router.post('/oauth/register', async (req, res) => {
  *   playerId: string;       // Anonymous player's ID
  *   provider: string;
  *   oauthId: string;
- *   email: string;
+ *   email?: string;         // May be absent, e.g. an unverified Discord email
  * }
  */
 router.post('/link-account', async (req, res) => {
@@ -252,7 +339,7 @@ router.post('/link-account', async (req, res) => {
       email?: string;
     };
 
-    if (!playerId || !provider || !oauthId || !email) {
+    if (!playerId || !provider || !oauthId) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -316,7 +403,7 @@ router.post('/link-account', async (req, res) => {
       data: {
         oauthProvider: provider,
         oauthId,
-        oauthEmail: email,
+        oauthEmail: email || null,
         isAnonymous: false,
         lastLoginAt: new Date(),
       },

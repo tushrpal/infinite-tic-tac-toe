@@ -47,8 +47,10 @@ export const authOptions: NextAuthOptions = {
         // Mark that this is a fresh OAuth sign-in
         token.freshOAuth = true;
       } else if (trigger === "update") {
-        // Allow token updates - keep freshOAuth if it exists
-        // Don't reset it here, let the client clear it after processing
+        // Client has finished processing the fresh OAuth callback (linked,
+        // logged in, or completed registration) - stop reporting it as fresh
+        // so a later remount doesn't re-run OAuth auto-processing.
+        token.freshOAuth = false;
       }
       return token;
     },

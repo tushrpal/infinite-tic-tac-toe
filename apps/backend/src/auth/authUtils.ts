@@ -132,7 +132,20 @@ export function generateUsernameFromEmail(email: string): string {
     username = username.substring(0, 20);
   }
 
-  return username;
+  // Guard against an all-underscore/empty seed still leaving a trailing
+  // underscore (e.g. no email, no usable name) which fails username validation.
+  return username.replace(/_+$/, '') || 'user';
+}
+
+/**
+ * Generate a username suggestion when no email is available (e.g. a Discord
+ * account with no verified email). Falls back through name, then the OAuth
+ * provider ID, so sign-in never hard-fails just because email is missing.
+ */
+export function generateUsernameSeed(email?: string | null, name?: string | null, oauthId?: string): string {
+  if (email) return generateUsernameFromEmail(email);
+  if (name) return generateUsernameFromEmail(name);
+  return generateUsernameFromEmail(`user_${oauthId || ''}`);
 }
 
 /**

@@ -47,8 +47,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const loadPlayer = async () => {
     setIsLoading(true);
 
-    // Check if user is already logged in BEFORE processing OAuth
+    // Check if user is already logged in via OAuth BEFORE processing a fresh callback
     const storedSessionToken = localStorage.getItem('infinite-ttt-session-token');
+
+    // The Profile page's "Link Account" flow owns its own OAuth redirect and
+    // signals it via these sessionStorage flags. When present, defer entirely
+    // to that component - auto-processing here as well races it and can pop
+    // the "choose a username" modal while the correct link is being written.
+    const isDedicatedLinkingFlow = sessionStorage.getItem('oauth-linking-mode') === 'true';
 
     // Check if there's a fresh OAuth session first
     try {
@@ -58,21 +64,27 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
         // If we have a fresh OAuth session, handle it
         if (session?.user?.oauthProvider && session?.user?.freshOAuth) {
-          // If there's already a logged-in session, this is an account linking attempt
-          // DON'T auto-process - let AccountLinking component handle the conflict
-          if (storedSessionToken) {
-            console.log('OAuth session detected but user already logged in - skipping auto-process for account linking');
+          if (isDedicatedLinkingFlow) {
+            console.log('OAuth session detected but linking flow owns this callback - skipping auto-process');
+            // Fall through to normal player loading
+          } else if (storedSessionToken) {
+            // Already fully authenticated via OAuth (e.g. re-triggered sign-in
+            // while logged in) - nothing new to link, just continue normally.
+            console.log('OAuth session detected but user already logged in - skipping auto-process');
             // Fall through to normal player loading
           } else {
-            // No existing session - this is a new OAuth signup
-            console.log('Found fresh OAuth session, processing...');
+            // Attach any existing anonymous player so a pre-chosen username
+            // gets linked to this OAuth identity instead of re-registering.
+            const anonymousPlayerId = getStoredPlayerId() || undefined;
+            console.log('Found fresh OAuth session, processing...', { anonymousPlayerId });
             await handleOAuthAuth(
               session.user.oauthProvider,
               {
                 oauthId: session.user.oauthId,
                 email: session.user.email || '',
                 name: session.user.name || undefined,
-              }
+              },
+              anonymousPlayerId
             );
             setIsLoading(false);
             return;
@@ -131,6 +143,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
         console.log('OAuth registration successful:', newPlayer);
         setOAuthData(null);
+
+        // Clear the freshOAuth flag now that registration is complete -
+        // otherwise a later remount re-enters the OAuth auto-processing branch.
+        await updateSession();
       } else {
         // Regular anonymous registration with display name
         console.log('Creating anonymous player:', { displayName });
@@ -148,18 +164,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const handleOAuthAuth = async (provider: OAuthProvider, userData: OAuthUserData) => {
+  const handleOAuthAuth = async (
+    provider: OAuthProvider,
+    userData: OAuthUserData,
+    anonymousPlayerId?: string
+  ) => {
     setIsRegistering(true);
     setRegistrationError(null);
 
     try {
-      console.log('OAuth authentication started:', { provider, userData });
+      console.log('OAuth authentication started:', { provider, userData, anonymousPlayerId });
 
       const response = await handleOAuthCallback(
         provider,
         userData.oauthId,
         userData.email,
-        userData.name
+        userData.name,
+        anonymousPlayerId
       );
 
       console.log('OAuth callback response:', response);
@@ -174,8 +195,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         );
         setNeedsRegistration(true);
         setIsRegistering(false);
+        // Deliberately leave freshOAuth set - the user hasn't finished
+        // choosing a username yet, so a reload before they submit should
+        // still recognize this as an in-progress OAuth sign-in and re-fetch
+        // the suggested username / oauthData rather than falling back to a
+        // disconnected anonymous registration.
       } else {
-        // Existing user - login successful
+        // Existing user, or an anonymous account that was just linked - login successful
         console.log('Existing OAuth user - logging in');
 
         // Store session token and player ID in localStorage
@@ -191,6 +217,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           username: response.username!,
           displayName: response.displayName || undefined,
           rating: response.rating || 0,
+          isAnonymous: false,
         });
         setNeedsRegistration(false);
         setIsRegistering(false);

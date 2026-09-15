@@ -199,11 +199,12 @@ export async function handleOAuthCallback(
   provider: OAuthProvider,
   oauthId: string,
   email: string,
-  name?: string
+  name?: string,
+  playerId?: string
 ): Promise<OAuthCallbackResponse> {
   return apiRequest<OAuthCallbackResponse>('/auth/oauth/callback', {
     method: 'POST',
-    body: JSON.stringify({ provider, oauthId, email, name }),
+    body: JSON.stringify({ provider, oauthId, email, name, playerId }),
   });
 }
 
