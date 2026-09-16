@@ -29,6 +29,7 @@ const config: Config = {
         },
         accent: {
           primary: 'var(--accent-primary)',
+          'primary-foreground': 'var(--accent-primary-foreground)',
           secondary: 'var(--accent-secondary)',
           success: 'var(--accent-success)',
           warning: 'var(--accent-warning)',

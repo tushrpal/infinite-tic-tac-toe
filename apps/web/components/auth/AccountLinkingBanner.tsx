@@ -17,7 +17,7 @@ export function AccountLinkingBanner({ onLinkClick, onDismiss }: AccountLinkingB
         <div className="flex gap-2">
           <button
             onClick={onLinkClick}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-accent-primary text-white hover:bg-accent-primary/90"
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-accent-primary text-accent-primary-foreground hover:bg-accent-primary/90"
           >
             Link Account
           </button>

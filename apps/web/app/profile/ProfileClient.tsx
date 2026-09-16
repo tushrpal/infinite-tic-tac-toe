@@ -234,7 +234,7 @@ export function ProfileClient({
                         <button
                           onClick={handleSaveDisplayName}
                           disabled={isUpdating}
-                          className="px-3 py-1 text-sm bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90 disabled:opacity-50"
+                          className="px-3 py-1 text-sm bg-accent-primary text-accent-primary-foreground rounded-lg hover:bg-accent-primary/90 disabled:opacity-50"
                         >
                           {isUpdating ? "Saving..." : "Save"}
                         </button>

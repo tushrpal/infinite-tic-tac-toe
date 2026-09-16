@@ -300,25 +300,11 @@ export default function MatchPage() {
 
         {/* Header */}
         <div className="order-4 sm:order-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div className="text-xs sm:text-sm text-text-muted truncate">
-            Match: {matchId.slice(0, 8)}...
-            {botInfo.isBotMatch && (
-              <span className="ml-2 text-purple-400">
-                🤖 Bot
-                {botInfo.botDifficulty && (
-                  <span
-                    className={cn(
-                      "ml-1 capitalize",
-                      botInfo.botDifficulty === "easy" && "text-green-400",
-                      botInfo.botDifficulty === "medium" && "text-yellow-400",
-                      botInfo.botDifficulty === "hard" && "text-red-400"
-                    )}
-                  >
-                    ({botInfo.botDifficulty})
-                  </span>
-                )}
-              </span>
-            )}
+          <div
+            className="min-w-0 text-xs sm:text-sm text-text-muted truncate"
+            title={`Match ID: ${matchId}`}
+          >
+            Match: {matchId}
           </div>
           <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm flex-wrap">
             <Link

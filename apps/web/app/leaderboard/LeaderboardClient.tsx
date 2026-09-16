@@ -236,7 +236,7 @@ export function LeaderboardClient({
             className={cn(
               "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
               selectedMode === "all"
-                ? "bg-accent-primary text-white"
+                ? "bg-accent-primary text-accent-primary-foreground"
                 : "bg-surface-elevated text-text-secondary hover:text-text-primary",
             )}
           >
@@ -247,7 +247,7 @@ export function LeaderboardClient({
             className={cn(
               "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
               selectedMode === "mode1"
-                ? "bg-accent-primary text-white"
+                ? "bg-accent-primary text-accent-primary-foreground"
                 : "bg-surface-elevated text-text-secondary hover:text-text-primary",
             )}
           >
@@ -258,7 +258,7 @@ export function LeaderboardClient({
             className={cn(
               "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
               selectedMode === "mode2"
-                ? "bg-accent-primary text-white"
+                ? "bg-accent-primary text-accent-primary-foreground"
                 : "bg-surface-elevated text-text-secondary hover:text-text-primary",
             )}
           >
@@ -270,7 +270,7 @@ export function LeaderboardClient({
               className={cn(
                 "px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2",
                 selectedMode === "my-league"
-                  ? "bg-accent-primary text-white"
+                  ? "bg-accent-primary text-accent-primary-foreground"
                   : "bg-surface-elevated text-text-secondary hover:text-text-primary",
               )}
             >
@@ -343,7 +343,7 @@ export function LeaderboardClient({
                   <button
                     onClick={loadMore}
                     disabled={isLoadingMore}
-                    className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-accent-primary text-accent-primary-foreground rounded-lg hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoadingMore ? "Loading..." : "Load More"}
                   </button>

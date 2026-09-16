@@ -32,7 +32,7 @@ export function AccountRequired({ feature, children }: AccountRequiredProps) {
         </p>
         <button
           onClick={() => router.push("/profile")}
-          className="px-4 py-2 rounded-lg bg-accent-primary text-white text-sm font-medium hover:bg-accent-primary/90 transition-colors"
+          className="px-4 py-2 rounded-lg bg-accent-primary text-accent-primary-foreground text-sm font-medium hover:bg-accent-primary/90 transition-colors"
         >
           Link Account
         </button>

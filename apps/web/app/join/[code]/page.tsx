@@ -106,7 +106,7 @@ export default function JoinPrivateMatchPage({ params }: { params: { code: strin
             onClick={() => router.push('/play')}
             className={cn(
               "px-6 py-3 rounded-lg text-base font-medium",
-              "bg-accent-primary text-white",
+              "bg-accent-primary text-accent-primary-foreground",
               "hover:bg-accent-primary/90",
               "transition-colors duration-150",
               "focus:outline-none focus:ring-2 focus:ring-accent-primary"
@@ -223,7 +223,7 @@ export default function JoinPrivateMatchPage({ params }: { params: { code: strin
               disabled={isJoining || isOwnMatch}
               className={cn(
                 "flex-1 px-6 py-3 rounded-lg text-base font-medium",
-                "bg-accent-primary text-white",
+                "bg-accent-primary text-accent-primary-foreground",
                 "hover:bg-accent-primary/90",
                 "transition-colors duration-150",
                 "focus:outline-none focus:ring-2 focus:ring-accent-primary",

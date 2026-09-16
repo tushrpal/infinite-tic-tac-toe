@@ -180,7 +180,7 @@ export function OpponentCard({ opponent, onChallengeClick }: OpponentCardProps) 
             onClick={handleChallenge}
             className={cn(
               "px-3 py-1.5 rounded-lg text-sm font-medium",
-              "bg-accent-primary text-white",
+              "bg-accent-primary text-accent-primary-foreground",
               "hover:bg-accent-primary/90",
               "transition-colors duration-150",
               "focus:outline-none focus:ring-2 focus:ring-accent-primary"

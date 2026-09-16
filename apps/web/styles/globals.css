@@ -29,6 +29,7 @@
   --player-o-glow: rgba(255, 107, 157, 0.4);
 
   --accent-primary: #8b5cf6;
+  --accent-primary-foreground: #ffffff;
   --accent-secondary: #6d28d9;
   --accent-success: #22c55e;
   --accent-warning: #f59e0b;
@@ -106,6 +107,7 @@
   --player-o-glow: rgba(255, 0, 255, 0.5);
 
   --accent-primary: #ffff00;
+  --accent-primary-foreground: #000000;
   --accent-secondary: #cccc00;
 }
 

@@ -333,7 +333,7 @@ export default function ReplayPage() {
                 className={cn(
                   "px-2 py-1 text-xs rounded transition-colors",
                   playbackSpeed === speed
-                    ? "bg-accent-primary text-white"
+                    ? "bg-accent-primary text-accent-primary-foreground"
                     : "bg-board-grid text-text-secondary hover:text-text-primary",
                 )}
               >
@@ -379,7 +379,7 @@ function ControlButton({
       className={cn(
         "p-2 rounded-lg transition-colors",
         primary
-          ? "bg-accent-primary text-white hover:bg-accent-primary/90"
+          ? "bg-accent-primary text-accent-primary-foreground hover:bg-accent-primary/90"
           : "bg-board-grid text-text-secondary hover:text-text-primary hover:bg-board-cell-hover",
       )}
     >

@@ -24,9 +24,9 @@ export const ThemePicker = memo(function ThemePicker({
   const { themeId, setTheme, availableThemes } = useTheme();
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-2", className)}>
       <h3 className="text-sm font-semibold text-text-primary">Theme</h3>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Theme">
         {availableThemes.map((theme) => {
           const swatch = THEME_SWATCHES[theme.id];
           const selected = themeId === theme.id;
@@ -37,28 +37,29 @@ export const ThemePicker = memo(function ThemePicker({
               type="button"
               onClick={() => setTheme(theme.id)}
               className={cn(
-                "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all",
-                "hover:border-accent-primary/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary",
+                "flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full border transition-colors",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary",
                 selected
                   ? "border-accent-primary bg-accent-primary/10"
-                  : "border-board-grid bg-surface-elevated",
+                  : "border-board-grid bg-surface-elevated hover:border-text-tertiary",
               )}
-              aria-pressed={selected}
-              aria-label={`${theme.name} theme${selected ? ", selected" : ""}`}
+              role="radio"
+              aria-checked={selected}
+              aria-label={`${theme.name} theme`}
             >
-              <div
-                className="w-full h-8 rounded-lg flex items-center justify-center gap-1.5 border border-board-grid"
+              <span
+                className="relative w-6 h-6 rounded-full border border-white/10 flex items-center justify-center shrink-0 overflow-hidden"
                 style={{ backgroundColor: swatch.bg }}
               >
                 <span
-                  className="w-3 h-3 rounded-full"
+                  className="w-[5px] h-[5px] rounded-full -translate-x-[3px]"
                   style={{ backgroundColor: swatch.x }}
                 />
                 <span
-                  className="w-3 h-3 rounded-full"
+                  className="w-[5px] h-[5px] rounded-full translate-x-[3px]"
                   style={{ backgroundColor: swatch.o }}
                 />
-              </div>
+              </span>
               <span
                 className={cn(
                   "text-xs font-medium",
@@ -67,6 +68,11 @@ export const ThemePicker = memo(function ThemePicker({
               >
                 {theme.name}
               </span>
+              {selected && (
+                <svg className="w-3.5 h-3.5 text-accent-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
             </button>
           );
         })}

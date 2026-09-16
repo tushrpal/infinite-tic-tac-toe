@@ -73,6 +73,14 @@ function PlayerCard({
   isYou,
   isWinner,
 }: PlayerCardProps) {
+  // Bot names already include the difficulty (e.g. "Tactical Bot (Medium)"),
+  // but a separate difficulty badge is shown right below — strip the suffix
+  // here so it isn't displayed twice.
+  const displayName =
+    info.isBot && info.botDifficulty
+      ? info.name.replace(new RegExp(`\\s*\\(${info.botDifficulty}\\)\\s*$`, "i"), "")
+      : info.name;
+
   const borderColor = isWinner
     ? "border-accent-success"
     : isCurrentTurn
@@ -102,9 +110,9 @@ function PlayerCard({
       </div>
 
       {/* Player name */}
-      <div className="flex flex-col sm:flex-row items-center gap-0.5 sm:gap-2 w-full min-w-0">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 w-full min-w-0">
         <span className="font-semibold text-text-primary truncate max-w-full text-sm sm:text-base text-center">
-          {info.name}
+          {displayName}
         </span>
         {isYou && (
           <span className="text-xs px-1.5 py-0.5 rounded bg-accent-primary/20 text-accent-primary shrink-0">

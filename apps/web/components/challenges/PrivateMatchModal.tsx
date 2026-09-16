@@ -199,7 +199,7 @@ export function PrivateMatchModal({ isOpen, onClose }: PrivateMatchModalProps) {
               disabled={isCreating}
               className={cn(
                 "w-full px-4 py-3 rounded-lg text-base font-medium",
-                "bg-accent-primary text-white",
+                "bg-accent-primary text-accent-primary-foreground",
                 "hover:bg-accent-primary/90",
                 "transition-colors duration-150",
                 "focus:outline-none focus:ring-2 focus:ring-accent-primary",
@@ -223,7 +223,7 @@ export function PrivateMatchModal({ isOpen, onClose }: PrivateMatchModalProps) {
                   onClick={handleCopyCode}
                   className={cn(
                     "px-4 py-2 rounded-lg text-sm font-medium",
-                    "bg-accent-primary text-white",
+                    "bg-accent-primary text-accent-primary-foreground",
                     "hover:bg-accent-primary/90",
                     "transition-colors duration-150",
                     "focus:outline-none focus:ring-2 focus:ring-accent-primary"

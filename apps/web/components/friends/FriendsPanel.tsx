@@ -71,7 +71,7 @@ export function FriendsPanel({ onClose }: FriendsPanelProps) {
               onClick={() => setIsSearchModalOpen(true)}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-sm font-medium",
-                "bg-accent-primary text-white",
+                "bg-accent-primary text-accent-primary-foreground",
                 "hover:bg-accent-primary/90",
                 "transition-colors duration-150",
                 "focus:outline-none focus:ring-2 focus:ring-accent-primary"
@@ -121,7 +121,7 @@ export function FriendsPanel({ onClose }: FriendsPanelProps) {
                     className={cn(
                       "inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold",
                       activeTab === tab.id
-                        ? "bg-accent-primary text-white"
+                        ? "bg-accent-primary text-accent-primary-foreground"
                         : tab.badge
                         ? "bg-critical text-white"
                         : "bg-board-grid text-text-secondary"

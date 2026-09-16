@@ -48,7 +48,7 @@ export default function HowToPlayPage() {
                 "flex items-center gap-2",
                 "min-w-[140px] justify-center",
                 activeSection === section.id
-                  ? "bg-accent-primary text-white shadow-lg scale-105"
+                  ? "bg-accent-primary text-accent-primary-foreground shadow-lg scale-105"
                   : "bg-surface-elevated text-text-secondary hover:bg-board-grid hover:text-text-primary"
               )}
             >

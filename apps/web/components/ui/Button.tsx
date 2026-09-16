@@ -42,7 +42,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantStyles = {
       primary: cn(
-        "bg-accent-primary text-white",
+        "bg-accent-primary text-accent-primary-foreground",
         "hover:bg-opacity-90",
         "focus:ring-accent-primary",
         "shadow-lg shadow-accent-primary/20",
