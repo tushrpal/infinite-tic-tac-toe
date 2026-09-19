@@ -132,6 +132,27 @@
 }
 
 /* ================================================
+   HOME HERO — fixed cinematic theme
+   Always renders this dark/purple/cyan look regardless of the
+   active site theme (dark/light/neon/retro), like a game splash.
+   ================================================ */
+
+.home-hero-scope {
+  --surface-base: #070711;
+  --surface-elevated: #141124;
+  --accent-primary: #a855f7;
+  --accent-primary-foreground: #ffffff;
+  --accent-secondary: #22d3ee;
+  --accent-success: #34d399;
+  --text-primary: #f8fafc;
+  --text-secondary: #c7c3d9;
+  --text-muted: #8b86a3;
+  --border-subtle: rgba(168, 85, 247, 0.25);
+  background: var(--surface-base);
+  color: var(--text-primary);
+}
+
+/* ================================================
    BASE STYLES
    ================================================ */
 

@@ -1,13 +1,12 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { Button } from "@/components/ui/Button";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { faqPageSchema } from "@/lib/seo/json-ld";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { ANSWER_SNIPPETS, KEYWORD_CLUSTERS } from "@/lib/seo/keywords";
 import { PUBLIC_ROUTES } from "@/lib/seo/config";
-import { ROUTES } from "@/lib/constants";
 import { ShareButtons } from "@/components/share/ShareButtons";
+import { HomeHero } from "@/components/home/HomeHero";
 
 const SITE_DESCRIPTION =
   "Play Infinite Tic-Tac-Toe online for free. Multiplayer Sliding & Expanding modes, ranked matchmaking, AI bots, and friend challenges — no download required.";
@@ -49,65 +48,34 @@ export default function HomePage() {
     <>
       <JsonLd data={faqPageSchema(HOME_FAQ)} />
       <main className="flex-1 flex flex-col">
-      {/* Hero Section */}
-      <section className="flex-1 flex flex-col items-center justify-center px-4 py-16">
-        <div className="text-center max-w-3xl mx-auto">
-          {/* Logo/Title */}
-          <div className="mb-8">
-            <h1 className="text-5xl md:text-7xl font-display font-bold mb-4">
-              <span className="text-playerX-primary">Infinite</span>
-              <br />
-              <span className="text-text-primary">Tic-Tac-Toe</span>
-            </h1>
-            <p className="text-xl text-text-secondary max-w-lg mx-auto">
-              Play tic-tac-toe online free with unique Sliding and Expanding
-              modes. Challenge players worldwide in ranked multiplayer matches.
-            </p>
-          </div>
+      {/* Hero Section — cinematic scroll-driven 3D scene */}
+      <HomeHero />
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link href={ROUTES.PLAY}>
-              <Button size="lg" className="w-full sm:w-auto min-w-[200px]">
-                Play Now
-              </Button>
-            </Link>
-            <Link href={ROUTES.LEADERBOARD}>
-              <Button
-                variant="secondary"
-                size="lg"
-                className="w-full sm:w-auto min-w-[200px]"
-              >
-                Leaderboard
-              </Button>
-            </Link>
-          </div>
-
-          {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-            <FeatureCard
-              icon={<GameModeIcon />}
-              title="Multiple Modes"
-              description="Sliding mode where marks disappear, or Expanding mode with growing boards"
-            />
-            <FeatureCard
-              icon={<OnlineIcon />}
-              title="Online PvP"
-              description="Real-time matches against players worldwide with WebSocket technology"
-            />
-            <FeatureCard
-              icon={<RankedIcon />}
-              title="Ranked Play"
-              description="Climb the ladder, earn ranks, and compete for the top spots"
-            />
-          </div>
+      {/* Feature Cards */}
+      <section className="px-4 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <FeatureCard
+            icon={<GameModeIcon />}
+            title="Multiple Modes"
+            description="Sliding mode where marks disappear, or Expanding mode with growing boards"
+          />
+          <FeatureCard
+            icon={<OnlineIcon />}
+            title="Online PvP"
+            description="Real-time matches against players worldwide with WebSocket technology"
+          />
+          <FeatureCard
+            icon={<RankedIcon />}
+            title="Ranked Play"
+            description="Climb the ladder, earn ranks, and compete for the top spots"
+          />
         </div>
       </section>
 
       {/* SEO / AEO content section */}
       <section
         aria-labelledby="about-game-heading"
-        className="px-4 py-16 border-t border-board-grid bg-surface-elevated/30"
+        className="px-4 py-16 border-t border-white/5"
       >
         <div className="max-w-3xl mx-auto">
           <h2
@@ -121,14 +89,14 @@ export default function HomePage() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            <div className="p-5 rounded-xl border border-board-grid">
+            <div className="p-5 rounded-2xl bg-surface-elevated/40 backdrop-blur-sm border border-white/5">
               <h3 className="font-semibold mb-2">Sliding Mode</h3>
               <p className="text-sm text-text-secondary">
                 Dynamic 3×3 board — marks slide off after three placements.
                 No draws, ever.
               </p>
             </div>
-            <div className="p-5 rounded-xl border border-board-grid">
+            <div className="p-5 rounded-2xl bg-surface-elevated/40 backdrop-blur-sm border border-white/5">
               <h3 className="font-semibold mb-2">Expanding Mode</h3>
               <p className="text-sm text-text-secondary">
                 Board grows each round from 3×3 to 5×5. Win N-in-a-row on an
@@ -144,7 +112,7 @@ export default function HomePage() {
             {HOME_FAQ.map((item) => (
               <div
                 key={item.question}
-                className="p-4 rounded-xl border border-board-grid"
+                className="p-4 rounded-2xl bg-surface-elevated/40 backdrop-blur-sm border border-white/5"
               >
                 <dt className="font-medium text-text-primary mb-1">
                   {item.question}
@@ -154,7 +122,7 @@ export default function HomePage() {
             ))}
           </dl>
 
-          <div className="mt-12 pt-8 border-t border-board-grid">
+          <div className="mt-12 pt-8 border-t border-white/5">
             <h2 className="text-xl font-semibold mb-2 text-center">
               Love the game? Share it!
             </h2>
@@ -167,7 +135,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-6 px-4 border-t border-board-grid">
+      <footer className="py-6 px-4 border-t border-white/5">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-text-muted">
             © 2026 Infinite Tic-Tac-Toe. All rights reserved.
@@ -210,12 +178,12 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="p-6 rounded-xl bg-surface-elevated border border-board-grid hover:border-accent-primary/50 transition-colors">
-      <div className="w-12 h-12 mb-4 mx-auto flex items-center justify-center rounded-lg bg-accent-primary/10 text-accent-primary">
+    <div className="group p-6 rounded-2xl bg-surface-elevated/40 backdrop-blur-sm border border-white/5 transition-all hover:border-accent-primary/30 hover:bg-surface-elevated/60">
+      <div className="w-12 h-12 mb-4 mx-auto flex items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary transition-colors group-hover:bg-accent-primary/20 group-hover:text-accent-secondary">
         {icon}
       </div>
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-sm text-text-secondary">{description}</p>
+      <h3 className="text-lg font-semibold mb-2 text-center">{title}</h3>
+      <p className="text-sm text-text-secondary text-center">{description}</p>
     </div>
   );
 }
