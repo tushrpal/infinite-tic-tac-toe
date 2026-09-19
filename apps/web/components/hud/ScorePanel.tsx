@@ -95,7 +95,7 @@ function PlayerCard({
         "flex-1 min-w-0",
         "flex flex-col items-center gap-1 sm:gap-2",
         "p-2 sm:p-4 rounded-xl",
-        "bg-surface-elevated",
+        "bg-surface-elevated/85",
         "border-2 transition-colors duration-200",
         borderColor,
         isCurrentTurn && "shadow-lg",

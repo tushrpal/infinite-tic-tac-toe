@@ -1,7 +1,8 @@
 "use client";
 
-import { Suspense, type MutableRefObject } from "react";
+import { Suspense, useRef, useState, type MutableRefObject } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
+import { PerformanceMonitor } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { MathUtils, PCFShadowMap } from "three";
 import { Environment } from "./Environment";
@@ -41,6 +42,18 @@ function ScrollCameraRig({
 }
 
 /**
+ * Signals the parent once the scene has actually drawn a few frames, so the
+ * static poster underneath can fade out without a blank flash.
+ */
+function ReadySignal({ onReady }: { onReady?: () => void }) {
+  const frames = useRef(0);
+  useFrame(() => {
+    if (frames.current < 3 && ++frames.current === 3) onReady?.();
+  });
+  return null;
+}
+
+/**
  * The Three.js scene for the home hero. Kept separate from HomeSceneLoader
  * so the WebGL/canvas machinery only ever loads on the client.
  *
@@ -52,13 +65,26 @@ function ScrollCameraRig({
 export function HomeScene({
   progressRef,
   isActive,
+  onReady,
+  onGiveUp,
 }: {
   progressRef: MutableRefObject<number>;
   isActive: boolean;
+  /** Called once the first frames have rendered. */
+  onReady?: () => void;
+  /** Called when the device still can't keep up after quality was reduced. */
+  onGiveUp?: () => void;
 }) {
   const reducedMotion = useReducedMotion();
   const isDesktop = useIsDesktop();
   const isMobile = useIsMobile();
+  // Sustained low fps first drops render quality; if it is still low after
+  // that, hand the hero back to the static poster.
+  const [degraded, setDegraded] = useState(false);
+  const handleDecline = () => {
+    if (degraded) onGiveUp?.();
+    else setDegraded(true);
+  };
 
   const boardPosition: [number, number, number] = isDesktop
     ? [1.9, 0, 0]
@@ -67,7 +93,7 @@ export function HomeScene({
 
   return (
     <Canvas
-      dpr={[1, 1.75]}
+      dpr={degraded ? 1 : isMobile ? [1, 1.25] : [1, 1.5]}
       camera={{ position: [0, 0, 7], fov: 40 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       className="!absolute inset-0"
@@ -76,6 +102,7 @@ export function HomeScene({
       // well out of view instead of animating an invisible canvas forever.
       frameloop={isActive ? "always" : "never"}
     >
+      <PerformanceMonitor onDecline={handleDecline} />
       <Suspense fallback={null}>
         <ScrollCameraRig
           progressRef={progressRef}
@@ -102,7 +129,7 @@ export function HomeScene({
         {/* Bloom picks up only the board's bright emissive/unlit surfaces
             (marks, rails, cell borders) — the threshold keeps the dimmer
             starfield and rocks from blooming too. */}
-        <EffectComposer multisampling={isMobile ? 0 : 4}>
+        <EffectComposer multisampling={isMobile || degraded ? 0 : 2}>
           <Bloom
             mipmapBlur
             intensity={isMobile ? 0.35 : 0.5}
@@ -111,6 +138,7 @@ export function HomeScene({
             radius={0.4}
           />
         </EffectComposer>
+        <ReadySignal onReady={onReady} />
       </Suspense>
     </Canvas>
   );

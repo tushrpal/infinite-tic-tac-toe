@@ -46,33 +46,35 @@ export function HomeOverlay({
       )}
     >
     <div className="max-w-xl lg:max-w-lg">
-      <motion.span
+      <motion.p
         initial={initial}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="mb-5 inline-flex items-center gap-2 rounded-full border border-accent-primary/30 bg-accent-primary/10 px-4 py-1.5 text-xs font-medium tracking-widest text-accent-secondary"
+        className="mb-4 text-[11px] font-semibold uppercase leading-relaxed tracking-[0.35em] text-text-secondary"
       >
-        THE BOARD NEVER STAYS STILL
-      </motion.span>
+        The board
+        <br />
+        never stays still
+      </motion.p>
 
       <motion.h1
         initial={initial}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.1 }}
-        className="font-display text-5xl font-bold leading-[1.05] sm:text-6xl md:text-7xl"
+        className="font-display text-5xl font-bold uppercase leading-[1.02] tracking-tight sm:text-6xl md:text-7xl"
       >
-        <span className="bg-gradient-to-r from-accent-primary via-[#C084FC] to-accent-secondary bg-clip-text text-transparent">
-          Infinite
-        </span>
+        <span className="text-text-primary">Infinite</span>
         <br />
-        <span className="text-text-primary">Tic-Tac-Toe</span>
+        <span className="bg-gradient-to-r from-accent-primary via-[#C084FC] to-playerX-primary bg-clip-text text-transparent">
+          Tic-Tac-Toe
+        </span>
       </motion.h1>
 
       <motion.p
         initial={initial}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.2 }}
-        className="mt-5 max-w-lg text-lg text-text-secondary"
+        className="mt-5 max-w-sm text-base text-text-secondary sm:text-lg"
       >
         A strategic twist on the classic game. Make your move, adapt, and
         outplay in an infinite battle.
@@ -82,20 +84,59 @@ export function HomeOverlay({
         initial={initial}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.3 }}
-        className="pointer-events-auto mt-9 flex flex-col items-center gap-4 sm:flex-row lg:items-start"
+        className="pointer-events-auto mt-8 flex flex-col items-center gap-3 sm:flex-row lg:items-start"
       >
         <Link href={ROUTES.PLAY}>
-          <Button size="lg" className="min-w-[200px] shadow-glow-accent">
+          <Button
+            size="lg"
+            className="min-w-[180px] bg-gradient-to-r from-accent-primary to-[#7c3aed] shadow-glow-accent"
+            rightIcon={<span aria-hidden="true">→</span>}
+          >
             Play Now
           </Button>
         </Link>
         <Link href={ROUTES.LEADERBOARD}>
-          <Button variant="secondary" size="lg" className="min-w-[200px]">
+          <Button
+            variant="secondary"
+            size="lg"
+            className="min-w-[180px] border-white/15 bg-white/10 hover:bg-white/15"
+          >
             View Leaderboard
           </Button>
         </Link>
       </motion.div>
+
+      <motion.dl
+        initial={initial}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, delay: 0.4 }}
+        className="mt-10 flex justify-center gap-8 lg:justify-start"
+      >
+        {[
+          ["10K+", "Players"],
+          ["50K+", "Matches"],
+          ["4.8 ★", "Rating"],
+        ].map(([value, label]) => (
+          <div key={label} className="flex flex-col-reverse">
+            <dt className="text-xs text-text-muted">{label}</dt>
+            <dd className="font-display text-2xl font-bold text-text-primary">{value}</dd>
+          </div>
+        ))}
+      </motion.dl>
     </div>
+
+    <p
+      aria-hidden="true"
+      className="absolute bottom-16 right-10 hidden -rotate-6 text-right font-display text-lg font-semibold uppercase leading-tight tracking-widest text-accent-primary/70 xl:block"
+    >
+      Adapt
+      <br />
+      Strategize
+      <br />
+      Outplay
+      <br />
+      Repeat
+    </p>
     </motion.div>
   );
 }

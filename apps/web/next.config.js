@@ -2,6 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  // Optional separate build output (e.g. to measure a production build without
+  // touching the .next folder a running `next dev` is using).
+  distDir: process.env.NEXT_DIST_DIR || ".next",
+
   // Allow LAN-origin requests during development (e.g. testing from another device).
   allowedDevOrigins: [
     "192.168.0.5",

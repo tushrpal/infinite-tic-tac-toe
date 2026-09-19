@@ -10,6 +10,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { RankBadge } from "@/components/hud/RankBadge";
+import { ScreenBackdrop } from "@/components/ui/ScreenBackdrop";
+import { MatchmakingView } from "@/components/matchmaking/MatchmakingView";
 import { BotMatchOfferModal } from "@/components/modals/BotMatchOfferModal";
 import { useWebSocket, useSocketEvent } from "@/hooks/useWebSocket";
 import { usePlayer } from "@/components/providers/PlayerProvider";
@@ -157,8 +159,12 @@ export default function RankedPlayPage() {
   const rankProgress = getRankProgress(playerRating);
 
   return (
-    <main className="flex-1 flex flex-col items-center px-4 py-12">
-      <div className="w-full max-w-md">
+    <main className="space-scope relative isolate flex-1 flex flex-col items-center px-4 py-12">
+      <ScreenBackdrop
+        image={queueState === "queuing" ? "queueBg" : "queueMatchBg"}
+        dim={queueState === "queuing" ? 0.3 : 0.5}
+      />
+      <div className={cn("w-full", queueState === "queuing" ? "max-w-3xl" : "max-w-md")}>
         {/* Header */}
         <div className="mb-8">
           <Link
@@ -170,13 +176,22 @@ export default function RankedPlayPage() {
         </div>
 
         <div className="text-center">
-          <h1 className="text-3xl font-display font-bold mb-2">Ranked Match</h1>
-          <p className="text-text-secondary mb-8">
-            Compete for glory and climb the ladder
-          </p>
+          {queueState !== "queuing" && (
+            <>
+              <h1 className="text-3xl font-display font-bold mb-2">Ranked Match</h1>
+              <p className="text-text-secondary mb-8">
+                Compete for glory and climb the ladder
+              </p>
+            </>
+          )}
 
           {/* Rank Display Card */}
-          <div className="p-6 rounded-xl bg-surface-elevated border border-board-grid mb-8">
+          <div
+            className={cn(
+              "p-6 glass-panel glass-panel--gold mb-8",
+              queueState === "queuing" && "hidden",
+            )}
+          >
             <div className="flex items-center justify-center gap-4 mb-4">
               <RankBadge
                 rank={playerRank.name}
@@ -276,20 +291,16 @@ export default function RankedPlayPage() {
           )}
 
           {queueState === "queuing" && (
-            <div className="py-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-accent-warning border-t-transparent animate-spin" />
-              <p className="text-xl font-semibold mb-2">Finding Opponent...</p>
-              <p className="text-text-secondary mb-2">
-                Searching for players near your rank
-              </p>
-              <p className="text-sm text-text-muted mb-6">
-                Time: {Math.floor(queueTime / 60)}:
-                {String(queueTime % 60).padStart(2, "0")}
-              </p>
-              <Button variant="secondary" onClick={leaveQueue}>
-                Cancel
-              </Button>
-            </div>
+            <MatchmakingView
+              playerName={player?.displayName || player?.username || "Player"}
+              rankName={playerRank.name}
+              rankColor={playerRank.color}
+              rating={playerRating}
+              elapsedSeconds={queueTime}
+              // Mirrors the server's widening window (matchmakingService.ts)
+              searchRange={Math.min(700, 100 + Math.floor(queueTime / 15) * 50)}
+              onCancel={leaveQueue}
+            />
           )}
 
           {queueState === "match-found" && (
@@ -353,7 +364,7 @@ function ModeButton({
         "flex flex-col items-center gap-1",
         selected
           ? "border-accent-warning bg-accent-warning/10 text-accent-warning"
-          : "border-board-grid bg-surface-elevated text-text-primary hover:border-text-muted",
+          : "border-white/10 bg-white/5 text-text-primary hover:border-white/30",
       )}
     >
       <span className="font-semibold">{info.icon} {info.label}</span>

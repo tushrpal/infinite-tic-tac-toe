@@ -11,8 +11,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useWebSocket, useSocketEvent } from "@/hooks/useWebSocket";
 import { usePlayer } from "@/components/providers/PlayerProvider";
-import { ROUTES } from "@/lib/constants";
-import { cn } from "@/lib/helpers";
+import { ROUTES, RANKS } from "@/lib/constants";
+import { cn, getRankFromRating } from "@/lib/helpers";
+import { ScreenBackdrop } from "@/components/ui/ScreenBackdrop";
+import { MatchmakingView } from "@/components/matchmaking/MatchmakingView";
 import { getOnlineModeInfo } from "@/lib/gameModes";
 import type { GameMode } from "@/ws/types";
 
@@ -28,6 +30,17 @@ export default function OnlinePlayPage() {
   const [queuePosition, setQueuePosition] = useState<number>(0);
   const [estimatedWait, setEstimatedWait] = useState<number>(0);
   const [matchId, setMatchId] = useState<string | null>(null);
+  const [queueTime, setQueueTime] = useState(0);
+
+  // Queue timer
+  useEffect(() => {
+    if (queueState !== "queuing") {
+      setQueueTime(0);
+      return;
+    }
+    const interval = setInterval(() => setQueueTime((t) => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, [queueState]);
 
   // Handle queue joined
   useSocketEvent(
@@ -107,8 +120,12 @@ export default function OnlinePlayPage() {
   }, [socket, queueState]);
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+    <main className="space-scope relative isolate flex-1 flex flex-col items-center justify-center px-4 py-12">
+      <ScreenBackdrop
+        image={queueState === "queuing" ? "queueBg" : "queueMatchBg"}
+        dim={queueState === "queuing" ? 0.3 : 0.5}
+      />
+      <div className={cn("w-full", queueState === "queuing" ? "max-w-3xl" : "max-w-md")}>
         {/* Header */}
         <div className="mb-8">
           <Link
@@ -120,12 +137,17 @@ export default function OnlinePlayPage() {
         </div>
 
         <div className="text-center">
-          <h1 className="text-3xl font-display font-bold mb-2">Quick Play</h1>
-          <p className="text-text-secondary mb-8">
-            Find a random opponent online
-          </p>
+          {queueState !== "queuing" && (
+            <>
+              <h1 className="text-3xl font-display font-bold mb-2">Quick Play</h1>
+              <p className="text-text-secondary mb-8">
+                Find a random opponent online
+              </p>
+            </>
+          )}
 
-          {/* Connection Status */}
+          {/* Connection Status — stays visible while queuing so a dropped
+              connection is never silent. */}
           <ConnectionStatus status={connectionState.status} />
 
           {queueState === "idle" && (
@@ -163,6 +185,12 @@ export default function OnlinePlayPage() {
 
           {queueState === "queuing" && (
             <QueueingView
+              rating={
+                (selectedMode === "MODE_1" ? player?.ratingMode1 : player?.ratingMode2) ??
+                RANKS.DEFAULT_RATING
+              }
+              playerName={player?.displayName || player?.username || "Player"}
+              elapsedSeconds={queueTime}
               position={queuePosition}
               estimatedWait={estimatedWait}
               onCancel={leaveQueue}
@@ -225,7 +253,7 @@ function ModeButton({
         "flex flex-col items-center gap-2",
         selected
           ? "border-accent-primary bg-accent-primary/10"
-          : "border-board-grid bg-surface-elevated hover:border-text-muted",
+          : "border-white/10 bg-white/5 hover:border-white/30",
       )}
     >
       <span
@@ -243,54 +271,38 @@ function ModeButton({
 
 // Queueing View
 function QueueingView({
+  rating,
+  playerName,
+  elapsedSeconds,
   position,
   estimatedWait,
   onCancel,
 }: {
+  rating: number;
+  playerName: string;
+  elapsedSeconds: number;
   position: number;
   estimatedWait: number;
   onCancel: () => void;
 }) {
-  const [dots, setDots] = useState("");
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDots((d) => (d.length >= 3 ? "" : d + "."));
-    }, 500);
-    return () => clearInterval(interval);
-  }, []);
+  const rank = getRankFromRating(rating);
+  const detail = [
+    position > 0 ? `Position in queue: ${position}` : null,
+    estimatedWait > 0 ? `Estimated wait: ~${Math.ceil(estimatedWait / 1000)}s` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className="py-8">
-      {/* Searching animation */}
-      <div className="mb-6">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-accent-primary border-t-transparent animate-spin" />
-        <p className="text-xl font-semibold">Searching for opponent{dots}</p>
-      </div>
-
-      {/* Queue info */}
-      <div className="space-y-2 mb-8 text-sm text-text-secondary">
-        {position > 0 && (
-          <p>
-            Position in queue:{" "}
-            <span className="text-text-primary">{position}</span>
-          </p>
-        )}
-        {estimatedWait > 0 && (
-          <p>
-            Estimated wait:{" "}
-            <span className="text-text-primary">
-              ~{Math.ceil(estimatedWait / 1000)}s
-            </span>
-          </p>
-        )}
-      </div>
-
-      {/* Cancel button */}
-      <Button variant="secondary" onClick={onCancel}>
-        Cancel
-      </Button>
-    </div>
+    <MatchmakingView
+      playerName={playerName}
+      rankName={rank.name}
+      rankColor={rank.color}
+      rating={rating}
+      elapsedSeconds={elapsedSeconds}
+      detail={detail || undefined}
+      onCancel={onCancel}
+    />
   );
 }
 

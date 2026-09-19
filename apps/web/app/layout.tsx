@@ -86,7 +86,7 @@ export default function RootLayout({
                 <PlayerProvider>
                   <FriendsProvider>
                     <ChallengesProvider>
-                      <div className="flex flex-col min-h-screen">
+                      <div className="flex flex-col min-h-screen pb-14 md:pb-0">
                         <Navigation />
                         <AccountLinkingBannerWrapper />
                         {children}

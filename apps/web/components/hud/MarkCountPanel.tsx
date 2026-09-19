@@ -33,7 +33,7 @@ export const MarkCountPanel = memo(function MarkCountPanel({
       aria-label="Mark counts for sliding mode"
     >
       <MarkCount player="X" count={markCounts.X} isActive={currentPlayer === "X"} />
-      <span className="text-xs text-text-muted">marks on board</span>
+      <span className="text-xs text-text-muted whitespace-nowrap">marks on board</span>
       <MarkCount player="O" count={markCounts.O} isActive={currentPlayer === "O"} />
     </div>
   );

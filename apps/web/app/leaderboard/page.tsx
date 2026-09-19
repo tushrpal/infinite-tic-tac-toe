@@ -49,7 +49,7 @@ export default function LeaderboardPage(props: LeaderboardPageProps) {
   return (
     <Suspense
       fallback={
-        <main className="flex-1 px-4 py-8">
+        <main className="space-scope flex-1 px-4 py-8">
           <div className="w-full max-w-3xl mx-auto">
             <div className="py-6 text-center text-text-secondary">Loading leaderboard...</div>
           </div>

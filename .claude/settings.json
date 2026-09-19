@@ -31,7 +31,14 @@
       "Bash(pnpm --filter @infinite-ttt/identity exec tsc --build tsconfig.json --force)",
       "Bash(pnpm --filter @infinite-ttt/backend prisma:generate)",
       "Bash(pnpm --filter @infinite-ttt/backend build)",
-      "Bash(pnpm exec *)"
+      "Bash(pnpm exec *)",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "mcp__plugin_playwright_playwright__browser_run_code_unsafe",
+      "Bash(python /tmp/edit_tw2.py)",
+      "Bash(curl -s \"http://localhost:3111/_next/static/css/app/layout.css\")",
+      "Bash(grep -o \"bg-accent-primary\\\\\\\\\\\\\\\\/20[^}]*}\")",
+      "Read(//tmp/**)"
     ]
   }
 }

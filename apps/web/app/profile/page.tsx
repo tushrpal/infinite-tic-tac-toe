@@ -80,7 +80,7 @@ export default function ProfilePage(props: ProfilePageProps) {
   return (
     <Suspense
       fallback={
-        <main className="flex-1 px-4 py-8">
+        <main className="space-scope flex-1 px-4 py-8">
           <div className="mx-auto w-full max-w-3xl">
             <div className="rounded-xl border border-board-grid bg-surface-elevated p-6">
               <div className="text-sm text-text-muted">Loading profile...</div>

@@ -54,7 +54,10 @@ export const MatchTimer = memo(function MatchTimer({
     };
 
     updateTimer();
-    intervalRef.current = setInterval(updateTimer, 100);
+    // Whole seconds are all that's displayed for the match clock, so only tick
+    // fast when a turn countdown needs sub-second updates.
+    const needsFastTick = Boolean(showTurnTimer && turnStartedAt && turnTimeLimit);
+    intervalRef.current = setInterval(updateTimer, needsFastTick ? 100 : 1000);
 
     return () => {
       if (intervalRef.current) {

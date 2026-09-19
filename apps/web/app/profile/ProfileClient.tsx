@@ -3,8 +3,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ROUTES } from "@/lib/constants";
-import { formatRelativeTime } from "@/lib/helpers";
+import { ROUTES, RANKS } from "@/lib/constants";
+import { cn, formatRelativeTime, getRankFromRating, getRankProgress } from "@/lib/helpers";
+import { RankEmblem } from "@/components/ui/RankEmblem";
+import { ScreenBackdrop } from "@/components/ui/ScreenBackdrop";
 import {
   ensurePlayer,
   fetchPlayerMatches,
@@ -15,7 +17,6 @@ import {
   type PlayerStatsProfile,
 } from "@/lib/player";
 import { AccountLinking } from "@/components/profile/AccountLinking";
-import { ThemePicker } from "@/components/settings/ThemePicker";
 import { getOnlineModeInfo, getChallengeModeLabel } from "@/lib/gameModes";
 
 type Streak = {
@@ -188,8 +189,9 @@ export function ProfileClient({
   };
 
   return (
-    <main className="flex-1 px-4 py-8">
-      <div className="mx-auto w-full max-w-3xl space-y-6">
+    <main className="space-scope relative isolate flex-1 px-4 py-8 sm:py-12">
+      <ScreenBackdrop image="queueMatchBg" dim={0.6} />
+      <div className="mx-auto w-full max-w-4xl space-y-6">
         <div className="flex items-center justify-between">
           <Link
             href={ROUTES.HOME}
@@ -201,21 +203,25 @@ export function ProfileClient({
         </div>
 
         {loading && (
-          <div className="rounded-xl border border-board-grid bg-surface-elevated p-6">
+          <div className="glass-panel p-6">
             <div className="text-sm text-text-muted">Loading profile...</div>
           </div>
         )}
 
         {error && !loading && (
-          <div className="rounded-xl border border-accent-error/40 bg-surface-elevated p-6 text-sm text-accent-error">
+          <div className="glass-panel !border-accent-error/40 p-6 text-sm text-accent-error">
             {error}
           </div>
         )}
 
         {!loading && !error && profile && (
           <>
-            <section className="rounded-xl border border-board-grid bg-surface-elevated p-6">
+            <section className="glass-panel p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-1 items-center gap-4">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-accent-primary bg-gradient-to-br from-accent-primary/40 to-playerO-primary/30 text-2xl font-bold shadow-[0_0_20px_rgba(168,85,247,0.45)]">
+                    {(profile.displayName || profile.username || "?").charAt(0).toUpperCase()}
+                  </div>
                 <div className="flex-1">
                   {isEditing ? (
                     <div className="space-y-2">
@@ -276,6 +282,7 @@ export function ProfileClient({
                     {new Date(profile.createdAt).toLocaleDateString()}
                   </div>
                 </div>
+                </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold">{profile.rating}</div>
                   <div className="text-xs text-text-muted">Total Rating</div>
@@ -300,7 +307,7 @@ export function ProfileClient({
               <StatCard label="Draws" value={profile.draws} />
             </section>
 
-            <section className="rounded-xl border border-board-grid bg-surface-elevated p-6">
+            <section className="glass-panel p-6">
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-semibold">Win Rate</h3>
@@ -315,11 +322,9 @@ export function ProfileClient({
               </div>
             </section>
 
-            {viewingOwnProfile && (
-              <section className="rounded-xl border border-board-grid bg-surface-elevated p-6">
-                <ThemePicker />
-              </section>
-            )}
+            <RankProgression
+              rating={Math.max(profile.ratingMode1 ?? 0, profile.ratingMode2 ?? 0) || RANKS.DEFAULT_RATING}
+            />
 
             {viewingOwnProfile && (
               <AccountLinking
@@ -333,7 +338,7 @@ export function ProfileClient({
             )}
 
             {matches.length > 0 && (
-              <section className="rounded-xl border border-board-grid bg-surface-elevated p-6">
+              <section className="glass-panel p-6">
                 <h2 className="text-lg font-semibold mb-4">Performance</h2>
                 <div className="mb-6">
                   <div className="text-xs text-text-muted mb-2">Current Streak</div>
@@ -348,7 +353,7 @@ export function ProfileClient({
               </section>
             )}
 
-            <section className="rounded-xl border border-board-grid bg-surface-elevated p-6">
+            <section className="glass-panel p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Recent Matches</h2>
                 <span className="text-xs text-text-muted">
@@ -363,7 +368,7 @@ export function ProfileClient({
                   {matches.map((match) => (
                     <div
                       key={match.matchId}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-board-grid/30 px-4 py-3"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/5 px-4 py-3"
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div className="flex-1 min-w-0">
@@ -447,7 +452,7 @@ export function ProfileClient({
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-board-grid bg-surface-elevated p-4">
+    <div className="glass-panel p-4">
       <div className="text-xs text-text-muted">{label}</div>
       <div className="mt-2 text-2xl font-semibold">{value}</div>
     </div>
@@ -559,4 +564,58 @@ function ResultPill({ result }: { result: "win" | "loss" | "draw" }) {
 function formatRatingDelta(delta: number): string {
   if (delta === 0) return "0";
   return delta > 0 ? `+${delta}` : `${delta}`;
+}
+
+function RankProgression({ rating }: { rating: number }) {
+  const current = getRankFromRating(rating);
+  const progress = getRankProgress(rating);
+  const currentIndex = RANKS.TIERS.findIndex((t) => t.name === current.name);
+  const next = RANKS.TIERS[currentIndex + 1];
+
+  return (
+    <section className="glass-panel p-6" aria-labelledby="rank-progress-heading">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 id="rank-progress-heading" className="text-lg font-semibold">
+          Rank Progress
+        </h2>
+        <span className="text-sm text-text-secondary">
+          {next
+            ? `${Math.max(0, Math.round(progress.next - rating))} points to ${next.name}`
+            : "Top rank reached"}
+        </span>
+      </div>
+
+      <div className="h-2 overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-accent-primary to-playerX-primary transition-all duration-500"
+          style={{ width: `${progress.progress}%` }}
+        />
+      </div>
+
+      <ol className="mt-5 grid grid-cols-4 gap-y-4 sm:grid-cols-7">
+        {RANKS.TIERS.map((tier, index) => {
+          const reached = index <= currentIndex;
+          const isCurrent = index === currentIndex;
+          return (
+            <li
+              key={tier.name}
+              aria-current={isCurrent ? "step" : undefined}
+              className="flex flex-col items-center gap-1 text-center"
+            >
+              <RankEmblem rank={tier.name} size={isCurrent ? 56 : 40} dimmed={!reached} />
+              <span
+                className={cn(
+                  "text-xs font-medium",
+                  isCurrent ? "text-text-primary" : "text-text-muted",
+                )}
+              >
+                {tier.name}
+              </span>
+              {isCurrent && <span className="text-[10px] text-accent-primary">You are here</span>}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
 }

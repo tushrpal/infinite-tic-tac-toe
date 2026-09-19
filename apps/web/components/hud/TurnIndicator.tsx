@@ -74,7 +74,7 @@ export const TurnIndicator = memo(function TurnIndicator({
       className={cn(
         "flex items-center justify-center gap-3",
         "px-4 py-3",
-        "bg-surface-elevated",
+        "bg-surface-elevated/85",
         "rounded-xl",
         "border border-board-grid",
         className,

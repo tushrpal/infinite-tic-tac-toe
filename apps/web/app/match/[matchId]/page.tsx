@@ -18,6 +18,12 @@ import { MarkCountPanel } from "@/components/hud/MarkCountPanel";
 import { ModeBadge } from "@/components/hud/ModeBadge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { ScreenBackdrop } from "@/components/ui/ScreenBackdrop";
+import {
+  MatchResultOverlay,
+  MatchResultPreload,
+  type MatchOutcome,
+} from "@/components/match/MatchResultOverlay";
 import { useToast } from "@/components/ui/Toast";
 import { useGameState } from "@/hooks/useGameState";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -25,7 +31,7 @@ import { useBotMatch } from "@/hooks/useBotMatch";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { ConnectionStatus, OfflineBanner } from "@/components/feedback/ConnectionStatus";
 import { ROUTES } from "@/lib/constants";
-import { cn, isBeginnerRank } from "@/lib/helpers";
+import { isBeginnerRank } from "@/lib/helpers";
 import { countMarksOnBoard, getOnlineModeInfo } from "@/lib/gameModes";
 import { getMatchWinShareText } from "@/lib/share";
 import { ShareButtons } from "@/components/share/ShareButtons";
@@ -206,7 +212,7 @@ export default function MatchPage() {
   // Loading state
   if (isLoading) {
     return (
-      <main className="flex-1 flex items-center justify-center">
+      <main className="space-scope flex-1 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 mx-auto mb-4 rounded-full border-4 border-accent-primary border-t-transparent animate-spin" />
           <p className="text-text-secondary">Joining match...</p>
@@ -218,7 +224,7 @@ export default function MatchPage() {
   // Error state
   if (error) {
     return (
-      <main className="flex-1 flex items-center justify-center px-4">
+      <main className="space-scope flex-1 flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-accent-error/20">
             <svg
@@ -255,58 +261,132 @@ export default function MatchPage() {
   const showDraw = getOnlineModeInfo(matchState.board.mode).canDraw;
   const matchStartedAt = rawMatchState?.startedAt ?? null;
 
+  const outcome: MatchOutcome =
+    matchState.winner === yourPlayer
+      ? "win"
+      : matchState.isDraw && showDraw
+        ? "draw"
+        : "loss";
+  const ratingChange = yourPlayer ? (result?.ratingChanges?.[yourPlayer]?.change ?? null) : null;
+  const moveCount = rawMatchState?.gameState.moveHistory?.length ?? 0;
+
+  const resultSubtitle =
+    outcome === "win"
+      ? botInfo.isBotMatch
+        ? `You defeated the ${botInfo.botDifficulty} bot!`
+        : "Congratulations! You played brilliantly!"
+      : outcome === "draw"
+        ? "A well-fought battle!"
+        : botInfo.isBotMatch
+          ? `The ${botInfo.botDifficulty} bot won this time. Try again!`
+          : "Better luck next time!";
+
   return (
-    <main className="flex-1 flex flex-col px-3 sm:px-4 py-4 sm:py-6">
+    <main className="space-scope relative isolate flex-1 flex flex-col px-3 sm:px-4 py-4 sm:py-6">
+      <ScreenBackdrop image="rankedMatchBg" dim={0.35} />
+
       {/* Offline Banner */}
       <OfflineBanner />
 
-      <div className="w-full max-w-2xl mx-auto flex flex-col gap-3 sm:gap-6">
+      <div className="w-full max-w-5xl mx-auto flex flex-col gap-3 sm:gap-5">
         {/* Connection Status */}
-        <ConnectionStatus
-          connectionState={connectionState}
-          compact={false}
-          className="order-1"
+        <ConnectionStatus connectionState={connectionState} compact={false} />
+
+        {/* Players */}
+        <ScorePanel
+          score={matchState.score}
+          currentPlayer={matchState.turn.currentPlayer}
+          yourPlayer={yourPlayer}
+          isGameOver={matchState.isGameOver}
+          winner={matchState.winner}
+          className="max-w-2xl mx-auto"
         />
 
-        {/* Turn Indicator — shown first on mobile for quick context */}
-        <div className="order-2 sm:order-4">
-          <TurnIndicator
-            currentPlayer={matchState.turn.currentPlayer}
-            yourPlayer={yourPlayer}
-            isYourTurn={matchState.turn.isYourTurn}
-            isGameOver={matchState.isGameOver}
-            winner={matchState.winner}
-            isDraw={matchState.isDraw}
-            showDraw={showDraw}
-          />
-        </div>
+        {/* Turn Indicator */}
+        <TurnIndicator
+          currentPlayer={matchState.turn.currentPlayer}
+          yourPlayer={yourPlayer}
+          isYourTurn={matchState.turn.isYourTurn}
+          isGameOver={matchState.isGameOver}
+          winner={matchState.winner}
+          isDraw={matchState.isDraw}
+          showDraw={showDraw}
+          className="mx-auto w-full max-w-xs"
+        />
 
-        {/* Game Board — prioritized on mobile */}
-        <div className="order-3 sm:order-6">
-          <GameBoard
-            board={matchState.board}
-            currentPlayer={matchState.turn.currentPlayer}
-            yourPlayer={yourPlayer}
-            winInfo={matchState.winInfo}
-            isGameOver={matchState.isGameOver}
-            onCellClick={handleCellClick}
-            disabled={!matchState.turn.isYourTurn || matchState.isGameOver}
-            mode={matchState.board.mode}
-            moveHistory={
-              showRemovalHint ? rawMatchState?.gameState.moveHistory : undefined
-            }
-          />
-        </div>
+        {/* Bot Thinking Indicator */}
+        {botInfo.isBotThinking && (
+          <BotThinkingIndicator botDifficulty={botInfo.botDifficulty || 'medium'} />
+        )}
 
-        {/* Header */}
-        <div className="order-4 sm:order-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div
-            className="min-w-0 text-xs sm:text-sm text-text-muted truncate"
-            title={`Match ID: ${matchId}`}
-          >
-            Match: {matchId}
+        {/* Board flanked by match info */}
+        <div className="grid items-center gap-4 lg:grid-cols-[1fr_minmax(0,520px)_1fr] lg:gap-8">
+          <aside className="order-2 lg:order-1 grid grid-cols-2 gap-3 lg:grid-cols-1">
+            <InfoTile label="Time">
+              <MatchTimer
+                matchStartedAt={matchStartedAt}
+                isGameOver={matchState.isGameOver}
+                showTurnTimer={false}
+                className="!border-0 !bg-transparent !p-0"
+              />
+            </InfoTile>
+            <InfoTile label="Game Mode">
+              <ModeBadge mode={matchState.board.mode} />
+            </InfoTile>
+          </aside>
+
+          <div className="order-1 lg:order-2">
+            <GameBoard
+              board={matchState.board}
+              currentPlayer={matchState.turn.currentPlayer}
+              yourPlayer={yourPlayer}
+              winInfo={matchState.winInfo}
+              isGameOver={matchState.isGameOver}
+              onCellClick={handleCellClick}
+              disabled={!matchState.turn.isYourTurn || matchState.isGameOver}
+              mode={matchState.board.mode}
+              moveHistory={
+                showRemovalHint ? rawMatchState?.gameState.moveHistory : undefined
+              }
+            />
           </div>
-          <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm flex-wrap">
+
+          <aside className="order-3 grid grid-cols-2 gap-3 lg:grid-cols-1">
+            <InfoTile label="Move #">
+              <span className="font-display text-xl font-semibold">{moveCount + (matchState.isGameOver ? 0 : 1)}</span>
+            </InfoTile>
+            {isSlidingMode && !matchState.isGameOver ? (
+              <MarkCountPanel
+                markCounts={markCounts}
+                currentPlayer={matchState.turn.currentPlayer}
+                className="!justify-between"
+              />
+            ) : (
+              <InfoTile label="Spectators">
+                <span className="font-display text-xl font-semibold">
+                  {matchState.spectatorCount}
+                </span>
+              </InfoTile>
+            )}
+          </aside>
+        </div>
+
+        {/* Footer actions */}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
+          {!matchState.isGameOver ? (
+            <Button variant="danger" size="sm" onClick={() => setShowForfeitConfirm(true)}>
+              Surrender
+            </Button>
+          ) : (
+            <span />
+          )}
+          <div className="flex items-center gap-3 text-text-muted">
+            {matchState.spectatorCount > 0 && isSlidingMode && !matchState.isGameOver && (
+              <span>
+                👁 {matchState.spectatorCount} spectator
+                {matchState.spectatorCount > 1 ? "s" : ""}
+              </span>
+            )}
             <Link
               href={watchUrl}
               target="_blank"
@@ -315,166 +395,22 @@ export default function MatchPage() {
             >
               Share Watch Link
             </Link>
-            <ModeBadge mode={matchState.board.mode} />
           </div>
         </div>
-
-        {/* Bot Thinking Indicator */}
-        {botInfo.isBotThinking && (
-          <div className="order-5 sm:order-3">
-            <BotThinkingIndicator botDifficulty={botInfo.botDifficulty || 'medium'} />
-          </div>
-        )}
-
-        {/* Score Panel */}
-        <div className="order-6 sm:order-5">
-          <ScorePanel
-            score={matchState.score}
-            currentPlayer={matchState.turn.currentPlayer}
-            yourPlayer={yourPlayer}
-            isGameOver={matchState.isGameOver}
-            winner={matchState.winner}
-          />
-        </div>
-
-        {isSlidingMode && !matchState.isGameOver && (
-          <div className="order-7 sm:order-7">
-            <MarkCountPanel
-              markCounts={markCounts}
-              currentPlayer={matchState.turn.currentPlayer}
-            />
-          </div>
-        )}
-
-        {/* Match Timer */}
-        <div className="order-8 sm:order-8">
-          <MatchTimer
-            matchStartedAt={matchStartedAt}
-            isGameOver={matchState.isGameOver}
-            showTurnTimer={false}
-          />
-        </div>
-
-        {/* Action Buttons */}
-        {!matchState.isGameOver && (
-          <div className="order-9 sm:order-9 flex justify-center">
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => setShowForfeitConfirm(true)}
-            >
-              Forfeit
-            </Button>
-          </div>
-        )}
-
-        {/* Spectator count */}
-        {matchState.spectatorCount > 0 && (
-          <div className="order-10 text-center text-sm text-text-muted">
-            👁 {matchState.spectatorCount} spectator
-            {matchState.spectatorCount > 1 ? "s" : ""}
-          </div>
-        )}
       </div>
 
-      {/* Result Modal */}
-      <Modal
-        isOpen={showResultModal || matchState.isGameOver}
-        onClose={() => setShowResultModal(false)}
-        title=""
-        showCloseButton={false}
-        size="lg"
-      >
-        <div className="text-center py-6">
-          {/* Victory/Defeat Icon */}
-          <div className="mb-6">
-            {matchState.winner === yourPlayer ? (
-              // Victory - Trophy
-              <div className="relative inline-block">
-                <div className="w-24 h-24 mx-auto flex items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 animate-pulse shadow-lg shadow-yellow-500/50">
-                  <svg
-                    className="w-14 h-14 text-white"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                  </svg>
-                </div>
-                <div className="absolute -top-2 -right-2 text-3xl animate-bounce">
-                  🎉
-                </div>
-                <div className="absolute -top-2 -left-2 text-3xl animate-bounce delay-100">
-                  🎊
-                </div>
-              </div>
-            ) : matchState.isDraw && showDraw ? (
-              // Draw - Handshake
-              <div className="w-24 h-24 mx-auto flex items-center justify-center rounded-full bg-gradient-to-br from-gray-400 to-gray-600">
-                <span className="text-5xl">🤝</span>
-              </div>
-            ) : (
-              // Defeat
-              <div className="w-24 h-24 mx-auto flex items-center justify-center rounded-full bg-gradient-to-br from-red-400 to-red-600">
-                <span className="text-5xl">😔</span>
-              </div>
-            )}
-          </div>
+      {!matchState.isGameOver && <MatchResultPreload />}
 
-          {/* Result Text */}
-          <h2
-            className={cn(
-              "text-2xl sm:text-4xl font-bold mb-2 animate-[fadeInUp_0.5s_ease-out]",
-              matchState.winner === yourPlayer
-                ? "text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500"
-                : matchState.isDraw && showDraw
-                  ? "text-text-secondary"
-                  : "text-accent-error",
-            )}
-          >
-            {matchState.winner === yourPlayer
-              ? "Victory!"
-              : matchState.isDraw && showDraw
-                ? "It's a Draw!"
-                : "Defeat"}
-          </h2>
-
-          <p className="text-lg text-text-secondary mb-6">
-            {matchState.winner === yourPlayer
-              ? botInfo.isBotMatch
-                ? `You defeated the ${botInfo.botDifficulty} bot!`
-                : "Congratulations! You played brilliantly!"
-              : matchState.isDraw && showDraw
-                ? "A well-fought battle!"
-                : botInfo.isBotMatch
-                  ? `The ${botInfo.botDifficulty} bot won this time. Try again!`
-                  : "Better luck next time!"}
-          </p>
-
-          {/* Match Stats */}
-          <div className="flex justify-center gap-4 sm:gap-8 mb-8 p-3 sm:p-4 rounded-xl bg-surface-elevated">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-text-primary">
-                {result?.duration || "0:00"}
-              </div>
-              <div className="text-sm text-text-muted">Duration</div>
-            </div>
-            <div className="w-px bg-border-subtle"></div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-text-primary">
-                {result?.moveCount ||
-                  matchState.board.cells.flat().filter((c) => c.value).length}
-              </div>
-              <div className="text-sm text-text-muted">Moves</div>
-            </div>
-            <div className="w-px bg-border-subtle"></div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-text-primary">
-                {yourPlayer || "?"}
-              </div>
-              <div className="text-sm text-text-muted">You Played</div>
-            </div>
-          </div>
-
+      {/* Result Overlay */}
+      {(showResultModal || matchState.isGameOver) && (
+        <MatchResultOverlay
+          outcome={outcome}
+          subtitle={resultSubtitle}
+          ratingChange={ratingChange}
+          duration={result?.duration || "0:00"}
+          moves={result?.moveCount || moveCount}
+          youPlayed={yourPlayer || "?"}
+        >
           {/* Bot Match Info */}
           {botInfo.isBotMatch && (
             <div className="mb-6 p-3 rounded-lg bg-purple-500/10 border border-purple-500/30 text-center">
@@ -500,7 +436,7 @@ export default function MatchPage() {
               </div>
             </div>
           ) : !botInfo.isBotMatch && rematchRequested ? (
-            <div className="mb-6 p-4 rounded-xl bg-surface-elevated">
+            <div className="mb-6 p-4 rounded-xl glass-panel">
               <div className="flex items-center justify-center gap-2">
                 <div className="w-5 h-5 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" />
                 <p className="text-text-secondary">
@@ -510,70 +446,61 @@ export default function MatchPage() {
             </div>
           ) : null}
 
-          {/* Share victory / match to social feeds */}
-          {matchState.isGameOver && (
-            <div className="mb-6 p-4 rounded-xl border border-board-grid bg-surface-elevated/50">
-              <p className="text-sm text-text-secondary mb-3 text-center">
-                {matchState.winner === yourPlayer
-                  ? "Share your victory!"
-                  : "Challenge friends to beat you!"}
-              </p>
-              <ShareButtons
-                campaign="match_win"
-                text={
-                  matchState.winner === yourPlayer
-                    ? getMatchWinShareText(
-                        getOnlineModeInfo(matchState.board.mode).label
-                      )
-                    : undefined
-                }
-                variant="icons"
-              />
-            </div>
-          )}
-
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {!botInfo.isBotMatch && !rematchRequested && !opponentRequestedRematch && (
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+            {!botInfo.isBotMatch && !rematchRequested && !opponentRequestedRematch ? (
               <Button
                 size="lg"
                 onClick={requestRematch}
-                className="bg-gradient-to-r from-accent-primary to-purple-600 hover:from-accent-primary/90 hover:to-purple-600/90"
+                className="bg-gradient-to-r from-accent-primary to-[#7c3aed]"
+                rightIcon={<span aria-hidden="true">→</span>}
               >
-                🔄 Request Rematch
+                Request Rematch
               </Button>
-            )}
+            ) : null}
             <Link href={ROUTES.PLAY}>
-              <Button
-                variant="secondary"
-                size="lg"
-                className="w-full sm:w-auto"
-              >
-                🎮 Find New Match
+              <Button variant="secondary" size="lg" className="w-full sm:w-auto border-white/15 bg-white/5">
+                Find New Match
               </Button>
             </Link>
-            <Link href={ROUTES.PLAY}>
+            <Link href={ROUTES.HOME}>
               <Button variant="ghost" size="lg" className="w-full sm:w-auto">
-                ← Back to Menu
+                Back to Home
               </Button>
             </Link>
           </div>
-        </div>
-      </Modal>
+
+          {/* Share victory / match to social feeds */}
+          <div className="p-4 rounded-xl glass-panel">
+            <p className="text-sm text-text-secondary mb-3 text-center">
+              {outcome === "win" ? "Share your victory!" : "Challenge friends to beat you!"}
+            </p>
+            <ShareButtons
+              campaign="match_win"
+              text={
+                outcome === "win"
+                  ? getMatchWinShareText(getOnlineModeInfo(matchState.board.mode).label)
+                  : undefined
+              }
+              variant="icons"
+            />
+          </div>
+        </MatchResultOverlay>
+      )}
 
       {/* Forfeit Confirmation Modal */}
       <Modal
         isOpen={showForfeitConfirm}
         onClose={() => setShowForfeitConfirm(false)}
-        title="Forfeit Match?"
+        title="Surrender Match?"
         size="sm"
       >
         <p className="text-text-secondary mb-6">
-          Are you sure you want to forfeit? This will count as a loss.
+          Are you sure you want to surrender? This will count as a loss.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <Button variant="danger" onClick={handleForfeit} className="w-full sm:w-auto">
-            Yes, Forfeit
+            Yes, Surrender
           </Button>
           <Button
             variant="secondary"
@@ -618,6 +545,15 @@ function DisconnectWarningBanner({ timeoutMs }: { timeoutMs: number }) {
       <p className="text-xs text-text-secondary">
         Waiting for reconnection... {remaining > 0 ? `(${remaining}s)` : ""}
       </p>
+    </div>
+  );
+}
+
+function InfoTile({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="glass-panel px-4 py-3">
+      <div className="mb-1 text-xs text-text-muted">{label}</div>
+      <div className="text-text-primary">{children}</div>
     </div>
   );
 }

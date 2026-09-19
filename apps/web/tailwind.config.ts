@@ -1,5 +1,19 @@
 import type { Config } from 'tailwindcss';
 
+/**
+ * Theme colors live in CSS variables, which Tailwind can't apply an alpha
+ * modifier to (`bg-accent-primary/20` would emit nothing). Mix with
+ * transparent so the modifier works for any theme.
+ */
+const themeColor = (variable: string): string => {
+  const resolve = ({ opacityValue }: { opacityValue?: string }) =>
+    opacityValue === undefined || opacityValue === '1'
+      ? `var(${variable})`
+      : `color-mix(in srgb, var(${variable}) calc(${opacityValue} * 100%), transparent)`;
+  // Tailwind accepts a function here at runtime; its Config typing only lists strings.
+  return resolve as unknown as string;
+};
+
 const config: Config = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -18,22 +32,22 @@ const config: Config = {
           cellDisabled: 'var(--board-cell-disabled)',
         },
         playerX: {
-          primary: 'var(--player-x-primary)',
-          secondary: 'var(--player-x-secondary)',
+          primary: themeColor('--player-x-primary'),
+          secondary: themeColor('--player-x-secondary'),
           glow: 'var(--player-x-glow)',
         },
         playerO: {
-          primary: 'var(--player-o-primary)',
-          secondary: 'var(--player-o-secondary)',
+          primary: themeColor('--player-o-primary'),
+          secondary: themeColor('--player-o-secondary'),
           glow: 'var(--player-o-glow)',
         },
         accent: {
-          primary: 'var(--accent-primary)',
-          'primary-foreground': 'var(--accent-primary-foreground)',
-          secondary: 'var(--accent-secondary)',
-          success: 'var(--accent-success)',
-          warning: 'var(--accent-warning)',
-          error: 'var(--accent-error)',
+          primary: themeColor('--accent-primary'),
+          'primary-foreground': themeColor('--accent-primary-foreground'),
+          secondary: themeColor('--accent-secondary'),
+          success: themeColor('--accent-success'),
+          warning: themeColor('--accent-warning'),
+          error: themeColor('--accent-error'),
         },
         surface: {
           base: 'var(--surface-base)',
@@ -71,6 +85,7 @@ const config: Config = {
         'glow': 'glow 1.5s ease-in-out infinite',
         'win-line': 'win-line 0.5s ease-out forwards',
         'cell-remove': 'cell-remove 0.8s ease-in-out',
+        'float': 'float 6s ease-in-out infinite',
       },
       keyframes: {
         'spin': {
@@ -113,6 +128,10 @@ const config: Config = {
         'win-line': {
           '0%': { strokeDashoffset: '100%', opacity: '0' },
           '100%': { strokeDashoffset: '0%', opacity: '1' },
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
         },
         'cell-remove': {
           '0%': { opacity: '1', transform: 'scale(1)' },

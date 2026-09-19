@@ -118,7 +118,7 @@ export function ShareButtons({
       </div>
 
       {variant === "full" && (
-        <p className="text-xs text-text-muted text-center truncate max-w-sm mx-auto">
+        <p className="w-full text-xs text-text-muted text-center truncate max-w-sm mx-auto">
           {shareUrl}
         </p>
       )}

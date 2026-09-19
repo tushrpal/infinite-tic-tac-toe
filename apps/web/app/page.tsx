@@ -47,7 +47,9 @@ export default function HomePage() {
   return (
     <>
       <JsonLd data={faqPageSchema(HOME_FAQ)} />
-      <main className="flex-1 flex flex-col">
+      {/* space-scope: the rest of the page shares the hero's background so the
+          hero dissolves into it without a visible seam. */}
+      <main className="space-scope flex-1 flex flex-col">
       {/* Hero Section — cinematic scroll-driven 3D scene */}
       <HomeHero />
 
@@ -89,14 +91,14 @@ export default function HomePage() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            <div className="p-5 rounded-2xl bg-surface-elevated/40 backdrop-blur-sm border border-white/5">
+            <div className="p-5 rounded-2xl bg-surface-elevated/40 border border-white/5">
               <h3 className="font-semibold mb-2">Sliding Mode</h3>
               <p className="text-sm text-text-secondary">
                 Dynamic 3×3 board — marks slide off after three placements.
                 No draws, ever.
               </p>
             </div>
-            <div className="p-5 rounded-2xl bg-surface-elevated/40 backdrop-blur-sm border border-white/5">
+            <div className="p-5 rounded-2xl bg-surface-elevated/40 border border-white/5">
               <h3 className="font-semibold mb-2">Expanding Mode</h3>
               <p className="text-sm text-text-secondary">
                 Board grows each round from 3×3 to 5×5. Win N-in-a-row on an
@@ -112,7 +114,7 @@ export default function HomePage() {
             {HOME_FAQ.map((item) => (
               <div
                 key={item.question}
-                className="p-4 rounded-2xl bg-surface-elevated/40 backdrop-blur-sm border border-white/5"
+                className="p-4 rounded-2xl bg-surface-elevated/40 border border-white/5"
               >
                 <dt className="font-medium text-text-primary mb-1">
                   {item.question}
@@ -178,7 +180,7 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="group p-6 rounded-2xl bg-surface-elevated/40 backdrop-blur-sm border border-white/5 transition-all hover:border-accent-primary/30 hover:bg-surface-elevated/60">
+    <div className="group p-6 rounded-2xl bg-surface-elevated/40 border border-white/5 transition-all hover:border-accent-primary/30 hover:bg-surface-elevated/60">
       <div className="w-12 h-12 mb-4 mx-auto flex items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary transition-colors group-hover:bg-accent-primary/20 group-hover:text-accent-secondary">
         {icon}
       </div>

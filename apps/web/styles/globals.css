@@ -137,19 +137,85 @@
    active site theme (dark/light/neon/retro), like a game splash.
    ================================================ */
 
-.home-hero-scope {
+/* `.space-scope` is the same look applied to the other reference screens
+   (nav, play, matchmaking, match, leaderboard, profile). */
+.home-hero-scope,
+.space-scope {
   --surface-base: #070711;
   --surface-elevated: #141124;
   --accent-primary: #a855f7;
   --accent-primary-foreground: #ffffff;
   --accent-secondary: #22d3ee;
   --accent-success: #34d399;
+  --accent-warning: #fbbf24;
+  --accent-error: #f87171;
   --text-primary: #f8fafc;
   --text-secondary: #c7c3d9;
   --text-muted: #8b86a3;
+  --text-tertiary: #8b86a3;
   --border-subtle: rgba(168, 85, 247, 0.25);
+  /* Reference art: X glows magenta, O glows cyan. */
+  --player-x-primary: #e879f9;
+  --player-x-secondary: #c026d3;
+  --player-x-glow: rgba(232, 121, 249, 0.55);
+  --player-o-primary: #22d3ee;
+  --player-o-secondary: #0891b2;
+  --player-o-glow: rgba(34, 211, 238, 0.55);
+  --board-grid: rgba(168, 85, 247, 0.35);
+  --board-cell: #0c0a1c;
+  --board-cell-hover: #1a1533;
+  --board-cell-disabled: #08070f;
   background: var(--surface-base);
   color: var(--text-primary);
+}
+
+/* Frosted panels used across the space-themed screens */
+/* Deliberately no backdrop-filter: blurring a full-screen image behind ~10
+   panels is a common cause of scroll jank on mid-range GPUs, and the
+   backdrop is already dimmed. A slightly more opaque fill gives the same look. */
+.glass-panel {
+  background: linear-gradient(180deg, rgba(24, 18, 48, 0.86), rgba(12, 9, 28, 0.86));
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.glass-panel--gold {
+  background: linear-gradient(180deg, rgba(58, 38, 12, 0.82), rgba(24, 14, 6, 0.86));
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.glass-panel--interactive {
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.glass-panel--interactive:hover {
+  transform: translateY(-2px);
+  border-color: rgba(168, 85, 247, 0.6);
+  box-shadow: 0 12px 40px rgba(168, 85, 247, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.glass-panel--gold.glass-panel--interactive:hover {
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 12px 40px rgba(251, 191, 36, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Glowing game board frame used by the live match screen */
+.space-scope .board-grid {
+  background: linear-gradient(145deg, rgba(88, 28, 135, 0.55), rgba(30, 27, 75, 0.6));
+  border: 2px solid rgba(217, 70, 239, 0.55);
+  border-radius: 1.25rem;
+  box-shadow:
+    0 0 32px rgba(168, 85, 247, 0.45),
+    inset 0 0 24px rgba(168, 85, 247, 0.25);
+}
+
+.space-scope .cell {
+  border: 1px solid rgba(168, 85, 247, 0.28);
+}
+
+.space-scope .cell:hover:not(.cell--disabled) {
+  border-color: rgba(232, 121, 249, 0.6);
 }
 
 /* ================================================
@@ -449,4 +515,25 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Long lists: let the browser skip layout/paint for rows that are off-screen. */
+.list-row-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
+}
+
+/* Honor the OS "reduce motion" setting for continuous decorative animation. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse,
+  .animate-bounce,
+  .animate-float,
+  .animate-pulse-soft,
+  .animate-glow {
+    animation: none !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
 }
