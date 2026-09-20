@@ -15,14 +15,35 @@ const MAX_MARKS = GAME.SLIDING_RULE.MAX_MARKS_PER_PLAYER;
 export interface MarkCountPanelProps {
   markCounts: { X: number; O: number };
   currentPlayer: Player;
+  /**
+   * "inline" (default): one wide row — X count, label, O count.
+   * "tile": stacked label + counts, sized to sit next to other small info tiles.
+   */
+  variant?: "inline" | "tile";
   className?: string;
 }
 
 export const MarkCountPanel = memo(function MarkCountPanel({
   markCounts,
   currentPlayer,
+  variant = "inline",
   className,
 }: MarkCountPanelProps) {
+  if (variant === "tile") {
+    return (
+      <div
+        className={cn("glass-panel min-w-0 px-4 py-3", className)}
+        aria-label="Mark counts for sliding mode"
+      >
+        <div className="mb-1.5 text-xs text-text-muted">Marks on board</div>
+        <div className="flex items-center justify-between gap-2">
+          <MarkCount player="X" count={markCounts.X} isActive={currentPlayer === "X"} />
+          <MarkCount player="O" count={markCounts.O} isActive={currentPlayer === "O"} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -53,7 +74,7 @@ function MarkCount({
   return (
     <div
       className={cn(
-        "flex items-center gap-2",
+        "flex items-center gap-1.5 whitespace-nowrap",
         isActive && "opacity-100",
         !isActive && "opacity-70",
       )}

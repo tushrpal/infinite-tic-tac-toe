@@ -61,16 +61,22 @@ export function MatchmakingView({
         </div>
 
         {/* Orbit */}
-        <div className="relative flex h-24 w-32 sm:h-28 sm:w-56 items-center justify-center" aria-hidden="true">
+        {/* `data-backdrop-anchor`: the page backdrop shifts its painted rings to
+            centre on this element, so the dots sit in the middle of the art. */}
+        <div
+          data-backdrop-anchor
+          className="relative flex h-24 w-32 sm:h-28 sm:w-56 items-center justify-center"
+          aria-hidden="true"
+        >
           <div className="absolute inset-0 rounded-[50%] border border-playerO-primary/50 animate-pulse" />
           <div className="absolute inset-3 rounded-[50%] border border-accent-primary/50 animate-pulse [animation-delay:300ms]" />
           <div className="absolute inset-6 rounded-[50%] border border-playerO-primary/30 animate-pulse [animation-delay:600ms]" />
-          <div className="flex gap-2">
+          <div className="flex gap-2.5">
             {[0, 1, 2].map((i) => (
               <span
                 key={i}
-                className="h-2.5 w-2.5 rounded-full bg-accent-primary animate-bounce"
-                style={{ animationDelay: `${i * 150}ms` }}
+                className="loading-dot h-2.5 w-2.5 rounded-full bg-accent-primary"
+                style={{ animationDelay: `${i * 180}ms` }}
               />
             ))}
           </div>

@@ -1,0 +1,101 @@
+- generic [ref=f12e2]:
+  - navigation [ref=f12e3]:
+    - generic [ref=f12e5]:
+      - link "Infinite TTT" [ref=f12e6] [cursor=pointer]:
+        - /url: /
+      - button "Toggle menu" [ref=f12e10] [cursor=pointer]
+  - generic [ref=f12e14]:
+    - link "Home" [ref=f12e15] [cursor=pointer]:
+      - /url: /
+    - link "Play" [ref=f12e18] [cursor=pointer]:
+      - /url: /play
+    - link "Ranks" [ref=f12e21] [cursor=pointer]:
+      - /url: /leaderboard
+    - link "Profile" [ref=f12e24] [cursor=pointer]:
+      - /url: /profile
+  - main [ref=f12e27]:
+    - generic [ref=f12e28]:
+      - generic [ref=f12e29]:
+        - paragraph [ref=f12e30]: Learn · Strategize · Improve
+        - heading "How to Play" [level=1] [ref=f12e31]
+        - paragraph [ref=f12e32]: Master the art of Infinite Tic-Tac-Toe with our comprehensive guide. From basic rules to advanced strategies, everything you need to dominate.
+      - navigation "Guide sections" [ref=f12e33]:
+        - button [ref=f12e34] [cursor=pointer]
+        - button [ref=f12e38] [cursor=pointer]
+        - button [ref=f12e43] [cursor=pointer]
+        - button [ref=f12e47] [cursor=pointer]
+      - generic [ref=f12e51]:
+        - region [ref=f12e52]:
+          - heading [level=2] [ref=f12e54]
+          - paragraph [ref=f12e58]: "Tic-Tac-Toe is a simple game, but mastering it takes strategy and practice. Here are the fundamentals:"
+          - generic [ref=f12e59]:
+            - generic [ref=f12e60]:
+              - generic [ref=f12e61]: "1"
+              - generic [ref=f12e62]:
+                - heading "Take Turns" [level=3] [ref=f12e63]
+                - paragraph [ref=f12e64]: Players alternate placing their marks (X or O) on the 3x3 grid. X always goes first.
+            - generic [ref=f12e69]:
+              - generic [ref=f12e70]: "2"
+              - generic [ref=f12e71]:
+                - heading "Mark Placement" [level=3] [ref=f12e72]
+                - paragraph [ref=f12e73]: Click or tap an empty cell to place your mark. Once placed, marks cannot be moved.
+            - generic [ref=f12e77]:
+              - generic [ref=f12e78]: "3"
+              - generic [ref=f12e79]:
+                - heading "Win or Draw" [level=3] [ref=f12e80]
+                - paragraph [ref=f12e81]: Get three of your marks in a row (horizontal, vertical, or diagonal) to win. If all cells are filled with no winner, the game is a draw.
+          - generic [ref=f12e85]:
+            - generic [ref=f12e87]:
+              - generic [ref=f12e88]:
+                - heading [level=3] [ref=f12e89]
+                - paragraph [ref=f12e101]: Click on empty cells to place your mark (X or O)
+                - list [ref=f12e102]:
+                  - listitem [ref=f12e103]: Player X (goes first)
+                  - listitem [ref=f12e106]: Player O (goes second)
+                - paragraph [ref=f12e109]: "Tip: Try to control the center cell. It's part of all 4 winning lines!"
+              - generic [ref=f12e110]:
+                - generic [ref=f12e111]:
+                  - 'button "Cell 1: X" [disabled] [ref=f12e112]'
+                  - button "Place X in cell 2" [ref=f12e115] [cursor=pointer]
+                  - 'button "Cell 3: O" [disabled] [ref=f12e116]'
+                  - button "Place X in cell 4" [ref=f12e119] [cursor=pointer]
+                  - 'button "Cell 5: X" [disabled] [ref=f12e120]'
+                  - button "Place X in cell 6" [ref=f12e123] [cursor=pointer]
+                  - 'button "Cell 7: O" [disabled] [ref=f12e124]'
+                  - button "Place X in cell 8" [ref=f12e127] [cursor=pointer]
+                  - button "Place X in cell 9" [ref=f12e128] [cursor=pointer]
+                - button "Reset board" [ref=f12e129] [cursor=pointer]
+            - generic [ref=f12e130]:
+              - heading [level=3] [ref=f12e131]
+              - list [ref=f12e135]:
+                - listitem [ref=f12e136]:
+                  - img "Example board" [ref=f12e137]
+                  - generic [ref=f12e153]: Horizontal
+                - listitem [ref=f12e154]:
+                  - img "Example board" [ref=f12e155]
+                  - generic [ref=f12e171]: Vertical
+                - listitem [ref=f12e172]:
+                  - img "Example board" [ref=f12e173]
+                  - generic [ref=f12e189]: Diagonal
+        - 'button "Next: Game Modes" [ref=f12e191] [cursor=pointer]':
+          - text: "Next: Game Modes"
+          - generic [aria-hidden] [ref=f12e192]: →
+        - region [ref=f12e193]:
+          - heading "? Frequently Asked Questions" [level=2] [ref=f12e195]:
+            - generic [ref=f12e196]: "?"
+            - text: Frequently Asked Questions
+          - generic [ref=f12e197]:
+            - generic [ref=f12e198]:
+              - button "What happens if I disconnect during a match?" [expanded] [ref=f12e199] [cursor=pointer]
+              - region [ref=f12e208]: You have 60 seconds to reconnect. If you reconnect within this time, the game continues where it left off. If you don't reconnect, you forfeit the match.
+            - button "How does the ranking system work?" [ref=f12e210] [cursor=pointer]
+            - button "Can I play against bots?" [ref=f12e220] [cursor=pointer]
+            - button "What's the difference between ranked and casual?" [ref=f12e230] [cursor=pointer]
+            - button "Can I rematch my opponent?" [ref=f12e240] [cursor=pointer]
+            - button "How does sliding mode keep the game from being a draw?" [ref=f12e250] [cursor=pointer]
+        - generic [ref=f12e260]:
+          - paragraph [ref=f12e261]: Ready to put your knowledge to the test?
+          - link [ref=f12e262] [cursor=pointer]:
+            - /url: /play
+            - text: Play Now
+            - generic [aria-hidden] [ref=f12e267]: →

@@ -23,11 +23,13 @@ import {
   MatchResultOverlay,
   MatchResultPreload,
   type MatchOutcome,
+  type ResultPlayer,
 } from "@/components/match/MatchResultOverlay";
 import { useToast } from "@/components/ui/Toast";
 import { useGameState } from "@/hooks/useGameState";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useBotMatch } from "@/hooks/useBotMatch";
+import { usePlayer } from "@/components/providers/PlayerProvider";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { ConnectionStatus, OfflineBanner } from "@/components/feedback/ConnectionStatus";
 import { ROUTES } from "@/lib/constants";
@@ -38,6 +40,10 @@ import { ShareButtons } from "@/components/share/ShareButtons";
 import { announce } from "@/lib/accessibility";
 import type { MatchResultUIState } from "@/lib/adapters/gameAdapter";
 
+/** Glowing gradient used for the main call-to-action on the result screen. */
+const RESULT_PRIMARY_BUTTON =
+  "w-full px-3 text-sm whitespace-nowrap sm:h-12 sm:px-6 sm:text-base bg-gradient-to-r from-accent-primary to-[#7c3aed] shadow-[0_0_24px_rgba(168,85,247,0.45)]";
+
 export default function MatchPage() {
   const params = useParams();
   const router = useRouter();
@@ -45,6 +51,7 @@ export default function MatchPage() {
   const { addToast } = useToast();
   const { connectionState } = useWebSocket();
   const { handleError } = useErrorHandler({ context: "Match" });
+  const { player: localPlayer } = usePlayer();
 
   const [showResultModal, setShowResultModal] = useState(false);
   const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
@@ -281,17 +288,49 @@ export default function MatchPage() {
           ? `The ${botInfo.botDifficulty} bot won this time. Try again!`
           : "Better luck next time!";
 
+  // "You vs Opponent" panel on the result screen
+  const infoFor = (p: "X" | "O") => (p === "X" ? matchState.score.playerX : matchState.score.playerO);
+  const localName = localPlayer?.displayName || localPlayer?.username;
+  const toResultPlayer = (p: "X" | "O"): ResultPlayer => {
+    const info = infoFor(p);
+    const isYou = p === yourPlayer;
+    const change = result?.ratingChanges?.[p];
+    const name =
+      info.isBot && info.botDifficulty
+        ? info.name.replace(/\s*\((easy|medium|hard)\)\s*$/i, "")
+        : // Prefer the signed-in profile for yourself: the name stored on the
+          // match can be a generic "Player" if it was created before you had a display name.
+          (isYou && localName) || info.name;
+    return {
+      name,
+      isBot: info.isBot,
+      tag: info.isBot && info.botDifficulty ? `${info.botDifficulty[0].toUpperCase()}${info.botDifficulty.slice(1)}` : undefined,
+      rankName: info.isBot ? undefined : info.rank?.name,
+      rankColor: info.isBot ? undefined : info.rank?.color,
+      rating: change?.after ?? info.rating,
+      // Bots' rating swings are internal bookkeeping — only show real players' deltas.
+      ratingChange: info.isBot ? null : (change?.change ?? null),
+    };
+  };
+  const youResult = yourPlayer ? toResultPlayer(yourPlayer) : undefined;
+  const opponentResult = yourPlayer ? toResultPlayer(yourPlayer === "X" ? "O" : "X") : undefined;
+
   return (
-    <main className="space-scope relative isolate flex-1 flex flex-col px-3 sm:px-4 py-4 sm:py-6">
+    <main className="space-scope relative isolate flex-1 flex flex-col px-3 sm:px-4 py-3 sm:py-4">
       <ScreenBackdrop image="rankedMatchBg" dim={0.35} />
 
       {/* Offline Banner */}
       <OfflineBanner />
 
-      <div className="w-full max-w-5xl mx-auto flex flex-col gap-3 sm:gap-5">
-        {/* Connection Status */}
-        <ConnectionStatus connectionState={connectionState} compact={false} />
+      {/* Connection status floats over the page (it auto-hides after connecting),
+          so it never pushes the board down while joining. */}
+      <div className="pointer-events-none absolute inset-x-3 top-2 z-30 mx-auto max-w-md">
+        <div className="pointer-events-auto">
+          <ConnectionStatus connectionState={connectionState} compact={false} />
+        </div>
+      </div>
 
+      <div className="match-stage w-full max-w-6xl mx-auto flex flex-col gap-3 lg:gap-4">
         {/* Players */}
         <ScorePanel
           score={matchState.score}
@@ -299,29 +338,37 @@ export default function MatchPage() {
           yourPlayer={yourPlayer}
           isGameOver={matchState.isGameOver}
           winner={matchState.winner}
+          compact
           className="max-w-2xl mx-auto"
         />
 
-        {/* Turn Indicator */}
-        <TurnIndicator
-          currentPlayer={matchState.turn.currentPlayer}
-          yourPlayer={yourPlayer}
-          isYourTurn={matchState.turn.isYourTurn}
-          isGameOver={matchState.isGameOver}
-          winner={matchState.winner}
-          isDraw={matchState.isDraw}
-          showDraw={showDraw}
-          className="mx-auto w-full max-w-xs"
-        />
+        {/* Turn status. The bot slot below is always reserved in bot matches
+            (fixed height, fades in/out) so "thinking" never shifts the board. */}
+        <div className="mx-auto flex w-full max-w-sm flex-col gap-2">
+          <TurnIndicator
+            currentPlayer={matchState.turn.currentPlayer}
+            yourPlayer={yourPlayer}
+            isYourTurn={matchState.turn.isYourTurn}
+            isGameOver={matchState.isGameOver}
+            winner={matchState.winner}
+            isDraw={matchState.isDraw}
+            showDraw={showDraw}
+            className="w-full"
+          />
 
-        {/* Bot Thinking Indicator */}
-        {botInfo.isBotThinking && (
-          <BotThinkingIndicator botDifficulty={botInfo.botDifficulty || 'medium'} />
-        )}
+          {botInfo.isBotMatch && (
+            <BotThinkingIndicator
+              active={botInfo.isBotThinking && !matchState.isGameOver}
+              botDifficulty={botInfo.botDifficulty || "medium"}
+            />
+          )}
+        </div>
 
-        {/* Board flanked by match info */}
-        <div className="grid items-center gap-4 lg:grid-cols-[1fr_minmax(0,520px)_1fr] lg:gap-8">
-          <aside className="order-2 lg:order-1 grid grid-cols-2 gap-3 lg:grid-cols-1">
+        {/* Board flanked by match info.
+            Mobile: board on top, the four info tiles in a 2x2 grid below.
+            Desktop: tiles on either side of a board sized to fit the viewport. */}
+        <div className="grid grid-cols-2 items-stretch gap-3 lg:items-center lg:grid-cols-[minmax(0,1fr)_var(--match-board)_minmax(0,1fr)] lg:gap-6">
+          <aside className="contents lg:flex lg:flex-col lg:gap-3">
             <InfoTile label="Time">
               <MatchTimer
                 matchStartedAt={matchStartedAt}
@@ -335,7 +382,7 @@ export default function MatchPage() {
             </InfoTile>
           </aside>
 
-          <div className="order-1 lg:order-2">
+          <div className="match-board-slot col-span-2 order-first lg:order-none lg:col-span-1">
             <GameBoard
               board={matchState.board}
               currentPlayer={matchState.turn.currentPlayer}
@@ -351,15 +398,15 @@ export default function MatchPage() {
             />
           </div>
 
-          <aside className="order-3 grid grid-cols-2 gap-3 lg:grid-cols-1">
+          <aside className="contents lg:flex lg:flex-col lg:gap-3">
             <InfoTile label="Move #">
               <span className="font-display text-xl font-semibold">{moveCount + (matchState.isGameOver ? 0 : 1)}</span>
             </InfoTile>
             {isSlidingMode && !matchState.isGameOver ? (
               <MarkCountPanel
+                variant="tile"
                 markCounts={markCounts}
                 currentPlayer={matchState.turn.currentPlayer}
-                className="!justify-between"
               />
             ) : (
               <InfoTile label="Spectators">
@@ -410,69 +457,77 @@ export default function MatchPage() {
           duration={result?.duration || "0:00"}
           moves={result?.moveCount || moveCount}
           youPlayed={yourPlayer || "?"}
+          you={youResult}
+          opponent={opponentResult}
+          actions={
+            <>
+              {/* Rematch UI - Hidden for bot matches */}
+              {!botInfo.isBotMatch && opponentRequestedRematch ? (
+                <div className="p-3 rounded-xl bg-accent-primary/10 border-2 border-accent-primary animate-pulse">
+                  <p className="text-base font-semibold mb-2">
+                    🎮 Opponent wants a rematch!
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button onClick={acceptRematch}>Accept Rematch</Button>
+                    <Button variant="secondary" onClick={declineRematch}>
+                      Decline
+                    </Button>
+                  </div>
+                </div>
+              ) : !botInfo.isBotMatch && rematchRequested ? (
+                <div className="p-3 rounded-xl glass-panel">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" />
+                    <p className="text-sm text-text-secondary">
+                      Waiting for opponent to accept...
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                {!botInfo.isBotMatch && !rematchRequested && !opponentRequestedRematch ? (
+                  <Button
+                    onClick={requestRematch}
+                    className={RESULT_PRIMARY_BUTTON + " col-span-2"}
+                    rightIcon={<span aria-hidden="true">→</span>}
+                  >
+                    Request Rematch
+                  </Button>
+                ) : null}
+                <Link href={ROUTES.PLAY} className="block">
+                  {botInfo.isBotMatch ? (
+                    <Button
+                      className={RESULT_PRIMARY_BUTTON}
+                      rightIcon={<span aria-hidden="true">→</span>}
+                    >
+                      Find New Match
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      className="w-full px-3 text-sm whitespace-nowrap sm:h-12 sm:px-6 sm:text-base border-white/15 bg-white/5"
+                    >
+                      Find New Match
+                    </Button>
+                  )}
+                </Link>
+                <Link href={ROUTES.HOME} className="block">
+                  <Button
+                    variant="secondary"
+                    className="w-full px-3 text-sm whitespace-nowrap sm:h-12 sm:px-6 sm:text-base border-white/15 bg-black/30"
+                  >
+                    Back to Home
+                  </Button>
+                </Link>
+              </div>
+            </>
+          }
         >
-          {/* Bot Match Info */}
-          {botInfo.isBotMatch && (
-            <div className="mb-6 p-3 rounded-lg bg-purple-500/10 border border-purple-500/30 text-center">
-              <p className="text-sm text-purple-400">
-                🤖 Bot match rating changes are reduced (0.6x multiplier)
-              </p>
-            </div>
-          )}
-
-          {/* Rematch UI - Hidden for bot matches */}
-          {!botInfo.isBotMatch && opponentRequestedRematch ? (
-            <div className="mb-6 p-4 rounded-xl bg-accent-primary/10 border-2 border-accent-primary animate-pulse">
-              <p className="text-lg font-semibold mb-3">
-                🎮 Opponent wants a rematch!
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button size="lg" onClick={acceptRematch}>
-                  Accept Rematch
-                </Button>
-                <Button variant="secondary" size="lg" onClick={declineRematch}>
-                  Decline
-                </Button>
-              </div>
-            </div>
-          ) : !botInfo.isBotMatch && rematchRequested ? (
-            <div className="mb-6 p-4 rounded-xl glass-panel">
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" />
-                <p className="text-text-secondary">
-                  Waiting for opponent to accept...
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
-            {!botInfo.isBotMatch && !rematchRequested && !opponentRequestedRematch ? (
-              <Button
-                size="lg"
-                onClick={requestRematch}
-                className="bg-gradient-to-r from-accent-primary to-[#7c3aed]"
-                rightIcon={<span aria-hidden="true">→</span>}
-              >
-                Request Rematch
-              </Button>
-            ) : null}
-            <Link href={ROUTES.PLAY}>
-              <Button variant="secondary" size="lg" className="w-full sm:w-auto border-white/15 bg-white/5">
-                Find New Match
-              </Button>
-            </Link>
-            <Link href={ROUTES.HOME}>
-              <Button variant="ghost" size="lg" className="w-full sm:w-auto">
-                Back to Home
-              </Button>
-            </Link>
-          </div>
-
           {/* Share victory / match to social feeds */}
-          <div className="p-4 rounded-xl glass-panel">
-            <p className="text-sm text-text-secondary mb-3 text-center">
+          <div className="px-3 py-2.5 rounded-xl glass-panel">
+            <p className="text-xs sm:text-sm text-text-secondary mb-2 text-center">
               {outcome === "win" ? "Share your victory!" : "Challenge friends to beat you!"}
             </p>
             <ShareButtons
@@ -485,6 +540,13 @@ export default function MatchPage() {
               variant="icons"
             />
           </div>
+
+          {/* Bot Match Info */}
+          {botInfo.isBotMatch && (
+            <p className="text-xs text-purple-400">
+              🤖 Bot match rating changes are reduced (0.6x multiplier)
+            </p>
+          )}
         </MatchResultOverlay>
       )}
 
@@ -551,7 +613,7 @@ function DisconnectWarningBanner({ timeoutMs }: { timeoutMs: number }) {
 
 function InfoTile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="glass-panel px-4 py-3">
+    <div className="glass-panel min-w-0 px-4 py-3">
       <div className="mb-1 text-xs text-text-muted">{label}</div>
       <div className="text-text-primary">{children}</div>
     </div>

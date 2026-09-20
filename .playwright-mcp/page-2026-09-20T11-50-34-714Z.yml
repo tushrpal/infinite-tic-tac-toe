@@ -1,0 +1,59 @@
+- generic [active] [ref=f18e1]:
+  - generic [ref=f18e2]:
+    - navigation [ref=f18e3]:
+      - generic [ref=f18e5]:
+        - link "Infinite TTT" [ref=f18e6] [cursor=pointer]:
+          - /url: /
+        - generic [ref=f18e10]:
+          - link "Play" [ref=f18e11] [cursor=pointer]:
+            - /url: /play
+          - link "Leaderboard" [ref=f18e12] [cursor=pointer]:
+            - /url: /leaderboard
+          - link "How to Play" [ref=f18e13] [cursor=pointer]:
+            - /url: /how-to-play
+          - link "Profile" [ref=f18e14] [cursor=pointer]:
+            - /url: /profile
+        - generic [ref=f18e49]:
+          - button "Friends" [ref=f18e50] [cursor=pointer]
+          - generic [ref=f18e53]:
+            - link "Open profile" [ref=f18e54] [cursor=pointer]:
+              - /url: /profile
+              - generic [ref=f18e55]: T
+              - generic [ref=f18e56]:
+                - generic [ref=f18e57]: test
+                - generic [ref=f18e58]:
+                  - img "Bronze rank" [ref=f18e59]
+                  - text: Bronze
+            - button "Logout" [ref=f18e60] [cursor=pointer]
+    - main [ref=f18e15]:
+      - generic [ref=f18e16]:
+        - link "← Back to Mode Selection" [ref=f18e18] [cursor=pointer]:
+          - /url: /play
+        - generic [ref=f18e61]:
+          - status [ref=f18e62]:
+            - heading "Finding Your Opponent" [level=1] [ref=f18e63]
+            - paragraph [ref=f18e64]: Searching for a player with a similar skill level…
+          - generic [ref=f18e65]:
+            - generic [ref=f18e66]:
+              - generic [ref=f18e67]: T
+              - generic [ref=f18e68]: test
+              - generic [ref=f18e69]:
+                - img "Bronze rank" [ref=f18e70]
+                - text: Bronze
+              - generic [ref=f18e71]: "Rating: 200"
+            - generic [ref=f18e80]:
+              - generic [ref=f18e81]: "?"
+              - generic [ref=f18e82]: Searching…
+          - paragraph [ref=f18e84]:
+            - text: Search range
+            - generic [ref=f18e85]: ±100
+            - text: rating
+          - timer [ref=f18e86]: 00:05
+          - generic [ref=f18e87]:
+            - button "Cancel Matchmaking" [ref=f18e88] [cursor=pointer]
+            - list [ref=f18e89]:
+              - listitem [ref=f18e90]: Matchmaking tips
+              - listitem [ref=f18e91]: ✓ We match players with similar ratings
+              - listitem [ref=f18e92]: ✓ The search range expands over time
+              - listitem [ref=f18e93]: ✓ You'll be notified instantly
+  - alert [ref=f18e94]

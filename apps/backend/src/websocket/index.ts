@@ -602,7 +602,7 @@ class WebSocketManager {
         return;
       }
 
-      const resolvedUsername = playerProfile.displayName || username || 'Player';
+      const resolvedUsername = playerProfile.displayName || playerProfile.username || username || 'Player';
       const resolvedRating = playerProfile.rating ?? this.DEFAULT_RATING;
 
       const existingClient = this.clients.get(playerId);
@@ -771,7 +771,7 @@ class WebSocketManager {
         return;
       }
 
-      const resolvedUsername = playerProfile.displayName || username || 'Player';
+      const resolvedUsername = playerProfile.displayName || playerProfile.username || username || 'Player';
       const resolvedRating = playerProfile.rating ?? this.DEFAULT_RATING;
 
       const existingClient = this.clients.get(playerId);
@@ -2311,11 +2311,11 @@ class WebSocketManager {
     }, 60000);
   }
 
-  private async loadPlayerProfile(playerId: string, mode: GameMode): Promise<{ id: string; rating: number; displayName: string | null } | null> {
+  private async loadPlayerProfile(playerId: string, mode: GameMode): Promise<{ id: string; rating: number; displayName: string | null; username: string } | null> {
     const prisma = getPrismaClient();
     const player = await prisma.player.findUnique({
       where: { id: playerId },
-      select: { id: true, ratingMode1: true, ratingMode2: true, displayName: true },
+      select: { id: true, ratingMode1: true, ratingMode2: true, displayName: true, username: true },
     });
 
     if (!player) {
@@ -2326,6 +2326,7 @@ class WebSocketManager {
       id: player.id,
       rating: mode === 'MODE_1' ? player.ratingMode1 : player.ratingMode2,
       displayName: player.displayName,
+      username: player.username,
     };
   }
 

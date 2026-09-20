@@ -1,0 +1,218 @@
+- generic [ref=f72e1]:
+  - generic [ref=f72e2]:
+    - navigation [ref=f72e3]:
+      - generic [ref=f72e5]:
+        - link "Infinite TTT" [ref=f72e6] [cursor=pointer]:
+          - /url: /
+        - generic [ref=f72e10]:
+          - link "Play" [ref=f72e11] [cursor=pointer]:
+            - /url: /play
+          - link "Leaderboard" [ref=f72e12] [cursor=pointer]:
+            - /url: /leaderboard
+          - link "How to Play" [ref=f72e13] [cursor=pointer]:
+            - /url: /how-to-play
+          - link "Profile" [ref=f72e14] [cursor=pointer]:
+            - /url: /profile
+        - generic [ref=f72e23]:
+          - button "Friends" [ref=f72e24] [cursor=pointer]
+          - generic [ref=f72e27]:
+            - link "Open profile" [ref=f72e28] [cursor=pointer]:
+              - /url: /profile
+              - generic [ref=f72e29]: T
+              - generic [ref=f72e30]:
+                - generic [ref=f72e31]: test
+                - generic [ref=f72e32]:
+                  - img "Bronze rank" [ref=f72e33]
+                  - text: Bronze
+            - button "Logout" [ref=f72e34] [cursor=pointer]
+    - main [ref=f72e15]:
+      - generic [ref=f72e16]:
+        - link "Back to Home" [ref=f72e18] [cursor=pointer]:
+          - /url: /
+        - generic [ref=f72e36]:
+          - generic [ref=f72e37]:
+            - generic [ref=f72e38]:
+              - generic [ref=f72e39]: T
+              - img "Bronze rank" [ref=f72e40]
+            - generic [ref=f72e42]:
+              - text: Display name
+              - textbox "Display name" [active] [ref=f72e43]:
+                - /placeholder: Enter display name
+              - generic [ref=f72e44]:
+                - button "Save" [ref=f72e45] [cursor=pointer]
+                - button "Cancel" [ref=f72e46] [cursor=pointer]
+          - generic [ref=f72e47]:
+            - generic [ref=f72e48]:
+              - generic [ref=f72e52]: "388"
+              - generic [ref=f72e53]: Total Rating
+            - generic [ref=f72e54]:
+              - generic [ref=f72e58]: "188"
+              - generic [ref=f72e59]: Sliding
+            - generic [ref=f72e60]:
+              - generic [ref=f72e67]: "200"
+              - generic [ref=f72e68]: Expanding
+        - generic [ref=f72e69]:
+          - generic [ref=f72e81]:
+            - generic [ref=f72e82]: "4"
+            - generic [ref=f72e83]: Matches
+          - generic [ref=f72e92]:
+            - generic [ref=f72e93]: "1"
+            - generic [ref=f72e94]: Wins
+          - generic [ref=f72e103]:
+            - generic [ref=f72e104]: "3"
+            - generic [ref=f72e105]: Losses
+          - generic [ref=f72e113]:
+            - generic [ref=f72e114]: "0"
+            - generic [ref=f72e115]: Draws
+          - generic [ref=f72e119]:
+            - generic [ref=f72e120]: 25.0%
+            - generic [ref=f72e121]: Win Rate
+        - generic [ref=f72e122]:
+          - generic [ref=f72e123]:
+            - generic [ref=f72e124]:
+              - heading "Win Rate" [level=2] [ref=f72e125]
+              - generic [ref=f72e129]: 25.0%
+            - generic [ref=f72e132]:
+              - generic [ref=f72e133]: 1 Wins
+              - generic [ref=f72e135]: 0 Draws
+              - generic [ref=f72e137]: 3 Losses
+            - generic [ref=f72e139]:
+              - generic [ref=f72e140]: Last 4
+              - generic "loss" [ref=f72e141]: L
+              - generic "win" [ref=f72e142]: W
+              - generic "loss" [ref=f72e143]: L
+              - generic "loss" [ref=f72e144]: L
+          - generic [ref=f72e149]:
+            - generic [ref=f72e150]: Keep Going!
+            - paragraph [ref=f72e151]: Every game makes you stronger.
+        - generic [ref=f72e152]:
+          - region [ref=f72e153]:
+            - generic [ref=f72e154]:
+              - heading "Rank Progress" [level=2] [ref=f72e155]
+              - generic [ref=f72e157]: 600 points to Silver
+            - list [ref=f72e158]:
+              - listitem [ref=f72e159]:
+                - img "Bronze rank" [ref=f72e160]
+                - generic [ref=f72e161]: Bronze
+                - generic [ref=f72e162]: You are here
+              - listitem [ref=f72e163]:
+                - img "Silver rank" [ref=f72e164]
+                - generic [ref=f72e165]: Silver
+              - listitem [ref=f72e166]:
+                - img "Gold rank" [ref=f72e167]
+                - generic [ref=f72e168]: Gold
+              - listitem [ref=f72e169]:
+                - img "Platinum rank" [ref=f72e170]
+                - generic [ref=f72e171]: Platinum
+              - listitem [ref=f72e172]:
+                - img "Diamond rank" [ref=f72e173]
+                - generic [ref=f72e174]: Diamond
+              - listitem [ref=f72e175]:
+                - img "Master rank" [ref=f72e176]
+                - generic [ref=f72e177]: Master
+              - listitem [ref=f72e178]:
+                - img "Grandmaster rank" [ref=f72e179]
+                - generic [ref=f72e180]: Grandmaster
+            - generic [ref=f72e184]:
+              - generic [ref=f72e185]: 200 / 800
+              - generic [ref=f72e186]: 600 points to next rank
+          - generic [ref=f72e187]:
+            - heading [level=2] [ref=f72e189]
+            - generic [ref=f72e195]:
+              - img "Silver rank" [ref=f72e196]
+              - generic [ref=f72e197]:
+                - generic [ref=f72e198]: Reach Silver
+                - paragraph [ref=f72e199]: Keep playing and improve your rating!
+            - generic [ref=f72e203]:
+              - generic [ref=f72e204]: 200 / 800
+              - generic [ref=f72e205]: 600 points needed
+        - generic [ref=f72e206]:
+          - generic [ref=f72e207]:
+            - heading "Connected Accounts" [level=2] [ref=f72e208]
+            - generic [ref=f72e212]:
+              - generic [ref=f72e213]:
+                - generic [ref=f72e221]:
+                  - generic [ref=f72e222]: Google
+                  - generic [ref=f72e223]: Not connected
+                - button "Link" [ref=f72e224] [cursor=pointer]
+              - generic [ref=f72e225]:
+                - generic [ref=f72e230]:
+                  - generic [ref=f72e231]: Discord
+                  - generic [ref=f72e232]: Not connected
+                - button "Link" [ref=f72e233] [cursor=pointer]
+            - generic [ref=f72e234]: 💡 Link your account to Google or Discord to access it from any device and never lose your progress!
+          - generic [ref=f72e235]:
+            - heading [level=2] [ref=f72e237]
+            - generic [ref=f72e241]:
+              - generic "Win your first match" [ref=f72e242]: First Win!
+              - generic "Win 5 in a row (recent matches)" [ref=f72e250]: 5 Win Streak
+              - generic "Get to 800 rating" [ref=f72e259]: Reach Silver
+        - generic [ref=f72e268]:
+          - generic [ref=f72e269]:
+            - heading [level=2] [ref=f72e270]
+            - generic [ref=f72e275]: Replays kept for last 3 matches
+          - generic [ref=f72e276]:
+            - generic [ref=f72e277]:
+              - generic [ref=f72e278]: Opponent
+              - generic [ref=f72e279]: Mode
+              - generic [ref=f72e280]: Result
+              - generic [ref=f72e281]: Rating Change
+              - generic [ref=f72e282]: Date
+              - generic [ref=f72e283]: Replay
+            - list [ref=f72e284]:
+              - listitem [ref=f72e285]:
+                - generic [ref=f72e286]:
+                  - generic [ref=f72e287]:
+                    - generic [ref=f72e288]: 🤖
+                    - generic [ref=f72e290]: Easy Bot
+                  - generic [ref=f72e292]:
+                    - generic [ref=f72e293]: easy
+                    - generic [ref=f72e294]: Ranked
+                    - generic [ref=f72e295]: Sliding
+                  - generic [ref=f72e296]: loss
+                  - generic [ref=f72e298]: "-12"
+                  - generic [ref=f72e299]: 37m ago
+                  - link "Replay" [ref=f72e300] [cursor=pointer]:
+                    - /url: /replay/match_bot_1789907830923_pzyl1ebo
+              - listitem [ref=f72e304]:
+                - generic [ref=f72e305]:
+                  - generic [ref=f72e306]:
+                    - generic [ref=f72e307]: 🤖
+                    - generic [ref=f72e309]: Easy Bot
+                  - generic [ref=f72e311]:
+                    - generic [ref=f72e312]: easy
+                    - generic [ref=f72e313]: Practice
+                    - generic [ref=f72e314]: Sliding
+                  - generic [ref=f72e315]: win
+                  - generic [ref=f72e317]: "0"
+                  - generic [ref=f72e318]: 48m ago
+                  - link "Replay" [ref=f72e319] [cursor=pointer]:
+                    - /url: /replay/match_practice_1789907224333_ktytma9p
+              - listitem [ref=f72e323]:
+                - generic [ref=f72e324]:
+                  - generic [ref=f72e325]:
+                    - generic [ref=f72e326]: 🤖
+                    - generic [ref=f72e328]: Easy Bot
+                  - generic [ref=f72e330]:
+                    - generic [ref=f72e331]: easy
+                    - generic [ref=f72e332]: Practice
+                    - generic [ref=f72e333]: Sliding
+                  - generic [ref=f72e334]: loss
+                  - generic [ref=f72e336]: "0"
+                  - generic [ref=f72e337]: 1h ago
+                  - generic "Only your last 3 match replays are stored" [ref=f72e338]: No replay
+              - listitem [ref=f72e343]:
+                - generic [ref=f72e344]:
+                  - generic [ref=f72e345]:
+                    - generic [ref=f72e346]: 🤖
+                    - generic [ref=f72e348]: Easy Bot
+                  - generic [ref=f72e350]:
+                    - generic [ref=f72e351]: easy
+                    - generic [ref=f72e352]: Practice
+                    - generic [ref=f72e353]: Sliding
+                  - generic [ref=f72e354]: loss
+                  - generic [ref=f72e356]: "0"
+                  - generic [ref=f72e357]: 1h ago
+                  - link "Replay" [ref=f72e358] [cursor=pointer]:
+                    - /url: /replay/match_practice_1789904521209_clb2cw0d
+  - alert [ref=f72e362]

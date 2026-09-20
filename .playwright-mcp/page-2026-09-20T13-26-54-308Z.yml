@@ -1,0 +1,20 @@
+- generic [ref=f6e2]:
+  - navigation [ref=f6e3]:
+    - generic [ref=f6e5]:
+      - link "Infinite TTT" [ref=f6e6] [cursor=pointer]:
+        - /url: /
+      - button "Toggle menu" [ref=f6e10] [cursor=pointer]
+  - generic [ref=f6e14]:
+    - link "Home" [ref=f6e15] [cursor=pointer]:
+      - /url: /
+    - link "Play" [ref=f6e18] [cursor=pointer]:
+      - /url: /play
+    - link "Ranks" [ref=f6e21] [cursor=pointer]:
+      - /url: /leaderboard
+    - link "Profile" [ref=f6e24] [cursor=pointer]:
+      - /url: /profile
+  - main [ref=f6e27]:
+    - generic [ref=f6e28]:
+      - link "Back to Home" [ref=f6e30] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f6e33]: Loading profile...

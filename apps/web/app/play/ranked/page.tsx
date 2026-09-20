@@ -120,7 +120,7 @@ export default function RankedPlayPage() {
         player.playerId,
         selectedMode,
         true,
-        player.displayName || "Player",
+        player.displayName || player.username || "Player",
       ); // ranked = true
     }
   }, [socket, isConnected, selectedMode, player]);
@@ -163,6 +163,7 @@ export default function RankedPlayPage() {
       <ScreenBackdrop
         image={queueState === "queuing" ? "queueBg" : "queueMatchBg"}
         dim={queueState === "queuing" ? 0.3 : 0.5}
+        alignToAnchor={queueState === "queuing"}
       />
       <div className={cn("w-full", queueState === "queuing" ? "max-w-3xl" : "max-w-md")}>
         {/* Header */}

@@ -1,0 +1,45 @@
+- generic [active] [ref=f18e1]:
+  - generic [ref=f18e2]:
+    - navigation [ref=f18e3]:
+      - generic [ref=f18e5]:
+        - link "Infinite TTT" [ref=f18e6] [cursor=pointer]:
+          - /url: /
+        - button "Toggle menu" [ref=f18e95] [cursor=pointer]
+    - generic [ref=f18e99]:
+      - link "Home" [ref=f18e100] [cursor=pointer]:
+        - /url: /
+      - link "Play" [ref=f18e103] [cursor=pointer]:
+        - /url: /play
+      - link "Ranks" [ref=f18e106] [cursor=pointer]:
+        - /url: /leaderboard
+      - link "Profile" [ref=f18e109] [cursor=pointer]:
+        - /url: /profile
+    - main [ref=f18e15]:
+      - generic [ref=f18e16]:
+        - link "← Back to Mode Selection" [ref=f18e18] [cursor=pointer]:
+          - /url: /play
+        - generic [ref=f18e19]:
+          - heading "Ranked Match" [level=1] [ref=f18e112]
+          - paragraph [ref=f18e113]: Compete for glory and climb the ladder
+          - generic [ref=f18e22]:
+            - generic [ref=f18e23]: Bronze
+            - generic [ref=f18e28]: "200"
+            - generic [ref=f18e29]: Rating Points
+            - generic [ref=f18e30]:
+              - generic [ref=f18e31]:
+                - generic [ref=f18e32]: Bronze
+                - generic [ref=f18e33]: Silver
+              - generic [ref=f18e35]: 600 points to next rank
+          - generic [ref=f18e114]:
+            - generic [ref=f18e115]: Select Game Mode
+            - generic [ref=f18e116]:
+              - button "⚡ Sliding Marks slide after 3 placed" [ref=f18e117] [cursor=pointer]:
+                - generic [ref=f18e118]: ⚡ Sliding
+                - generic [ref=f18e119]: Marks slide after 3 placed
+              - button "🎯 Expanding Board grows each round" [ref=f18e120] [cursor=pointer]:
+                - generic [ref=f18e121]: 🎯 Expanding
+                - generic [ref=f18e122]: Board grows each round
+          - generic [ref=f18e123]: Ready
+          - button "Find Ranked Match" [ref=f18e125] [cursor=pointer]
+          - paragraph [ref=f18e126]: ⚠️ Leaving a ranked match will result in a rating penalty
+  - alert [ref=f18e94]

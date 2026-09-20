@@ -1,0 +1,65 @@
+- generic [ref=f12e1]:
+  - generic [ref=f12e2]:
+    - navigation [ref=f12e3]:
+      - generic [ref=f12e5]:
+        - link "Infinite TTT" [ref=f12e6] [cursor=pointer]:
+          - /url: /
+        - generic [ref=f12e10]:
+          - link "Play" [ref=f12e11] [cursor=pointer]:
+            - /url: /play
+          - link "Leaderboard" [ref=f12e12] [cursor=pointer]:
+            - /url: /leaderboard
+          - link "How to Play" [ref=f12e13] [cursor=pointer]:
+            - /url: /how-to-play
+          - link "Profile" [ref=f12e14] [cursor=pointer]:
+            - /url: /profile
+        - generic [ref=f12e68]:
+          - button "Friends" [ref=f12e69] [cursor=pointer]
+          - generic [ref=f12e72]:
+            - link "Open profile" [ref=f12e73] [cursor=pointer]:
+              - /url: /profile
+              - generic [ref=f12e74]: T
+              - generic [ref=f12e75]:
+                - generic [ref=f12e76]: test
+                - generic [ref=f12e77]:
+                  - img "Bronze rank" [ref=f12e78]
+                  - text: Bronze
+            - button "Logout" [ref=f12e79] [cursor=pointer]
+    - main [ref=f12e15]:
+      - generic [ref=f12e16]:
+        - generic [ref=f12e17]:
+          - link "Back to Play Menu" [ref=f12e18] [cursor=pointer]:
+            - /url: /play
+          - heading "Practice Mode" [level=1] [ref=f12e21]
+          - paragraph [ref=f12e22]: Unranked matches against bots — perfect for learning and experimentation
+        - generic [ref=f12e23]:
+          - generic [ref=f12e24]:
+            - heading "Select Game Mode" [level=2] [ref=f12e25]
+            - generic [ref=f12e26]:
+              - button [active] [ref=f12e27] [cursor=pointer]:
+                - heading "Sliding" [level=3] [ref=f12e29]
+                - paragraph [ref=f12e32]: Marks slide after 3 placed
+              - button [ref=f12e33] [cursor=pointer]:
+                - heading "Expanding" [level=3] [ref=f12e35]
+                - paragraph [ref=f12e36]: Board grows each round
+          - generic [ref=f12e37]:
+            - heading "Select Difficulty" [level=2] [ref=f12e38]
+            - generic [ref=f12e39]:
+              - button [ref=f12e40] [cursor=pointer]:
+                - heading "Easy" [level=3] [ref=f12e42]
+                - paragraph [ref=f12e43]: Random moves - perfect for learning
+              - button [ref=f12e44] [cursor=pointer]:
+                - heading "Medium" [level=3] [ref=f12e46]
+                - paragraph [ref=f12e49]: Tactical play - good challenge
+              - button [ref=f12e50] [cursor=pointer]:
+                - heading "Hard" [level=3] [ref=f12e52]
+                - paragraph [ref=f12e53]: Strategic thinking - expert level
+          - generic [ref=f12e58]:
+            - heading "Practice Mode Features" [level=3] [ref=f12e59]
+            - list [ref=f12e60]:
+              - listitem [ref=f12e61]: • Unranked — your rating won't change
+              - listitem [ref=f12e62]: • Instant matches — no waiting for opponents
+              - listitem [ref=f12e63]: • Choose your difficulty level
+              - listitem [ref=f12e64]: • Perfect for learning strategies and game mechanics
+          - button "Start Practice Match" [ref=f12e66] [cursor=pointer]
+  - alert [ref=f12e80]

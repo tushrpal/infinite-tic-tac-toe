@@ -99,7 +99,7 @@ export default function OnlinePlayPage() {
         player.playerId,
         selectedMode,
         false,
-        player.displayName || "Player",
+        player.displayName || player.username || "Player",
       );
     }
   }, [socket, isConnected, selectedMode, player]);
@@ -124,6 +124,7 @@ export default function OnlinePlayPage() {
       <ScreenBackdrop
         image={queueState === "queuing" ? "queueBg" : "queueMatchBg"}
         dim={queueState === "queuing" ? 0.3 : 0.5}
+        alignToAnchor={queueState === "queuing"}
       />
       <div className={cn("w-full", queueState === "queuing" ? "max-w-3xl" : "max-w-md")}>
         {/* Header */}

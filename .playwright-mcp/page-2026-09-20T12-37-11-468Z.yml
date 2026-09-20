@@ -1,0 +1,36 @@
+- generic [active] [ref=f48e1]:
+  - generic [ref=f48e2]:
+    - navigation [ref=f48e3]:
+      - generic [ref=f48e5]:
+        - link "Infinite TTT" [ref=f48e6] [cursor=pointer]:
+          - /url: /
+        - button "Toggle menu" [ref=f48e10] [cursor=pointer]
+    - generic [ref=f48e14]:
+      - link "Home" [ref=f48e15] [cursor=pointer]:
+        - /url: /
+      - link "Play" [ref=f48e18] [cursor=pointer]:
+        - /url: /play
+      - link "Ranks" [ref=f48e21] [cursor=pointer]:
+        - /url: /leaderboard
+      - link "Profile" [ref=f48e24] [cursor=pointer]:
+        - /url: /profile
+    - main [ref=f48e27]:
+      - generic [ref=f48e28]:
+        - link "← Back to Mode Selection" [ref=f48e30] [cursor=pointer]:
+          - /url: /play
+        - generic [ref=f48e31]:
+          - heading "Ranked Match" [level=1] [ref=f48e95]
+          - paragraph [ref=f48e96]: Compete for glory and climb the ladder
+          - generic [ref=f48e34]:
+            - generic [ref=f48e35]: Bronze
+            - generic [ref=f48e40]: "200"
+            - generic [ref=f48e41]: Rating Points
+            - generic [ref=f48e42]:
+              - generic [ref=f48e43]:
+                - generic [ref=f48e44]: Bronze
+                - generic [ref=f48e45]: Silver
+              - generic [ref=f48e47]: 600 points to next rank
+          - generic [ref=f48e97]:
+            - paragraph [ref=f48e101]: Match Found!
+            - paragraph [ref=f48e102]: Joining ranked game...
+  - alert [ref=f48e94]

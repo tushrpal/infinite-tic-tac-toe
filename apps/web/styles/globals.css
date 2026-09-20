@@ -210,6 +210,36 @@
     inset 0 0 24px rgba(168, 85, 247, 0.25);
 }
 
+/* Live match layout.
+   --match-board is the board's side length. It only uses absolute lengths
+   (no %) so the desktop grid can use it as a definite column width. It caps
+   the board by the viewport height so players + turn banner + board + footer
+   fit on one screen, and never drops below 280px. */
+.match-stage {
+  --match-board: min(
+    calc(100vw - 1.5rem),
+    max(280px, min(560px, calc(100vh - 19rem)))
+  );
+  --match-board: min(
+    calc(100vw - 1.5rem),
+    max(280px, min(560px, calc(100dvh - 19rem)))
+  );
+}
+
+.match-board-slot {
+  width: var(--match-board);
+  margin-inline: auto;
+}
+
+@media (min-width: 1024px) {
+  .match-stage {
+    /* Side tiles sit beside the board, but the footer row (Surrender) still
+       needs to stay on screen below it, so reserve a bit more height. */
+    --match-board: max(300px, min(560px, calc(100vh - 25rem)));
+    --match-board: max(300px, min(560px, calc(100dvh - 25rem)));
+  }
+}
+
 .space-scope .cell {
   border: 1px solid rgba(168, 85, 247, 0.28);
 }
@@ -390,6 +420,38 @@ body {
   animation: win-line 0.6s ease-out 0.2s forwards;
 }
 
+/* Loading dots: a left-to-right wave (stagger with animation-delay).
+   Each dot swells and lights up in turn, then rests dim. */
+@keyframes loading-dot-wave {
+  0%, 60%, 100% {
+    transform: translateY(0) scale(0.7);
+    opacity: 0.35;
+    box-shadow: 0 0 0 rgba(168, 85, 247, 0);
+  }
+  30% {
+    transform: translateY(-5px) scale(1.2);
+    opacity: 1;
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.9);
+  }
+}
+
+/* Opacity-only version for people who ask the OS to reduce motion —
+   still shows the app is working without any movement. */
+@keyframes loading-dot-fade {
+  0%, 60%, 100% { opacity: 0.3; }
+  30% { opacity: 1; }
+}
+
+.loading-dot {
+  animation: loading-dot-wave 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-dot {
+    animation: loading-dot-fade 1.2s ease-in-out infinite;
+  }
+}
+
 /* ================================================
    RESPONSIVE UTILITIES
    ================================================ */
@@ -495,9 +557,9 @@ body {
    ================================================ */
 
 @media (prefers-reduced-motion: reduce) {
-  *:not(.animate-spin),
-  *:not(.animate-spin)::before,
-  *:not(.animate-spin)::after {
+  *:not(.animate-spin):not(.loading-dot),
+  *:not(.animate-spin):not(.loading-dot)::before,
+  *:not(.animate-spin):not(.loading-dot)::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

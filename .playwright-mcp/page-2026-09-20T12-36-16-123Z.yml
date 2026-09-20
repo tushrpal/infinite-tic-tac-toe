@@ -1,0 +1,48 @@
+- generic [active] [ref=f48e1]:
+  - generic [ref=f48e2]:
+    - navigation [ref=f48e3]:
+      - generic [ref=f48e5]:
+        - link "Infinite TTT" [ref=f48e6] [cursor=pointer]:
+          - /url: /
+        - button "Toggle menu" [ref=f48e10] [cursor=pointer]
+    - generic [ref=f48e14]:
+      - link "Home" [ref=f48e15] [cursor=pointer]:
+        - /url: /
+      - link "Play" [ref=f48e18] [cursor=pointer]:
+        - /url: /play
+      - link "Ranks" [ref=f48e21] [cursor=pointer]:
+        - /url: /leaderboard
+      - link "Profile" [ref=f48e24] [cursor=pointer]:
+        - /url: /profile
+    - main [ref=f48e27]:
+      - generic [ref=f48e28]:
+        - link "← Back to Mode Selection" [ref=f48e30] [cursor=pointer]:
+          - /url: /play
+        - generic [ref=f48e61]:
+          - status [ref=f48e62]:
+            - heading "Finding Your Opponent" [level=1] [ref=f48e63]
+            - paragraph [ref=f48e64]: Searching for a player with a similar skill level…
+          - generic [ref=f48e65]:
+            - generic [ref=f48e66]:
+              - generic [ref=f48e67]: T
+              - generic [ref=f48e68]: test
+              - generic [ref=f48e69]:
+                - img "Bronze rank" [ref=f48e70]
+                - text: Bronze
+              - generic [ref=f48e71]: "Rating: 200"
+            - generic [ref=f48e80]:
+              - generic [ref=f48e81]: "?"
+              - generic [ref=f48e82]: Searching…
+          - paragraph [ref=f48e84]:
+            - text: Search range
+            - generic [ref=f48e85]: ±100
+            - text: rating
+          - timer [ref=f48e86]: 00:00
+          - generic [ref=f48e87]:
+            - button "Cancel Matchmaking" [ref=f48e88] [cursor=pointer]
+            - list [ref=f48e89]:
+              - listitem [ref=f48e90]: Matchmaking tips
+              - listitem [ref=f48e91]: ✓ We match players with similar ratings
+              - listitem [ref=f48e92]: ✓ The search range expands over time
+              - listitem [ref=f48e93]: ✓ You'll be notified instantly
+  - alert [ref=f48e94]

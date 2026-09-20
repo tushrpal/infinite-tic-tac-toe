@@ -16,6 +16,19 @@ export interface GameRule {
   example?: string;
 }
 
+/** One cell of a strategy illustration — see `MiniCell` in components/how-to-play. */
+export type TipCell = "X" | "O" | "X~" | "O~" | "*" | null;
+
+export interface StrategyTip {
+  title: string;
+  description: string;
+  priority: "high" | "medium" | "low";
+  /** Short takeaway shown under the description. */
+  takeaway: string;
+  /** 3×3 illustration, row-major. */
+  board: TipCell[];
+}
+
 export interface WinPattern {
   name: string;
   description: string;
@@ -153,36 +166,48 @@ export const winPatterns: WinPattern[] = [
 // Strategy Tips
 // ============================================
 
-export const strategyTips = [
+export const strategyTips: StrategyTip[] = [
   {
     title: "Control the Center",
     description: "The center cell (middle square) is the most valuable position. It's part of 4 different winning lines.",
     priority: "high",
+    takeaway: "If possible, take the center early in the game.",
+    board: [null, null, null, null, "*", null, null, null, null],
   },
   {
     title: "Create Multiple Threats",
     description: "Set up two winning opportunities at once. Your opponent can only block one!",
     priority: "high",
+    takeaway: "Look for moves that create two possible wins.",
+    board: ["X", null, null, null, "*", null, null, null, "X"],
   },
   {
     title: "Block Your Opponent",
     description: "Always check if your opponent is one move away from winning. Block them before pursuing your own win.",
     priority: "high",
+    takeaway: "Defense is as important as offense.",
+    board: ["O", "*", "O", null, "X", null, null, null, null],
   },
   {
     title: "Corner Strategy",
     description: "Corner cells are powerful. They're part of 3 winning lines each (one row, one column, one diagonal).",
     priority: "medium",
+    takeaway: "Corners give you more ways to build a threat.",
+    board: ["X", null, "*", null, null, null, "*", null, "*"],
   },
   {
     title: "Think Ahead (Sliding Mode)",
     description: "In sliding mode, remember which of your pieces will disappear next. Don't rely on pieces that are about to vanish!",
     priority: "medium",
+    takeaway: "Plan your next 2–3 moves, not just the next one.",
+    board: ["X~", null, "O", "O", null, null, null, null, null],
   },
   {
     title: "Force Mistakes",
     description: "Put pressure on your opponent by creating complex situations where they might overlook a threat.",
     priority: "low",
+    takeaway: "The best players make simple moves look threatening.",
+    board: [null, "X", null, null, null, "O", null, "O", null],
   },
 ];
 

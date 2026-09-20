@@ -1,0 +1,97 @@
+- generic [active] [ref=f24e1]:
+  - generic [ref=f24e2]:
+    - navigation [ref=f24e3]:
+      - generic [ref=f24e5]:
+        - link "Infinite TTT" [ref=f24e6] [cursor=pointer]:
+          - /url: /
+        - generic [ref=f24e80]:
+          - link "Play" [ref=f24e81] [cursor=pointer]:
+            - /url: /play
+          - link "Leaderboard" [ref=f24e82] [cursor=pointer]:
+            - /url: /leaderboard
+          - link "How to Play" [ref=f24e83] [cursor=pointer]:
+            - /url: /how-to-play
+          - link "Profile" [ref=f24e84] [cursor=pointer]:
+            - /url: /profile
+        - generic [ref=f24e85]:
+          - button "Friends" [ref=f24e86] [cursor=pointer]
+          - generic [ref=f24e89]:
+            - link "Open profile" [ref=f24e90] [cursor=pointer]:
+              - /url: /profile
+              - generic [ref=f24e91]: T
+              - generic [ref=f24e92]:
+                - generic [ref=f24e93]: test
+                - generic [ref=f24e94]:
+                  - img "Bronze rank" [ref=f24e95]
+                  - text: Bronze
+            - button "Logout" [ref=f24e96] [cursor=pointer]
+    - main [ref=f24e100]:
+      - generic [ref=f24e101]:
+        - generic [ref=f24e102]:
+          - generic [ref=f24e103]:
+            - generic [ref=f24e104]:
+              - generic [ref=f24e107]: test
+              - generic [ref=f24e108]: You
+            - generic [ref=f24e109]:
+              - generic [ref=f24e110]: Bronze
+              - generic [ref=f24e115]: Connected
+          - generic [ref=f24e118]: VS
+          - generic [ref=f24e120]:
+            - generic [ref=f24e121]:
+              - generic [ref=f24e124]: Random Bot
+              - generic [ref=f24e125]: 🤖
+            - generic [ref=f24e126]:
+              - generic [ref=f24e127]: easy
+              - generic [ref=f24e128]: Connected
+        - generic [ref=f24e131]:
+          - generic [ref=f24e132]: Your Turn
+          - status [aria-hidden]:
+            - generic:
+              - generic: 🤖
+              - generic: Bot is thinking...
+        - generic [ref=f24e138]:
+          - complementary [ref=f24e139]:
+            - generic [ref=f24e140]:
+              - generic [ref=f24e141]: Time
+              - generic [ref=f24e142]: 0:05
+            - generic [ref=f24e149]:
+              - generic [ref=f24e150]: Game Mode
+              - generic "Fixed 3×3 board. After placing 3 marks, your oldest mark disappears on your next move. No draws possible." [ref=f24e152]:
+                - generic [aria-hidden] [ref=f24e153]: ⚡
+                - text: Sliding Mode
+          - grid "3x3 Tic-Tac-Toe board" [ref=f24e156]:
+            - row [ref=f24e157]:
+              - gridcell [ref=f24e158]:
+                - 'button "Row 1, Column 1: Empty, click to place your mark" [ref=f24e159] [cursor=pointer]'
+              - gridcell [ref=f24e160]:
+                - 'button "Row 1, Column 2: Empty, click to place your mark" [ref=f24e161] [cursor=pointer]'
+              - gridcell [ref=f24e162]:
+                - 'button "Row 1, Column 3: Empty, click to place your mark" [ref=f24e163] [cursor=pointer]'
+            - row [ref=f24e164]:
+              - gridcell [ref=f24e165]:
+                - 'button "Row 2, Column 1: Empty, click to place your mark" [ref=f24e166] [cursor=pointer]'
+              - gridcell [ref=f24e167]:
+                - 'button "Row 2, Column 2: Empty, click to place your mark" [ref=f24e168] [cursor=pointer]'
+              - gridcell [ref=f24e169]:
+                - 'button "Row 2, Column 3: Empty, click to place your mark" [ref=f24e170] [cursor=pointer]'
+            - row [ref=f24e171]:
+              - gridcell [ref=f24e172]:
+                - 'button "Row 3, Column 1: Empty, click to place your mark" [ref=f24e173] [cursor=pointer]'
+              - gridcell [ref=f24e174]:
+                - 'button "Row 3, Column 2: Empty, click to place your mark" [ref=f24e175] [cursor=pointer]'
+              - gridcell [ref=f24e176]:
+                - 'button "Row 3, Column 3: Empty, click to place your mark" [ref=f24e177] [cursor=pointer]'
+          - complementary [ref=f24e178]:
+            - generic [ref=f24e179]:
+              - generic [ref=f24e180]: "Move #"
+              - generic [ref=f24e181]: "1"
+            - generic "Mark counts for sliding mode" [ref=f24e182]:
+              - generic [ref=f24e183]: Marks on board
+              - generic [ref=f24e184]:
+                - generic [ref=f24e185]: 0/3
+                - generic [ref=f24e189]: 0/3
+        - generic [ref=f24e193]:
+          - button "Surrender" [ref=f24e194] [cursor=pointer]
+          - link "Share Watch Link" [ref=f24e196] [cursor=pointer]:
+            - /url: /watch/match_practice_1789906481603_ldvasrmh
+  - alert [ref=f24e97]: Infinite Tic-Tac-Toe

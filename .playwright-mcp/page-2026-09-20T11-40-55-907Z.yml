@@ -1,0 +1,36 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e5]:
+      - link "Infinite TTT" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e10]:
+        - link "Play" [ref=e11] [cursor=pointer]:
+          - /url: /play
+        - link "Leaderboard" [ref=e12] [cursor=pointer]:
+          - /url: /leaderboard
+        - link "How to Play" [ref=e13] [cursor=pointer]:
+          - /url: /how-to-play
+        - link "Profile" [ref=e14] [cursor=pointer]:
+          - /url: /profile
+  - main [ref=e15]:
+    - generic [ref=e16]:
+      - link "← Back to Mode Selection" [ref=e18] [cursor=pointer]:
+        - /url: /play
+      - generic [ref=e19]:
+        - heading "Local Play" [level=1] [ref=e20]
+        - paragraph [ref=e21]: Select a game mode to start
+        - generic [ref=e22]:
+          - button "Mode 1 - Sliding (Infinite)" [ref=e23] [cursor=pointer]
+          - button "Mode 2 - Classic" [ref=e24] [cursor=pointer]
+          - button "Mode 3 - Expanding Board" [ref=e25] [cursor=pointer]
+        - generic [ref=e26]:
+          - heading "Mode Descriptions" [level=3] [ref=e27]
+          - paragraph [ref=e28]:
+            - strong [ref=e29]: "Mode 1 (Sliding):"
+            - text: After placing 3 marks, your oldest disappears. Never draws!
+          - paragraph [ref=e30]:
+            - strong [ref=e31]: "Mode 2 (Classic):"
+            - text: Standard Tic-Tac-Toe. First to 3 in a row wins.
+          - paragraph [ref=e32]:
+            - strong [ref=e33]: "Mode 3 (Expanding):"
+            - text: Round-based! Board grows each round (3×3 → 4×4 → 5×5...). Need N-in-a-row on N×N board. Best of 5!

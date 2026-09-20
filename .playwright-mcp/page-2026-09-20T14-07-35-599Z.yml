@@ -1,0 +1,215 @@
+- generic [ref=f6e2]:
+  - navigation [ref=f6e3]:
+    - generic [ref=f6e5]:
+      - link "Infinite TTT" [ref=f6e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f6e10]:
+        - link "Play" [ref=f6e11] [cursor=pointer]:
+          - /url: /play
+        - link "Leaderboard" [ref=f6e12] [cursor=pointer]:
+          - /url: /leaderboard
+        - link "How to Play" [ref=f6e13] [cursor=pointer]:
+          - /url: /how-to-play
+        - link "Profile" [ref=f6e14] [cursor=pointer]:
+          - /url: /profile
+  - main [ref=f6e15]:
+    - generic [ref=f6e16]:
+      - generic [ref=f6e17]:
+        - paragraph [aria-hidden] [ref=f6e18]: ThinkAdaptWin
+        - paragraph [ref=f6e42]: Learn · Strategize · Improve
+        - heading "How to Play" [level=1] [ref=f6e43]
+        - paragraph [ref=f6e44]: Master the art of Infinite Tic-Tac-Toe with our comprehensive guide. From basic rules to advanced strategies, everything you need to dominate.
+      - navigation "Guide sections" [ref=f6e45]:
+        - button [ref=f6e46] [cursor=pointer]
+        - button [ref=f6e50] [cursor=pointer]
+        - button [ref=f6e55] [cursor=pointer]
+        - button [ref=f6e59] [cursor=pointer]
+      - generic [ref=f6e63]:
+        - region [ref=f6e64]:
+          - generic [ref=f6e65]:
+            - heading [level=2] [ref=f6e66]
+            - paragraph [ref=f6e70]: Simple rulesEndless possibilities
+          - paragraph [ref=f6e71]: "Tic-Tac-Toe is a simple game, but mastering it takes strategy and practice. Here are the fundamentals:"
+          - generic [ref=f6e72]:
+            - generic [ref=f6e73]:
+              - generic [ref=f6e74]: "1"
+              - generic [ref=f6e75]:
+                - heading "Take Turns" [level=3] [ref=f6e76]
+                - paragraph [ref=f6e77]: Players alternate placing their marks (X or O) on the 3x3 grid. X always goes first.
+            - generic [ref=f6e82]:
+              - generic [ref=f6e83]: "2"
+              - generic [ref=f6e84]:
+                - heading "Mark Placement" [level=3] [ref=f6e85]
+                - paragraph [ref=f6e86]: Click or tap an empty cell to place your mark. Once placed, marks cannot be moved.
+            - generic [ref=f6e90]:
+              - generic [ref=f6e91]: "3"
+              - generic [ref=f6e92]:
+                - heading "Win or Draw" [level=3] [ref=f6e93]
+                - paragraph [ref=f6e94]: Get three of your marks in a row (horizontal, vertical, or diagonal) to win. If all cells are filled with no winner, the game is a draw.
+          - generic [ref=f6e98]:
+            - generic [ref=f6e100]:
+              - generic [ref=f6e101]:
+                - heading [level=3] [ref=f6e102]
+                - paragraph [ref=f6e114]: Click on empty cells to place your mark (X or O)
+                - list [ref=f6e115]:
+                  - listitem [ref=f6e116]: Player X (goes first)
+                  - listitem [ref=f6e119]: Player O (goes second)
+                - paragraph [ref=f6e122]: "Tip: Try to control the center cell. It's part of all 4 winning lines!"
+              - generic [ref=f6e123]:
+                - generic [ref=f6e124]:
+                  - 'button "Cell 1: X" [disabled] [ref=f6e125]'
+                  - button "Place X in cell 2" [ref=f6e128] [cursor=pointer]
+                  - 'button "Cell 3: O" [disabled] [ref=f6e129]'
+                  - button "Place X in cell 4" [ref=f6e132] [cursor=pointer]
+                  - 'button "Cell 5: X" [disabled] [ref=f6e133]'
+                  - button "Place X in cell 6" [ref=f6e136] [cursor=pointer]
+                  - 'button "Cell 7: O" [disabled] [ref=f6e137]'
+                  - button "Place X in cell 8" [ref=f6e140] [cursor=pointer]
+                  - button "Place X in cell 9" [ref=f6e141] [cursor=pointer]
+                - button "Reset board" [ref=f6e142] [cursor=pointer]
+            - generic [ref=f6e143]:
+              - heading [level=3] [ref=f6e144]
+              - list [ref=f6e148]:
+                - listitem [ref=f6e149]:
+                  - img "Example board" [ref=f6e150]
+                  - generic [ref=f6e166]: Horizontal
+                - listitem [ref=f6e167]:
+                  - img "Example board" [ref=f6e168]
+                  - generic [ref=f6e184]: Vertical
+                - listitem [ref=f6e185]:
+                  - img "Example board" [ref=f6e186]
+                  - generic [ref=f6e202]: Diagonal
+        - region [ref=f6e203]:
+          - generic [ref=f6e204]:
+            - heading [level=2] [ref=f6e205]
+            - paragraph [ref=f6e210]: Different ways to playSame infinite fun
+          - paragraph [ref=f6e211]: Choose how you want to play. Each mode offers a unique challenge!
+          - generic [ref=f6e212]:
+            - article [ref=f6e213]:
+              - generic [ref=f6e214]:
+                - heading [level=3] [ref=f6e215]
+                - generic [ref=f6e220]: Featured
+              - paragraph [ref=f6e224]: Fixed 3×3 board. After placing 3 marks, your oldest mark disappears on your next move. No draws possible.
+              - generic [ref=f6e225]:
+                - list [ref=f6e226]:
+                  - listitem [ref=f6e227]: Fixed 3×3 grid
+                  - listitem [ref=f6e231]: Max 3 marks per player on the board
+                  - listitem [ref=f6e235]: 4th mark removes your oldest mark
+                  - listitem [ref=f6e239]: First to 3-in-a-row wins — no draws
+                - img "Example board" [ref=f6e243]
+            - article [ref=f6e263]:
+              - heading [level=3] [ref=f6e265]
+              - paragraph [ref=f6e272]: Round-based play. Board expands after each round (3×3 → 4×4 → 5×5). Win N-in-a-row on an N×N board.
+              - generic [ref=f6e273]:
+                - list [ref=f6e274]:
+                  - listitem [ref=f6e275]: Starts on a 3×3 board
+                  - listitem [ref=f6e279]: Board grows after each round
+                  - listitem [ref=f6e283]: Win condition scales with board size
+                  - listitem [ref=f6e287]: Marks persist for the entire round
+                - img "Board grows from 3×3 to 4×4 to 5×5" [ref=f6e291]:
+                  - generic [aria-hidden] [ref=f6e302]: →
+                  - generic [aria-hidden] [ref=f6e320]: →
+        - region [ref=f6e347]:
+          - generic [ref=f6e348]:
+            - heading [level=2] [ref=f6e349]
+            - paragraph [ref=f6e353]: One move closerto victory
+          - paragraph [ref=f6e354]: "Get three of your marks in a row to win. Here are all the winning patterns:"
+          - generic [ref=f6e355]:
+            - generic [ref=f6e356]:
+              - img "Example board" [ref=f6e357]
+              - generic [ref=f6e373]:
+                - heading "Horizontal" [level=3] [ref=f6e374]
+                - paragraph [ref=f6e375]: Three in a row across
+            - generic [ref=f6e376]:
+              - img "Example board" [ref=f6e377]
+              - generic [ref=f6e393]:
+                - heading "Vertical" [level=3] [ref=f6e394]
+                - paragraph [ref=f6e395]: Three in a column down
+            - generic [ref=f6e396]:
+              - img "Example board" [ref=f6e397]
+              - generic [ref=f6e413]:
+                - heading "Diagonal \\" [level=3] [ref=f6e414]
+                - paragraph [ref=f6e415]: Top-left to bottom-right
+            - generic [ref=f6e416]:
+              - img "Example board" [ref=f6e417]
+              - generic [ref=f6e433]:
+                - heading "Diagonal /" [level=3] [ref=f6e434]
+                - paragraph [ref=f6e435]: Bottom-left to top-right
+          - paragraph [ref=f6e440]: Pro TipThe center cell is part of all 4 winning patterns (horizontal, vertical, and both diagonals). Control the center!
+        - region [ref=f6e441]:
+          - generic [ref=f6e442]:
+            - heading [level=2] [ref=f6e443]
+            - paragraph [ref=f6e447]: Play smarterWin more
+          - paragraph [ref=f6e448]: Elevate your game with these strategic insights from expert players.
+          - generic [ref=f6e449]:
+            - article [ref=f6e450]:
+              - generic [ref=f6e451]:
+                - generic [ref=f6e452]: "1"
+                - generic [ref=f6e453]:
+                  - heading "Control the Center" [level=3] [ref=f6e454]
+                  - paragraph [ref=f6e455]: The center cell (middle square) is the most valuable position. It's part of 4 different winning lines.
+                - img "Example board" [ref=f6e456]
+              - paragraph [ref=f6e467]: If possible, take the center early in the game.
+            - article [ref=f6e471]:
+              - generic [ref=f6e472]:
+                - generic [ref=f6e473]: "2"
+                - generic [ref=f6e474]:
+                  - heading "Create Multiple Threats" [level=3] [ref=f6e475]
+                  - paragraph [ref=f6e476]: Set up two winning opportunities at once. Your opponent can only block one!
+                - img "Example board" [ref=f6e477]
+              - paragraph [ref=f6e492]: Look for moves that create two possible wins.
+            - article [ref=f6e496]:
+              - generic [ref=f6e497]:
+                - generic [ref=f6e498]: "3"
+                - generic [ref=f6e499]:
+                  - heading "Block Your Opponent" [level=3] [ref=f6e500]
+                  - paragraph [ref=f6e501]: Always check if your opponent is one move away from winning. Block them before pursuing your own win.
+                - img "Example board" [ref=f6e502]
+              - paragraph [ref=f6e519]: Defense is as important as offense.
+            - article [ref=f6e523]:
+              - generic [ref=f6e524]:
+                - generic [ref=f6e525]: "4"
+                - generic [ref=f6e526]:
+                  - heading "Corner Strategy" [level=3] [ref=f6e527]
+                  - paragraph [ref=f6e528]: Corner cells are powerful. They're part of 3 winning lines each (one row, one column, one diagonal).
+                - img "Example board" [ref=f6e529]
+              - paragraph [ref=f6e544]: Corners give you more ways to build a threat.
+            - article [ref=f6e548]:
+              - generic [ref=f6e549]:
+                - generic [ref=f6e550]: "5"
+                - generic [ref=f6e551]:
+                  - heading "Think Ahead (Sliding Mode)" [level=3] [ref=f6e552]
+                  - paragraph [ref=f6e553]: In sliding mode, remember which of your pieces will disappear next. Don't rely on pieces that are about to vanish!
+                - img "Example board" [ref=f6e554]
+              - paragraph [ref=f6e570]: Plan your next 2–3 moves, not just the next one.
+            - article [ref=f6e574]:
+              - generic [ref=f6e575]:
+                - generic [ref=f6e576]: "6"
+                - generic [ref=f6e577]:
+                  - heading "Force Mistakes" [level=3] [ref=f6e578]
+                  - paragraph [ref=f6e579]: Put pressure on your opponent by creating complex situations where they might overlook a threat.
+                - img "Example board" [ref=f6e580]
+              - paragraph [ref=f6e596]: The best players make simple moves look threatening.
+          - paragraph [ref=f6e604]: Pro TipGreat players don't just react — they plan ahead, control space, and create multiple threats!
+        - region [ref=f6e605]:
+          - generic [ref=f6e606]:
+            - heading "? Frequently Asked Questions" [level=2] [ref=f6e607]:
+              - generic [ref=f6e608]: "?"
+              - text: Frequently Asked Questions
+            - paragraph [ref=f6e609]: Still have questions?We've got answers
+          - generic [ref=f6e610]:
+            - generic [ref=f6e611]:
+              - button "What happens if I disconnect during a match?" [expanded] [ref=f6e612] [cursor=pointer]
+              - region [ref=f6e621]: You have 60 seconds to reconnect. If you reconnect within this time, the game continues where it left off. If you don't reconnect, you forfeit the match.
+            - button "How does the ranking system work?" [ref=f6e623] [cursor=pointer]
+            - button "Can I play against bots?" [ref=f6e633] [cursor=pointer]
+            - button "What's the difference between ranked and casual?" [ref=f6e643] [cursor=pointer]
+            - button "Can I rematch my opponent?" [ref=f6e653] [cursor=pointer]
+            - button "How does sliding mode keep the game from being a draw?" [ref=f6e663] [cursor=pointer]
+        - generic [ref=f6e673]:
+          - paragraph [ref=f6e674]: Ready to put your knowledge to the test?
+          - link [ref=f6e675] [cursor=pointer]:
+            - /url: /play
+            - text: Play Now
+            - generic [aria-hidden] [ref=f6e680]: →
+          - paragraph [ref=f6e681]: Good players learn. Great players adapt.

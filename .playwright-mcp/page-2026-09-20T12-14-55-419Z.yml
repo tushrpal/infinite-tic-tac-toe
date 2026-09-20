@@ -1,0 +1,129 @@
+- generic [ref=f24e1]:
+  - generic [ref=f24e2]:
+    - navigation [ref=f24e3]:
+      - generic [ref=f24e5]:
+        - link "Infinite TTT" [ref=f24e6] [cursor=pointer]:
+          - /url: /
+        - generic [ref=f24e80]:
+          - link "Play" [ref=f24e81] [cursor=pointer]:
+            - /url: /play
+          - link "Leaderboard" [ref=f24e82] [cursor=pointer]:
+            - /url: /leaderboard
+          - link "How to Play" [ref=f24e83] [cursor=pointer]:
+            - /url: /how-to-play
+          - link "Profile" [ref=f24e84] [cursor=pointer]:
+            - /url: /profile
+        - generic [ref=f24e85]:
+          - button "Friends" [ref=f24e86] [cursor=pointer]
+          - generic [ref=f24e89]:
+            - link "Open profile" [ref=f24e90] [cursor=pointer]:
+              - /url: /profile
+              - generic [ref=f24e91]: T
+              - generic [ref=f24e92]:
+                - generic [ref=f24e93]: test
+                - generic [ref=f24e94]:
+                  - img "Bronze rank" [ref=f24e95]
+                  - text: Bronze
+            - button "Logout" [ref=f24e96] [cursor=pointer]
+    - main [ref=f24e100]:
+      - generic [ref=f24e101]:
+        - generic [ref=f24e102]:
+          - generic [ref=f24e103]:
+            - generic [ref=f24e104]:
+              - generic [ref=f24e107]: test
+              - generic [ref=f24e108]: You
+            - generic [ref=f24e109]:
+              - generic [ref=f24e110]: Bronze
+              - generic [ref=f24e115]: Connected
+          - generic [ref=f24e118]: VS
+          - generic [ref=f24e120]:
+            - generic [ref=f24e121]:
+              - generic [ref=f24e124]: Random Bot
+              - generic [ref=f24e125]: 🤖
+            - generic [ref=f24e126]:
+              - generic [ref=f24e127]: easy
+              - generic [ref=f24e128]: Connected
+        - generic [ref=f24e131]:
+          - generic [ref=f24e132]: You Lose
+          - status [aria-hidden]:
+            - generic:
+              - generic: 🤖
+              - generic: Bot is thinking...
+        - generic [ref=f24e138]:
+          - complementary [ref=f24e139]:
+            - generic [ref=f24e140]:
+              - generic [ref=f24e141]: Time
+              - generic [ref=f24e142]: 0:12
+            - generic [ref=f24e149]:
+              - generic [ref=f24e150]: Game Mode
+              - generic "Fixed 3×3 board. After placing 3 marks, your oldest mark disappears on your next move. No draws possible." [ref=f24e152]:
+                - generic [aria-hidden] [ref=f24e153]: ⚡
+                - text: Sliding Mode
+          - grid "3x3 Tic-Tac-Toe board" [ref=f24e156]:
+            - row [ref=f24e210]:
+              - gridcell [ref=f24e211]:
+                - 'button "Row 1, Column 1: Empty, not playable" [disabled] [ref=f24e212]'
+              - gridcell [ref=f24e213]:
+                - 'button "Row 1, Column 2: Empty, not playable" [disabled] [ref=f24e214]'
+              - gridcell [ref=f24e215]:
+                - 'button "Row 1, Column 3: Empty, not playable" [disabled] [ref=f24e216]'
+            - row [ref=f24e217]:
+              - gridcell [ref=f24e218]:
+                - 'button "Row 2, Column 1: Empty, not playable" [disabled] [ref=f24e219]'
+              - gridcell [ref=f24e220]:
+                - 'button "Row 2, Column 2: Empty, not playable" [disabled] [ref=f24e221]'
+              - gridcell [ref=f24e222]:
+                - 'button "Row 2, Column 3: Empty, not playable" [disabled] [ref=f24e223]'
+            - row [ref=f24e224]:
+              - gridcell [ref=f24e225]:
+                - 'button "Row 3, Column 1: Empty, not playable" [disabled] [ref=f24e226]'
+              - gridcell [ref=f24e227]:
+                - 'button "Row 3, Column 2: Empty, not playable" [disabled] [ref=f24e228]'
+              - gridcell [ref=f24e229]:
+                - 'button "Row 3, Column 3: Empty, not playable" [disabled] [ref=f24e230]'
+          - complementary [ref=f24e178]:
+            - generic [ref=f24e179]:
+              - generic [ref=f24e180]: "Move #"
+              - generic [ref=f24e181]: "0"
+            - generic [ref=f24e231]:
+              - generic [ref=f24e232]: Spectators
+              - generic [ref=f24e233]: "0"
+        - link "Share Watch Link" [ref=f24e196] [cursor=pointer]:
+          - /url: /watch/match_practice_1789906481603_ldvasrmh
+  - alert [ref=f24e97]: Infinite Tic-Tac-Toe
+  - status [ref=f24e234]: You lose.
+  - dialog "Defeat" [active] [ref=f24e235]:
+    - generic [ref=f24e237]:
+      - generic [ref=f24e238]:
+        - img "Defeat" [ref=f24e239]
+        - paragraph [ref=f24e240]: The easy bot won this time. Try again!
+      - generic [ref=f24e241]:
+        - generic [ref=f24e242]:
+          - generic [ref=f24e243]:
+            - definition [ref=f24e244]: "0"
+            - term [ref=f24e245]: Moves
+          - generic [ref=f24e246]:
+            - definition [ref=f24e247]: 0:13
+            - term [ref=f24e248]: Match Duration
+          - generic [ref=f24e249]:
+            - definition [ref=f24e250]: X
+            - term [ref=f24e251]: You Played
+        - generic [ref=f24e252]:
+          - link [ref=f24e253] [cursor=pointer]:
+            - /url: /play
+            - button "Find New Match" [ref=f24e254]
+          - link [ref=f24e255] [cursor=pointer]:
+            - /url: /
+            - button "Back to Home" [ref=f24e256]
+        - generic [ref=f24e257]:
+          - paragraph [ref=f24e258]: Challenge friends to beat you!
+          - generic [ref=f24e260]:
+            - button "Share" [ref=f24e261] [cursor=pointer]
+            - button "Post on X" [ref=f24e264] [cursor=pointer]
+            - button "Share on WhatsApp" [ref=f24e267] [cursor=pointer]
+            - button "Share on Facebook" [ref=f24e270] [cursor=pointer]
+            - button "Post on Reddit" [ref=f24e273] [cursor=pointer]
+            - button "Share on Telegram" [ref=f24e276] [cursor=pointer]
+            - button "Share on LinkedIn" [ref=f24e279] [cursor=pointer]
+            - button "Copy link" [ref=f24e282] [cursor=pointer]
+        - paragraph [ref=f24e285]: 🤖 Bot match rating changes are reduced (0.6x multiplier)

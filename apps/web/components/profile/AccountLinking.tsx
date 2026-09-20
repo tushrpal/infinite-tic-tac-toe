@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { linkAccountToOAuth, type OAuthProvider } from "@/lib/player";
 import { AccountConflictModal } from "./AccountConflictModal";
+import { LinkIcon } from "./ProfileIcons";
 
 type AccountLinkingProps = {
   playerId: string;
@@ -219,8 +220,11 @@ export function AccountLinking({ playerId, isAnonymous, linkedProviders }: Accou
   };
 
   return (
-    <section className="rounded-xl border border-board-grid bg-surface-elevated p-6">
-      <h2 className="text-lg font-semibold mb-4">Connected Account</h2>
+    <section className="glass-panel p-5">
+      <h2 className="mb-4 flex items-center gap-2.5 text-base font-semibold sm:text-lg">
+        <LinkIcon className="h-5 w-5 text-accent-primary sm:h-6 sm:w-6" />
+        Connected Accounts
+      </h2>
 
       {hasLinkedProvider ? (
         // Already linked to a provider - show only the linked one
@@ -234,11 +238,11 @@ export function AccountLinking({ playerId, isAnonymous, linkedProviders }: Accou
             return (
               <div
                 key={provider}
-                className="flex items-center justify-between p-3 rounded-lg border border-board-grid bg-surface-base"
+                className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/25 px-3 py-2.5"
               >
                 <div className="flex items-center gap-3">
                   <span>{config.icon}</span>
-                  <div>
+                  <div className="flex flex-wrap items-baseline gap-x-3">
                     <div className="font-medium">{config.name}</div>
                     <div className="text-xs text-text-muted">Connected</div>
                   </div>
@@ -263,11 +267,11 @@ export function AccountLinking({ playerId, isAnonymous, linkedProviders }: Accou
             return (
               <div
                 key={provider}
-                className="flex items-center justify-between p-3 rounded-lg border border-board-grid bg-surface-base"
+                className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/25 px-3 py-2.5"
               >
                 <div className="flex items-center gap-3">
                   <span>{config.icon}</span>
-                  <div>
+                  <div className="flex flex-wrap items-baseline gap-x-3">
                     <div className="font-medium">{config.name}</div>
                     <div className="text-xs text-text-muted">Not connected</div>
                   </div>
@@ -275,7 +279,7 @@ export function AccountLinking({ playerId, isAnonymous, linkedProviders }: Accou
                 <button
                   onClick={() => handleLinkAccount(provider)}
                   disabled={linkingProvider !== null}
-                  className="px-4 py-2 text-sm bg-accent-primary text-accent-primary-foreground rounded-lg hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-lg bg-gradient-to-r from-accent-primary to-[#7c3aed] px-5 py-1.5 text-sm font-medium text-white shadow-[0_0_16px_rgba(168,85,247,0.35)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {linkingProvider === provider ? 'Linking...' : 'Link'}
                 </button>
@@ -298,7 +302,7 @@ export function AccountLinking({ playerId, isAnonymous, linkedProviders }: Accou
       )}
 
       {isAnonymous && !hasLinkedProvider && (
-        <div className="mt-4 p-3 rounded-lg border border-accent-primary/40 bg-accent-primary/10 text-sm text-accent-primary">
+        <div className="mt-4 hidden rounded-lg border border-accent-primary/40 bg-accent-primary/10 p-3 text-sm text-accent-primary sm:block">
           💡 Link your account to Google or Discord to access it from any device and never lose your progress!
         </div>
       )}

@@ -1,0 +1,42 @@
+- generic [ref=f18e2]:
+  - navigation [ref=f18e3]:
+    - generic [ref=f18e5]:
+      - link "Infinite TTT" [ref=f18e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f18e10]:
+        - link "Play" [ref=f18e11] [cursor=pointer]:
+          - /url: /play
+        - link "Leaderboard" [ref=f18e12] [cursor=pointer]:
+          - /url: /leaderboard
+        - link "How to Play" [ref=f18e13] [cursor=pointer]:
+          - /url: /how-to-play
+        - link "Profile" [ref=f18e14] [cursor=pointer]:
+          - /url: /profile
+  - main [ref=f18e15]:
+    - generic [ref=f18e16]:
+      - link "← Back to Mode Selection" [ref=f18e18] [cursor=pointer]:
+        - /url: /play
+      - generic [ref=f18e19]:
+        - heading "Ranked Match" [level=1] [ref=f18e20]
+        - paragraph [ref=f18e21]: Compete for glory and climb the ladder
+        - generic [ref=f18e22]:
+          - generic [ref=f18e23]: Bronze
+          - generic [ref=f18e28]: Loading...
+          - generic [ref=f18e29]: Rating Points
+          - generic [ref=f18e30]:
+            - generic [ref=f18e31]:
+              - generic [ref=f18e32]: Bronze
+              - generic [ref=f18e33]: Silver
+            - generic [ref=f18e35]: 600 points to next rank
+        - generic [ref=f18e36]:
+          - generic [ref=f18e37]: Select Game Mode
+          - generic [ref=f18e38]:
+            - button "⚡ Sliding Marks slide after 3 placed" [ref=f18e39] [cursor=pointer]:
+              - generic [ref=f18e40]: ⚡ Sliding
+              - generic [ref=f18e41]: Marks slide after 3 placed
+            - button "🎯 Expanding Board grows each round" [ref=f18e42] [cursor=pointer]:
+              - generic [ref=f18e43]: 🎯 Expanding
+              - generic [ref=f18e44]: Board grows each round
+        - generic [ref=f18e45]: Connecting...
+        - button "Find Ranked Match" [disabled] [ref=f18e47]
+        - paragraph [ref=f18e48]: ⚠️ Leaving a ranked match will result in a rating penalty

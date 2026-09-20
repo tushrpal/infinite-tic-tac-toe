@@ -13,6 +13,15 @@ const HomeScene = dynamic(() => import("./HomeScene").then((mod) => mod.HomeScen
   loading: () => null,
 });
 
+/**
+ * Set NEXT_PUBLIC_DISABLE_3D_BOARD=true to always show the static poster and
+ * never download or start the Three.js scene. Inlined at build time, so restart
+ * `next dev` (or rebuild) after changing it.
+ */
+const DISABLE_3D_BOARD = ["true", "1"].includes(
+  (process.env.NEXT_PUBLIC_DISABLE_3D_BOARD ?? "").toLowerCase(),
+);
+
 type NavigatorHints = Navigator & {
   deviceMemory?: number;
   connection?: { saveData?: boolean };
@@ -59,7 +68,7 @@ export function HomeSceneLoader({
   const [gaveUp, setGaveUp] = useState(false);
 
   useEffect(() => {
-    if (reducedMotion || !supportsRich3D()) return;
+    if (DISABLE_3D_BOARD || reducedMotion || !supportsRich3D()) return;
 
     const start = () => setWants3D(true);
     if (typeof window.requestIdleCallback === "function") {

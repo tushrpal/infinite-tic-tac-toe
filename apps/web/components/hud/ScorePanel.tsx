@@ -18,6 +18,11 @@ export interface ScorePanelProps {
   yourPlayer: Player | null;
   isGameOver: boolean;
   winner: Player | null;
+  /**
+   * Short two-row cards (mark + name on top, rank + status below) instead of
+   * tall stacked ones. Used on the live match screen so the board fits above the fold.
+   */
+  compact?: boolean;
   className?: string;
 }
 
@@ -27,6 +32,7 @@ export const ScorePanel = memo(function ScorePanel({
   yourPlayer,
   isGameOver,
   winner,
+  compact = false,
   className,
 }: ScorePanelProps) {
   return (
@@ -37,10 +43,11 @@ export const ScorePanel = memo(function ScorePanel({
         isCurrentTurn={!isGameOver && currentPlayer === "X"}
         isYou={yourPlayer === "X"}
         isWinner={winner === "X"}
+        compact={compact}
       />
 
       <div className="flex items-center px-0.5 sm:px-0">
-        <span className="text-lg sm:text-2xl font-bold text-text-muted">VS</span>
+        <span className="text-base sm:text-xl font-bold text-text-muted">VS</span>
       </div>
 
       <PlayerCard
@@ -49,6 +56,7 @@ export const ScorePanel = memo(function ScorePanel({
         isCurrentTurn={!isGameOver && currentPlayer === "O"}
         isYou={yourPlayer === "O"}
         isWinner={winner === "O"}
+        compact={compact}
       />
     </div>
   );
@@ -64,6 +72,7 @@ interface PlayerCardProps {
   isCurrentTurn: boolean;
   isYou: boolean;
   isWinner: boolean;
+  compact: boolean;
 }
 
 function PlayerCard({
@@ -72,6 +81,7 @@ function PlayerCard({
   isCurrentTurn,
   isYou,
   isWinner,
+  compact,
 }: PlayerCardProps) {
   // Bot names already include the difficulty (e.g. "Tactical Bot (Medium)"),
   // but a separate difficulty badge is shown right below — strip the suffix
@@ -88,6 +98,69 @@ function PlayerCard({
         ? "border-playerX-primary"
         : "border-playerO-primary"
       : "border-board-grid";
+
+  if (compact) {
+    return (
+      <div
+        className={cn(
+          "flex-1 min-w-0 flex flex-col justify-center gap-1.5",
+          "px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl",
+          "bg-surface-elevated/85",
+          "border-2 transition-colors duration-200",
+          borderColor,
+          isCurrentTurn && "shadow-lg",
+          isWinner && "ring-2 ring-accent-success",
+        )}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-5 h-5 sm:w-6 sm:h-6 shrink-0">
+            <PlayerMark player={player} />
+          </div>
+          <span className="min-w-0 flex-1 truncate font-semibold text-text-primary text-sm sm:text-base">
+            {displayName}
+          </span>
+          {isYou && (
+            <span className="text-[11px] sm:text-xs px-1.5 py-0.5 rounded bg-accent-primary/20 text-accent-primary shrink-0">
+              You
+            </span>
+          )}
+          {info.isBot && (
+            <span className="hidden sm:inline text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 shrink-0">
+              🤖
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          {info.isBot && info.botDifficulty ? (
+            <span className="px-2 py-0.5 rounded-lg bg-surface-base text-xs font-medium text-text-secondary capitalize">
+              {info.botDifficulty}
+            </span>
+          ) : info.rank && info.rating ? (
+            <RankBadge
+              rank={info.rank.name}
+              color={info.rank.color}
+              rating={info.rating}
+              size="sm"
+            />
+          ) : (
+            <span />
+          )}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div
+              className={cn(
+                "w-2 h-2 rounded-full shrink-0",
+                info.isConnected ? "bg-accent-success" : "bg-accent-error",
+              )}
+            />
+            <span className="text-xs text-text-muted hidden sm:inline">
+              {info.isConnected ? "Connected" : "Disconnected"}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
