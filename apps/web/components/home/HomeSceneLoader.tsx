@@ -81,6 +81,10 @@ export function HomeSceneLoader({
 
   const show3D = wants3D && !gaveUp && !reducedMotion;
   const posterFaded = show3D && sceneReady;
+  // While WebGL is booting, freeze the poster's idle float so we aren't
+  // running CSS animation + Three init on the same frame budget. Scroll
+  // scrub stays on so the hero still feels alive if load is slow.
+  const sceneBooting = show3D && !sceneReady;
 
   // Once the poster has faded out, remove it instead of keeping a full-size
   // composited layer alive underneath the canvas.
@@ -100,6 +104,7 @@ export function HomeSceneLoader({
         <HomeStaticScene
           scrollProgress={scrollProgress}
           animateOnScroll={!reducedMotion}
+          float={!reducedMotion && !sceneBooting}
           hidden={posterFaded}
         />
       )}

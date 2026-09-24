@@ -10,12 +10,14 @@ import {
   type MotionValue,
 } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { isTouchDevice } from "@/hooks/useResponsive";
 
 /**
  * Distant cosmic backdrop behind the 3D canvas. Dimmed and gradient-masked
  * so it reads as atmosphere rather than competing with the board/UI. Drifts
- * gently with the mouse, and recedes further as the user scrolls into the
- * cinematic camera move.
+ * gently with the mouse on pointer devices, and recedes further as the user
+ * scrolls into the cinematic camera move. Touch devices skip pointer parallax
+ * (scroll scale alone is enough and avoids extra spring work on mobile GPUs).
  */
 export function HomeBackdrop({
   scrollProgress,
@@ -28,11 +30,11 @@ export function HomeBackdrop({
   const x = useSpring(rawX, { stiffness: 40, damping: 20, mass: 0.6 });
   const y = useSpring(rawY, { stiffness: 40, damping: 20, mass: 0.6 });
 
-  const scrollScale = useTransform(scrollProgress, [0, 1], [1, reducedMotion ? 1 : 1.1]);
+  const scrollScale = useTransform(scrollProgress, [0, 1], [1, reducedMotion ? 1 : 1.08]);
   const scrollOpacity = useTransform(scrollProgress, [0, 1], [0.4, 0.22]);
 
   useEffect(() => {
-    if (reducedMotion) return;
+    if (reducedMotion || isTouchDevice()) return;
 
     const handlePointerMove = (event: PointerEvent) => {
       const nx = (event.clientX / window.innerWidth) * 2 - 1;
@@ -41,7 +43,7 @@ export function HomeBackdrop({
       rawY.set(ny * -8);
     };
 
-    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
     return () => window.removeEventListener("pointermove", handlePointerMove);
   }, [reducedMotion, rawX, rawY]);
 
@@ -58,6 +60,7 @@ export function HomeBackdrop({
             fill
             priority
             sizes="100vw"
+            quality={75}
             className="object-cover"
           />
         </motion.div>

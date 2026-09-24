@@ -31,10 +31,12 @@ export function useScrollProgress(
     target,
     offset: ["start start", "end start"],
   });
+  // Snappier than the default: tracks the finger closely and settles quickly
+  // after lift so the hero doesn't keep "swimming" on mid-range GPUs.
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 60,
-    damping: 20,
-    mass: 0.5,
+    stiffness: 120,
+    damping: 32,
+    mass: 0.35,
   });
 
   useMotionValueEvent(smoothProgress, "change", (value) => {

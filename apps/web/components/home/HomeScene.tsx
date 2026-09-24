@@ -91,13 +91,21 @@ export function HomeScene({
     : [0, -1.9, 0];
   const boardScale = isDesktop ? 0.85 : 0.58;
 
+  // Mobile keeps the full choreography but trims GPU cost: lower DPR,
+  // no MSAA, no shadow maps, lighter bloom. Degraded mode goes further.
+  const useShadows = !isMobile && !degraded;
+
   return (
     <Canvas
-      dpr={degraded ? 1 : isMobile ? [1, 1.25] : [1, 1.5]}
+      dpr={degraded ? 1 : isMobile ? [1, 1.1] : [1, 1.5]}
       camera={{ position: [0, 0, 7], fov: 40 }}
-      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+      gl={{
+        antialias: useShadows,
+        alpha: true,
+        powerPreference: "high-performance",
+      }}
       className="!absolute inset-0"
-      shadows={{ type: PCFShadowMap }}
+      shadows={useShadows ? { type: PCFShadowMap } : false}
       // Stop driving the render loop entirely once the hero has scrolled
       // well out of view instead of animating an invisible canvas forever.
       frameloop={isActive ? "always" : "never"}
@@ -113,6 +121,7 @@ export function HomeScene({
           reducedMotion={reducedMotion}
           progressRef={progressRef}
           isMobile={isMobile}
+          castShadows={useShadows}
         />
         <EnergyEffect reducedMotion={reducedMotion} />
         <GameBoard3D
@@ -123,7 +132,7 @@ export function HomeScene({
         />
         <FloatingRocks
           reducedMotion={reducedMotion}
-          reducedCount={isMobile}
+          reducedCount={isMobile || degraded}
           progressRef={progressRef}
         />
         {/* Bloom picks up only the board's bright emissive/unlit surfaces
@@ -132,10 +141,10 @@ export function HomeScene({
         <EffectComposer multisampling={isMobile || degraded ? 0 : 2}>
           <Bloom
             mipmapBlur
-            intensity={isMobile ? 0.35 : 0.5}
+            intensity={isMobile || degraded ? 0.28 : 0.5}
             luminanceThreshold={0.55}
             luminanceSmoothing={0.3}
-            radius={0.4}
+            radius={isMobile || degraded ? 0.3 : 0.4}
           />
         </EffectComposer>
         <ReadySignal onReady={onReady} />

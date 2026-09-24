@@ -14,10 +14,13 @@ export function Environment({
   reducedMotion,
   progressRef,
   isMobile = false,
+  castShadows = true,
 }: {
   reducedMotion: boolean;
   progressRef?: MutableRefObject<number>;
   isMobile?: boolean;
+  /** Shadow maps are expensive on mobile GPUs; keep lighting, drop maps. */
+  castShadows?: boolean;
 }) {
   const focusLightRef = useRef<PointLight>(null);
 
@@ -45,8 +48,8 @@ export function Environment({
         position={[3, 4, 5]}
         intensity={1.1}
         color="#c084fc"
-        castShadow
-        shadow-mapSize={[512, 512]}
+        castShadow={castShadows}
+        shadow-mapSize={castShadows ? [512, 512] : [256, 256]}
         shadow-camera-left={-3}
         shadow-camera-right={3}
         shadow-camera-top={3}
@@ -61,7 +64,7 @@ export function Environment({
       <Stars
         radius={45}
         depth={30}
-        count={reducedMotion ? 250 : isMobile ? 400 : 800}
+        count={reducedMotion ? 250 : isMobile ? 280 : 800}
         factor={2}
         saturation={0}
         fade
