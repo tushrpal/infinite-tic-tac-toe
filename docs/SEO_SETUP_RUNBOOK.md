@@ -6,6 +6,20 @@ a browser and an account login, which is why it couldn't be done in code.
 Total time: **about 60–75 minutes**, most of it waiting for verification.
 Do them in order — step 2 depends on step 1.
 
+> ### Step 0 — deploy first, or none of this measures anything
+>
+> The Phase 1+2 work lives on `feat/seo-phase-1-2`. Until it is merged and
+> deployed, production still serves the old sitemap (15 URLs) and the old
+> `<h1>` (`opacity:0`), so setting env vars or resubmitting the sitemap just
+> re-reads the old code.
+>
+> Confirm the deploy landed before doing steps 3–8:
+>
+> ```bash
+> curl -s https://www.infinitettt.com/sitemap.xml | grep -c '<loc>'   # want 12, not 15
+> curl -s https://www.infinitettt.com/ | grep -c 'opacity:0'          # want 0
+> ```
+
 Facts already established for this domain, so you don't have to look them up:
 
 - DNS is on **Cloudflare** (nameservers `junade.ns.cloudflare.com`,
@@ -38,11 +52,21 @@ Without this, nothing in the plan is measurable. Do it first.
    retry — Cloudflare usually propagates in under a minute but Google caches.
 6. Once verified: **Indexing → Sitemaps** → enter `sitemap.xml` → **Submit**.
 
-**Also grab the verification meta token** while you're here (for step 3):
-add a second property, this time **URL prefix** with `https://www.infinitettt.com`,
-choose the **HTML tag** method, and copy just the `content="..."` value. You
-don't need to complete that verification — you only want the token. (Keeping
-both properties is fine and gives you URL-level reporting too.)
+**About the verification meta tags — usually skip them.**
+
+If you verified by DNS (step 4 above), you are done and the
+`NEXT_PUBLIC_*_SITE_VERIFICATION` vars in step 3 are **optional**. They exist
+only as a fallback so that removing the DNS TXT record can't silently
+un-verify the property. `buildVerification()` omits the tag entirely when the
+env var is unset, so leaving them blank produces no empty tags.
+
+Set them only if you want that redundancy. To find the values:
+
+- **Google:** Settings → Ownership verification → expand **HTML tag** → copy
+  just the `content="..."` value (not the whole tag).
+- **Bing:** gear/Settings → ownership verification → the `msvalidate.01` value.
+  If Bing was verified by importing from Search Console, this screen may not
+  appear at all — which is fine, and means you don't need it.
 
 > **Expected result:** property verified, sitemap status *Success*, **12**
 > discovered URLs. If it says 15, the deploy with the new sitemap hasn't
@@ -54,10 +78,12 @@ both properties is fine and gives you URL-level reporting too.)
 
 1. Go to <https://www.bing.com/webmasters>, sign in.
 2. Click **Import from Google Search Console** — this carries the property and
-   verification across, so you skip the DNS dance entirely.
-3. If you'd rather not link accounts: **Add site manually** →
-   `https://www.infinitettt.com` → choose the **Meta tag** option → copy the
-   `msvalidate.01` content value for step 3.
+   verification across, so you skip the DNS dance entirely and the site is
+   verified immediately. There is no `msvalidate.01` token to collect in this
+   flow, and you do not need one.
+3. Only if you'd rather not link accounts: **Add site manually** →
+   `https://www.infinitettt.com` → **Meta tag** option → copy the
+   `msvalidate.01` content value into `NEXT_PUBLIC_BING_SITE_VERIFICATION`.
 4. Submit the sitemap here too: **Sitemaps** → `https://www.infinitettt.com/sitemap.xml`.
 
 ---
@@ -69,11 +95,11 @@ The code already reads these; they do nothing until they're set.
 1. Vercel dashboard → your project → **Settings** → **Environment Variables**.
 2. Add each of the following, scoped to **Production** only:
 
-   | Name | Value |
-   | --- | --- |
-   | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | the `content` value from step 1's HTML tag |
-   | `NEXT_PUBLIC_BING_SITE_VERIFICATION` | the `msvalidate.01` value from step 2 |
-   | `INDEXNOW_KEY` | `43fc6199544fd895369b5963e86a8dbe` |
+   | Name | Value | Required? |
+   | --- | --- | --- |
+   | `INDEXNOW_KEY` | `43fc6199544fd895369b5963e86a8dbe` | **Yes** — `/api/indexnow` returns 503 without it |
+   | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | `content` value from Settings → Ownership verification → HTML tag | Optional if DNS-verified |
+   | `NEXT_PUBLIC_BING_SITE_VERIFICATION` | `msvalidate.01` value | Optional; not issued at all when Bing is imported from GSC |
 
    The IndexNow key above was generated for you. Regenerate with
    `openssl rand -hex 16` if you'd prefer your own — it just has to be 8–128
@@ -284,14 +310,14 @@ and every `lastmod` value is different — so a manual re-crawl request is worth
 ## Checklist
 
 ```
+[ ] 0  feat/seo-phase-1-2 merged and deployed to production
+[ ] 0  live sitemap returns 12 URLs, live homepage has no opacity:0
 [ ] 1  Search Console property verified via Cloudflare TXT
 [ ] 1  sitemap.xml submitted, shows 12 URLs
-[ ] 1  HTML-tag verification token copied
 [ ] 2  Bing Webmaster imported or verified
 [ ] 2  sitemap submitted to Bing
-[ ] 3  NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION set (Production)
-[ ] 3  NEXT_PUBLIC_BING_SITE_VERIFICATION set (Production)
-[ ] 3  INDEXNOW_KEY set (Production)
+[ ] 3  INDEXNOW_KEY set (Production)          <- the only required one
+[ ] 3  verification meta vars set, or consciously skipped (DNS already covers it)
 [ ] 3  NEXT_PUBLIC_SITE_URL confirmed as https://www.infinitettt.com
 [ ] 3  redeployed so the vars apply
 [ ] 4  public/{key}.txt committed, deployed, returns plain text
