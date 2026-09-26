@@ -397,12 +397,52 @@ Fill this in during Phase 1.7, then re-measure at +30 / +90 days.
 | Initial JS on `/` (gzip) | 248 KB | | |
 | Brand citation in ChatGPT / Perplexity for "sliding tic tac toe" | | | |
 
-Known figures at audit time:
+Known figures at audit time (2026-09-26, pre-Phase-2):
 
 - Initial JS on `/`: **248 KB gzipped** across 16 chunks
 - `public/assets/`: **2.9 MB**; `public/icons/`: 276 KB
 - URLs in sitemap: **15** (12 HTML + 3 non-HTML that should be removed)
 - Live HTML size: `/` 74 KB, `/how-to-play` 123 KB, `/leaderboard` 48 KB
+
+### Measured baseline — post-Phase-2 deploy (2026-09-26)
+
+Objective figures, measured against production after the Phase 2 deploy. These
+need no browser and are exactly reproducible, so they're the numbers to compare
+against first.
+
+| Measure | Value |
+| --- | --- |
+| Sitemap URLs | 12 (GSC: *Success*, 12 discovered) |
+| IndexNow submission | `{"ok":true,"submitted":12}` |
+| Initial JS on `/` | **255 KB gzipped**, 17 chunks |
+| HTML delivered (gzip) | `/` 14 KB · `/play` 11 KB · `/leaderboard` 12 KB · `/how-to-play` 16 KB · `/play/ranked` 11 KB |
+| TTFB, `/` (3 runs) | 0.20s / 0.30s / 0.15s |
+| LCP image, delivered | `homeBg.jpg` → **39 KB AVIF**; `board.png` → **23 KB AVIF** |
+| Icons, delivered raw | `favicon.svg` **205 KB** · `manifest-512` **375 KB** · `manifest-192` 64 KB · `apple-touch-icon` 38 KB |
+| `fetchpriority="high"` preloads on `/` | **2** (should be 1 — they compete) |
+
+**Correction to P1-5 above.** That finding treated `board.png` (447 KB source)
+and `homeBg.jpg` (194 KB source) as LCP weight. They aren't: measured with a
+browser `Accept` header, Next's image optimizer delivers them as 23 KB and
+39 KB AVIF. Large *source* files cost repo and deploy size, not load time.
+
+The real unoptimized payload is the icon set — `favicon.svg` and the manifest
+PNGs bypass `/_next/image` entirely and ship raw, ~580 KB between them. A
+favicon should be under 10 KB. That is the genuine Phase 4.1 target.
+
+### Still to capture (needs a browser)
+
+| Metric | Baseline | +30d | +90d |
+| --- | --- | --- | --- |
+| PSI mobile score — `/` | | | |
+| PSI mobile score — `/play` | | | |
+| PSI mobile score — `/leaderboard` | | | |
+| PSI mobile score — `/how-to-play` | | | |
+| Lab LCP / INP / CLS per URL | | | |
+| GA4 `web_vitals` event firing | | | |
+
+Field (CrUX) data is unavailable at current traffic levels — "No field data"
+in PSI is expected, not a fault. Compare Lab-to-Lab until traffic grows.
 
 ---
 
