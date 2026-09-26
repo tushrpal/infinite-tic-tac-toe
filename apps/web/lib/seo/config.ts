@@ -10,7 +10,10 @@ export const SITE = {
     "Play Infinite Tic-Tac-Toe online for free. Challenge players worldwide in Sliding and Expanding modes, climb the ranked leaderboard, practice against AI bots, and invite friends to private rooms — no download required.",
   locale: "en_US",
   language: "en",
-  twitterHandle: "@InfiniteTTT",
+  // Verified 2026-09-26. The previous value here was "@InfiniteTTT", which
+  // 404s — the site was publishing twitter:site/twitter:creator for an account
+  // that does not exist.
+  twitterHandle: "@infinite_ttt",
   category: "Games",
   applicationCategory: "GameApplication",
   operatingSystem: "Web Browser",
@@ -33,11 +36,14 @@ export const SITE = {
  *   2. It must link back to this site. Corroboration only counts when it goes
  *      both ways.
  *
- * Verified 2026-09-26: github.com/tushrpal/infinite-tic-tac-toe returns 404
- * (private), and x.com/InfiniteTTT returns 404. Neither qualifies yet, so this
- * stays empty rather than publishing claims that don't resolve.
+ * Verified reachable 2026-09-26 (both return 200). Re-check before adding
+ * anything else — an earlier revision of this list was empty precisely because
+ * the repo was private and the X handle was wrong.
  */
-export const SOCIAL_PROFILES: readonly string[] = [];
+export const SOCIAL_PROFILES: readonly string[] = [
+  "https://github.com/tushrpal/infinite-tic-tac-toe",
+  "https://x.com/infinite_ttt",
+];
 
 /** Canonical production domain, used as a safety net if the env var is unset. */
 const PRODUCTION_SITE_URL = "https://www.infinitettt.com";

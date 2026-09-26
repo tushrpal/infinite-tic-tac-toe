@@ -1,6 +1,18 @@
 # Infinite Tic-Tac-Toe
 
-A deep, strategic Tic-Tac-Toe game with no forced draws, powered by a shared TypeScript game engine.
+**Play it: [www.infinitettt.com](https://www.infinitettt.com)**
+
+Infinite Tic-Tac-Toe (Infinite TTT) is a free, browser-based multiplayer
+tic-tac-toe game with two unique modes — Sliding (marks disappear after three
+placements, eliminating draws) and Expanding (board grows from 3×3 to 5×5
+across rounds) — plus ranked Elo matchmaking, AI practice bots, friend
+challenges, private rooms, live spectating, and match replays.
+
+> **Not the infinite-grid variant.** The phrase "infinite tic tac toe" usually
+> refers to playing on an unbounded board. This is a different game. Boards
+> here are finite: Sliding is a fixed 3×3 grid where each player holds at most
+> three marks, and Expanding grows only from 3×3 to 4×4 to 5×5. The name refers
+> to play continuing without draws, not to an infinite board.
 
 ## 🎯 Project Vision
 
@@ -11,15 +23,21 @@ Transform a simple mechanic (placing a mark) into a game with:
 - Competitive fairness
 - Long-term replayability
 
+## 🔗 Links
+
+- Live site: <https://www.infinitettt.com>
+- How to play: <https://www.infinitettt.com/how-to-play>
+- Leaderboard: <https://www.infinitettt.com/leaderboard>
+- X / Twitter: <https://x.com/infinite_ttt>
+
 ## 📦 Monorepo Structure
 
 ```
 infinite-ttt/
 ├── apps/
 │   ├── cli-runner/     ✅ Bot-vs-Bot simulation tool
-│   ├── web/            🔜 Next.js web app (planned)
-│   ├── mobile/         🔜 React Native app (planned)
-│   └── server/         🔜 Multiplayer server (planned)
+│   ├── web/            ✅ Next.js web app (live at infinitettt.com)
+│   └── backend/        ✅ Multiplayer server, matchmaking, ratings
 │
 └── packages/
     ├── game-engine/    ✅ Core game logic (Mode 1 complete)
@@ -49,14 +67,19 @@ infinite-ttt/
 - **CLI Runner** - Developer tool for testing and simulation
 - **Backend API** - Match and player storage
 
+### ✅ Also shipped
+
+- Mode 2 (Expanding Board) — 3×3 → 4×4 → 5×5 across rounds
+- Minimax bot with alpha-beta pruning (`packages/bots/minimax`)
+- Web UI (Next.js App Router), live at [infinitettt.com](https://www.infinitettt.com)
+- Real-time multiplayer over WebSocket
+- Elo matchmaking, rank tiers and a global leaderboard
+- Friends, direct challenges and private rooms
+- Match replays and live spectating
+
 ### 🔜 Planned
 
-- Mode 2 (Expanding Board)
-- Advanced bot (minimax with alpha-beta pruning)
-- Web UI (Next.js)
 - Mobile UI (React Native)
-- Multiplayer server
-- Matchmaking & leaderboards
 
 ## 🚀 Quick Start
 

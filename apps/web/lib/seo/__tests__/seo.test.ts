@@ -1,7 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { faqPageSchema, leaderboardSchema, breadcrumbSchema } from '../json-ld';
+import {
+  faqPageSchema,
+  leaderboardSchema,
+  breadcrumbSchema,
+  organizationSchema,
+} from '../json-ld';
 import { PLAY_MODE_CONTENT } from '../playModeContent';
-import { PUBLIC_ROUTES, NOINDEX_ROUTES, CRAWLER_DISALLOW } from '../config';
+import {
+  PUBLIC_ROUTES,
+  NOINDEX_ROUTES,
+  CRAWLER_DISALLOW,
+  SOCIAL_PROFILES,
+  SITE,
+} from '../config';
 
 /**
  * Guards for the structured-data and content invariants that are easy to break
@@ -124,6 +135,38 @@ describe('play mode content', () => {
         expect(indexable.has(link.href)).toBe(true);
       }
     }
+  });
+});
+
+describe('entity graph', () => {
+  it('omits sameAs entirely rather than emitting an empty array', () => {
+    // An empty array is a positive claim that the entity has no other
+    // presence. Absence is the honest encoding of "we have none listed".
+    const schema = organizationSchema();
+    if (SOCIAL_PROFILES.length === 0) {
+      expect(schema).not.toHaveProperty('sameAs');
+    } else {
+      expect(schema.sameAs).toEqual([...SOCIAL_PROFILES]);
+    }
+  });
+
+  it('only lists absolute https profile URLs', () => {
+    // These are corroboration anchors for generative engines. A relative or
+    // malformed URL resolves to nothing and is worse than omitting it.
+    for (const url of SOCIAL_PROFILES) {
+      expect(() => new URL(url)).not.toThrow();
+      expect(url.startsWith('https://')).toBe(true);
+    }
+  });
+
+  it('keeps the Twitter handle consistent with the listed X profile', () => {
+    // Regression: the site published twitter:site="@InfiniteTTT" for an
+    // account that did not exist. If an X profile is listed in SOCIAL_PROFILES,
+    // the handle metadata must match it.
+    const xProfile = SOCIAL_PROFILES.find((u) => /(^|\.)x\.com\//.test(u));
+    if (!xProfile) return;
+    const handle = new URL(xProfile).pathname.replace(/^\//, '');
+    expect(SITE.twitterHandle.toLowerCase()).toBe(`@${handle.toLowerCase()}`);
   });
 });
 
