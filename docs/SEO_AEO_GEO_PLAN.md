@@ -1,6 +1,6 @@
 # SEO / AEO / GEO Plan — Infinite Tic-Tac-Toe
 
-**Status:** Phase 2 complete (code); Phase 1 blocked on account setup — see §7
+**Status:** Phases 1, 2 and 4 complete. Phase 3 (content layer) is next — see §7
 **Audit date:** 2026-09-26
 **Last updated:** 2026-09-26
 **Audited against:** `main` @ 8d36ef7, plus live production at `https://www.infinitettt.com`
@@ -450,6 +450,49 @@ expected, not a fault. Compare Lab-to-Lab until traffic grows.
 | PSI mobile — `/leaderboard` | 71 | | |
 | PSI mobile — `/how-to-play` | 58 | | |
 | GA4 `web_vitals` firing | not yet confirmed | | |
+
+
+### Phase 4 result — 2026-09-26, after the perf work
+
+Same PSI API, same settings, so like-for-like with the baseline above.
+
+| Route | Baseline | After | Δ | LCP | CLS | TBT |
+| --- | --- | --- | --- | --- | --- | --- |
+| `/` | 63 | **90** | +27 | 5.7s → **3.3s** | 0 | 240 → 15ms |
+| `/play` | 60 | **93** | +33 | 8.0s → **2.9s** | 0 | 40 → 99ms |
+| `/leaderboard` | 71 | **94** | +23 | 6.4s → **2.9s** | 0 | 230 → 17ms |
+| `/how-to-play` | 58 | **94** | +36 | 8.5s → **2.9s** | 0 | 130 → 80ms |
+
+Three changes produced this, in rough order of impact: AdSense moved off the
+critical path (`lazyOnload`), one high-priority image preload instead of two,
+and 945 KB of icons removed. The 3D hero and our own bundle were never
+touched — the baseline showed they were not the problem.
+
+LCP is now 2.9-3.3s against a 2.5s "good" threshold. Every route is in the
+"needs improvement" band rather than "poor"; none is green yet.
+
+**A regression this caught.** The first post-deploy run showed `/leaderboard`
+at 72 with CLS **0.751**. The cause was the `RankingExplainer` section added in
+Phase 2: it sat outside the `<Suspense>` boundary so it would land in the
+first HTML flush, and the standings then resolved *above* it and pushed it
+down 1487px. The Phase 1.7 baseline had recorded 0.001 for this route because
+that run hit a warm cache and resolved before the flush — the defect was
+present all along and the baseline simply got a lucky run. Moving the section
+inside the boundary fixed it (0.751 → 0).
+
+Worth generalising: **a single Lighthouse run is not evidence of stability.**
+Re-check CLS on any route whose content streams.
+
+### What is left for performance
+
+Deferred until there is field data, since lab numbers are now decent:
+
+- LCP 2.9-3.3s → under 2.5s. The remaining cost is the hero backdrop image
+  plus render-blocking font CSS, not JS.
+- `public/assets/` is still 2.9 MB of source images. They are delivered as
+  small AVIF via `/_next/image`, so this is repo and deploy weight, not user
+  cost — low priority.
+- Our own initial JS (~255 KB) is untouched and was never implicated.
 
 ### What the baseline actually says
 
