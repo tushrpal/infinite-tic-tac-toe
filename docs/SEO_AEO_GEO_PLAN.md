@@ -430,19 +430,66 @@ The real unoptimized payload is the icon set — `favicon.svg` and the manifest
 PNGs bypass `/_next/image` entirely and ship raw, ~580 KB between them. A
 favicon should be under 10 KB. That is the genuine Phase 4.1 target.
 
-### Still to capture (needs a browser)
+### PSI mobile baseline — 2026-09-26T14:59Z
+
+Lighthouse 13.5.0, mobile emulation, via the PageSpeed Insights API so the run
+is exactly repeatable at +30d / +90d. No CrUX field data at current traffic —
+expected, not a fault. Compare Lab-to-Lab until traffic grows.
+
+| Route | Score | FCP | **LCP** | TBT | CLS | Speed Index |
+| --- | --- | --- | --- | --- | --- | --- |
+| `/` | 63 | 3.5s | **5.7s** | 240ms | 0 | 5.9s |
+| `/play` | 60 | 5.3s | **8.0s** | 40ms | 0 | 6.5s |
+| `/leaderboard` | 71 | 1.5s | **6.4s** | 230ms | 0.001 | 4.0s |
+| `/how-to-play` | 58 | 5.4s | **8.5s** | 130ms | 0 | 6.6s |
 
 | Metric | Baseline | +30d | +90d |
 | --- | --- | --- | --- |
-| PSI mobile score — `/` | | | |
-| PSI mobile score — `/play` | | | |
-| PSI mobile score — `/leaderboard` | | | |
-| PSI mobile score — `/how-to-play` | | | |
-| Lab LCP / INP / CLS per URL | | | |
-| GA4 `web_vitals` event firing | | | |
+| PSI mobile — `/` | 63 | | |
+| PSI mobile — `/play` | 60 | | |
+| PSI mobile — `/leaderboard` | 71 | | |
+| PSI mobile — `/how-to-play` | 58 | | |
+| GA4 `web_vitals` firing | not yet confirmed | | |
 
-Field (CrUX) data is unavailable at current traffic levels — "No field data"
-in PSI is expected, not a fault. Compare Lab-to-Lab until traffic grows.
+### What the baseline actually says
+
+**CLS is 0 and TBT is fine.** Layout stability is perfect and main-thread
+blocking is within budget everywhere. **LCP is the only failing metric**, and it
+fails on every route (5.7s–8.5s against a 2.5s "good" threshold).
+
+**The cause is third-party JavaScript, not our code.** Unused-JS breakdown on `/`:
+
+| Script | Total | Unused |
+| --- | --- | --- |
+| AdSense `m2026092301` | 163 KB | **119 KB** |
+| Google Tag / GA4 | 172 KB | **72 KB** |
+| adsbygoogle.js | 51 KB | **30 KB** |
+| our chunk `2766` | 51 KB | 31 KB |
+
+That is **~390 KB of third-party JS against ~255 KB of our own**, with ~221 KB
+of the third-party total never executed. Longest tasks: gtag 148ms, AdSense
+117ms + 98ms.
+
+**This revises P1-5.** The 3D hero and framer-motion are not the bottleneck —
+TBT would be far worse if they were. The dominant, fixable cost is that
+`adsbygoogle.js` is a raw `<script>` in `<head>` (P1-6), giving ad code
+document-blocking priority ahead of the LCP image.
+
+### Revised Phase 4 order (evidence-based)
+
+1. **Move AdSense to `next/script` with `lazyOnload`.** Biggest single lever:
+   219 KB of ad JS currently competes with LCP. **Trade-off to decide
+   consciously:** deferring ads slightly delays first impression render, which
+   can reduce measured viewability. On a site whose LCP is 5.7s, faster pages
+   almost certainly earn more than earlier ad calls — but it is a revenue
+   decision, not purely a technical one.
+2. **One `fetchpriority="high"` preload, not two.** Two competing high-priority
+   images means neither wins the race to LCP.
+3. **Shrink the raw icons** — `favicon.svg` 205 KB, `manifest-512` 375 KB.
+4. Re-measure. Only then consider touching the hero or the JS bundle.
+
+Items 4.4 and 4.5 in the original Phase 4 list (INP on the scroll hero, auditing
+our own bundle) are **deprioritised** — the data does not support them yet.
 
 ---
 
