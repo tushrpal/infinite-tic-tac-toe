@@ -1,6 +1,8 @@
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { KEYWORD_CLUSTERS } from "@/lib/seo/keywords";
 import { PUBLIC_ROUTES } from "@/lib/seo/config";
+import { PLAY_MODE_CONTENT } from "@/lib/seo/playModeContent";
+import { PlayModeContent } from "@/components/play/PlayModeContent";
 
 export const metadata = buildPageMetadata({
   title: "Play with Friends",
@@ -15,5 +17,15 @@ export default function RoomsPlayLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <>
+      {children}
+      <PlayModeContent
+        content={PLAY_MODE_CONTENT.rooms}
+        path={PUBLIC_ROUTES.playRooms}
+        title="Private Tic-Tac-Toe Rooms for Playing with Friends"
+        breadcrumbLabel="Play with Friends"
+      />
+    </>
+  );
 }

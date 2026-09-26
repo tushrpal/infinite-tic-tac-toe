@@ -57,18 +57,31 @@ export function HomeOverlay({
         never stays still
       </motion.p>
 
-      <motion.h1
-        initial={initial}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.1 }}
-        className="font-display text-5xl font-bold uppercase leading-[1.02] tracking-tight sm:text-6xl md:text-7xl"
+      {/*
+        Deliberately NOT a `motion.h1`. framer-motion's `initial` prop is
+        serialized into the SSR HTML as `style="opacity:0"`, which shipped our
+        most important heading to crawlers as hidden text. The entrance is a
+        CSS keyframe (`.hero-rise`) instead, so the served markup is clean.
+
+        The qualifier line is part of the <h1> on purpose: the title tag
+        promises "Play Online Free" and the heading needs to back that up,
+        rather than repeating the brand name on its own.
+      */}
+      <h1
+        className="hero-rise font-display uppercase leading-[1.02] tracking-tight"
+        style={{ animationDelay: "0.1s" }}
       >
-        <span className="text-text-primary">Infinite</span>
-        <br />
-        <span className="bg-gradient-to-r from-accent-primary via-[#C084FC] to-playerX-primary bg-clip-text text-transparent">
-          Tic-Tac-Toe
+        <span className="block text-5xl font-bold sm:text-6xl md:text-7xl">
+          <span className="text-text-primary">Infinite</span>
+          <br />
+          <span className="bg-gradient-to-r from-accent-primary via-[#C084FC] to-playerX-primary bg-clip-text text-transparent">
+            Tic-Tac-Toe
+          </span>
         </span>
-      </motion.h1>
+        <span className="mt-3 block text-sm font-semibold tracking-[0.2em] text-text-secondary sm:text-base">
+          Free Online Multiplayer
+        </span>
+      </h1>
 
       <motion.p
         initial={initial}

@@ -1,6 +1,8 @@
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { KEYWORD_CLUSTERS } from "@/lib/seo/keywords";
 import { PUBLIC_ROUTES } from "@/lib/seo/config";
+import { PLAY_MODE_CONTENT } from "@/lib/seo/playModeContent";
+import { PlayModeContent } from "@/components/play/PlayModeContent";
 
 export const metadata = buildPageMetadata({
   title: "Ranked Match",
@@ -15,5 +17,15 @@ export default function RankedPlayLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <>
+      {children}
+      <PlayModeContent
+        content={PLAY_MODE_CONTENT.ranked}
+        path={PUBLIC_ROUTES.playRanked}
+        title="Ranked Infinite Tic-Tac-Toe: How the Ladder Works"
+        breadcrumbLabel="Ranked Match"
+      />
+    </>
+  );
 }

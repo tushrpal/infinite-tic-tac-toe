@@ -1,54 +1,66 @@
 import type { MetadataRoute } from "next";
-import { getSiteUrl } from "@/lib/seo/config";
+import {
+  getSiteUrl,
+  CRAWLER_DISALLOW,
+  AI_CRAWLER_DISALLOW,
+  DISCOVERY_FILES,
+} from "@/lib/seo/config";
+
+/** Crawlers that index for a search results page — get the full disallow list. */
+const SEARCH_CRAWLERS = [
+  "Googlebot",
+  "Bingbot",
+  "DuckDuckBot",
+  "Applebot",
+  "FacebookBot",
+] as const;
+
+/** Crawlers that gather training/answer data — get the narrower list. */
+const AI_CRAWLERS = [
+  // OpenAI
+  "GPTBot",
+  "ChatGPT-User",
+  "OAI-SearchBot",
+  // Google (AI surfaces)
+  "Google-Extended",
+  // Anthropic
+  "anthropic-ai",
+  "ClaudeBot",
+  "Claude-Web",
+  // Perplexity
+  "PerplexityBot",
+  // Meta
+  "meta-externalagent",
+  // Apple / Amazon / Cohere / Common Crawl
+  "Amazonbot",
+  "cohere-ai",
+  "CCBot",
+] as const;
 
 export default function robots(): MetadataRoute.Robots {
   const siteUrl = getSiteUrl();
 
-  const publicDisallow = [
-    "/profile",
-    "/match/",
-    "/replay/",
-    "/watch/",
-    "/join/",
-    "/rooms/",
-    "/api/",
-  ];
-
-  const aiCrawlerDisallow = ["/profile", "/match/", "/replay/", "/api/"];
+  const publicDisallow = [...CRAWLER_DISALLOW];
+  const aiCrawlerDisallow = [...AI_CRAWLER_DISALLOW];
 
   return {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/llms.txt", "/feed.xml", "/humans.txt"],
+        allow: ["/", ...DISCOVERY_FILES],
         disallow: publicDisallow,
       },
-      // OpenAI
-      { userAgent: "GPTBot", allow: "/", disallow: aiCrawlerDisallow },
-      { userAgent: "ChatGPT-User", allow: "/", disallow: aiCrawlerDisallow },
-      { userAgent: "OAI-SearchBot", allow: "/", disallow: aiCrawlerDisallow },
-      // Google
-      { userAgent: "Googlebot", allow: "/", disallow: publicDisallow },
-      { userAgent: "Google-Extended", allow: "/", disallow: aiCrawlerDisallow },
-      // Anthropic
-      { userAgent: "anthropic-ai", allow: "/", disallow: aiCrawlerDisallow },
-      { userAgent: "ClaudeBot", allow: "/", disallow: aiCrawlerDisallow },
-      { userAgent: "Claude-Web", allow: "/", disallow: aiCrawlerDisallow },
-      // Perplexity
-      { userAgent: "PerplexityBot", allow: "/", disallow: aiCrawlerDisallow },
-      // Meta
-      { userAgent: "FacebookBot", allow: "/", disallow: publicDisallow },
-      { userAgent: "meta-externalagent", allow: "/", disallow: aiCrawlerDisallow },
-      // Apple / Amazon / Cohere / Common Crawl
-      { userAgent: "Applebot", allow: "/", disallow: publicDisallow },
-      { userAgent: "Amazonbot", allow: "/", disallow: aiCrawlerDisallow },
-      { userAgent: "cohere-ai", allow: "/", disallow: aiCrawlerDisallow },
-      { userAgent: "CCBot", allow: "/", disallow: aiCrawlerDisallow },
-      // Bing / DuckDuckGo
-      { userAgent: "Bingbot", allow: "/", disallow: publicDisallow },
-      { userAgent: "DuckDuckBot", allow: "/", disallow: publicDisallow },
+      ...SEARCH_CRAWLERS.map((userAgent) => ({
+        userAgent,
+        allow: "/",
+        disallow: publicDisallow,
+      })),
+      ...AI_CRAWLERS.map((userAgent) => ({
+        userAgent,
+        allow: "/",
+        disallow: aiCrawlerDisallow,
+      })),
     ],
     sitemap: `${siteUrl}/sitemap.xml`,
-    host: siteUrl,
   };
 }

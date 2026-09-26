@@ -585,6 +585,42 @@ body {
   contain-intrinsic-size: auto 64px;
 }
 
+/* ================================================
+   HERO ENTRANCE
+   ================================================ */
+
+/*
+ * CSS entrance animation for the home hero headline, used instead of
+ * framer-motion's `initial` prop for one specific reason: `initial` is
+ * serialized into the SSR response as `style="opacity:0"`, which means the
+ * <h1> — the single strongest on-page signal on our most important URL —
+ * ships to crawlers as hidden text. Keeping the from-state inside a keyframe
+ * leaves the served HTML clean while the animation is identical for users.
+ *
+ * `both` fill mode holds the from-state before the delay elapses, so this
+ * still reads as a staggered entrance rather than a flash of final layout.
+ */
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-rise {
+  animation: hero-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-rise {
+    animation: none !important;
+  }
+}
+
 /* Honor the OS "reduce motion" setting for continuous decorative animation. */
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse,

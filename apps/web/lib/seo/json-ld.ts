@@ -1,5 +1,9 @@
-import { SITE, getSiteUrl, PUBLIC_ROUTES } from "./config";
-import { ANSWER_SNIPPETS, ENTITY_DEFINITION } from "./keywords";
+import { SITE, getSiteUrl, PUBLIC_ROUTES, SOCIAL_PROFILES } from "./config";
+import {
+  ANSWER_SNIPPETS,
+  ENTITY_DEFINITION,
+  ENTITY_DISAMBIGUATION,
+} from "./keywords";
 
 type JsonLd = Record<string, unknown>;
 
@@ -19,7 +23,10 @@ export function organizationSchema(): JsonLd {
     url,
     logo: `${url}/web-app-manifest-512x512.png`,
     description: ENTITY_DEFINITION,
-    sameAs: [],
+    disambiguatingDescription: ENTITY_DISAMBIGUATION,
+    // Omitted entirely while empty: an empty array is a positive claim that the
+    // entity has no other presence, which is not what we mean.
+    ...(SOCIAL_PROFILES.length > 0 ? { sameAs: [...SOCIAL_PROFILES] } : {}),
   };
 }
 
@@ -57,6 +64,7 @@ export function webApplicationSchema(): JsonLd {
     alternateName: SITE.shortName,
     url,
     description: ENTITY_DEFINITION,
+    disambiguatingDescription: ENTITY_DISAMBIGUATION,
     applicationCategory: SITE.applicationCategory,
     operatingSystem: SITE.operatingSystem,
     browserRequirements: "Requires JavaScript. Works in all modern browsers.",
@@ -92,12 +100,23 @@ export interface FaqItem {
   answer: string;
 }
 
-export function faqPageSchema(items: FaqItem[]): JsonLd {
+/**
+ * FAQPage for a specific route.
+ *
+ * `path` matters: this previously hardcoded the `@id` to /how-to-play#faq, so
+ * the homepage's FAQ and the tutorial's FAQ published the same `@id` — two
+ * different node contents claiming one identifier, which is a structured-data
+ * conflict. Each page's FAQ now gets its own node.
+ */
+export function faqPageSchema(
+  items: FaqItem[],
+  path: string = PUBLIC_ROUTES.howToPlay
+): JsonLd {
   const url = siteUrl();
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "@id": `${url}${PUBLIC_ROUTES.howToPlay}#faq`,
+    "@id": `${url}${path}#faq`,
     mainEntity: items.map((item) => ({
       "@type": "Question",
       name: item.question,
@@ -145,6 +164,54 @@ export function howToPlaySchema(): JsonLd {
         text: "Get three (or N) marks in a row horizontally, vertically, or diagonally before your opponent.",
       },
     ],
+  };
+}
+
+export interface LeaderboardEntrySchema {
+  username: string;
+  name: string;
+  rating: number;
+}
+
+/**
+ * ItemList for the global leaderboard.
+ *
+ * This is the only genuinely unique, first-party dataset on the site — live
+ * ranked standings a competitor can't replicate — and it was previously
+ * unmarked, so search and answer engines had no structured view of it.
+ *
+ * Capped deliberately: Google only reads the leading items of a long list, and
+ * emitting all 50 mostly adds page weight. Players are `Person` with only a
+ * display name, never an email or id, so nothing identifying leaks into markup.
+ */
+export function leaderboardSchema(
+  entries: LeaderboardEntrySchema[],
+  limit = 20
+): JsonLd {
+  const url = siteUrl();
+  const top = entries.slice(0, limit);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "@id": `${url}${PUBLIC_ROUTES.leaderboard}#itemlist`,
+    name: `${SITE.name} Global Leaderboard`,
+    description:
+      "Top ranked Infinite Tic-Tac-Toe players by Elo rating across Sliding and Expanding modes.",
+    url: `${url}${PUBLIC_ROUTES.leaderboard}`,
+    inLanguage: SITE.language,
+    numberOfItems: top.length,
+    itemListOrder: "https://schema.org/ItemListOrderDescending",
+    itemListElement: top.map((entry, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: entry.name || entry.username,
+      item: {
+        "@type": "Person",
+        name: entry.name || entry.username,
+        alternateName: entry.username,
+      },
+    })),
   };
 }
 

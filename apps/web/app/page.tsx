@@ -1,5 +1,3 @@
-import Link from "next/link";
-import type { Route } from "next";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { faqPageSchema } from "@/lib/seo/json-ld";
 import { buildPageMetadata } from "@/lib/seo/metadata";
@@ -46,7 +44,7 @@ const HOME_FAQ = [
 export default function HomePage() {
   return (
     <>
-      <JsonLd data={faqPageSchema(HOME_FAQ)} />
+      <JsonLd data={faqPageSchema(HOME_FAQ, PUBLIC_ROUTES.home)} />
       {/* space-scope: the rest of the page shares the hero's background so the
           hero dissolves into it without a visible seam. */}
       <main className="space-scope flex-1 flex flex-col">
@@ -136,34 +134,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-6 px-4 border-t border-white/5">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-text-muted">
-            © 2026 Infinite Tic-Tac-Toe. All rights reserved.
-          </p>
-          <nav className="flex gap-6">
-            <Link
-              href={"/about" as Route}
-              className="text-sm text-text-secondary hover:text-text-primary transition-colors"
-            >
-              About
-            </Link>
-            <Link
-              href={"/privacy" as Route}
-              className="text-sm text-text-secondary hover:text-text-primary transition-colors"
-            >
-              Privacy
-            </Link>
-            <Link
-              href={"/terms" as Route}
-              className="text-sm text-text-secondary hover:text-text-primary transition-colors"
-            >
-              Terms
-            </Link>
-          </nav>
-        </div>
-      </footer>
+      {/* Site footer now comes from the root layout (components/layout/Footer). */}
     </main>
     </>
   );

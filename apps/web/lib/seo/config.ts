@@ -18,6 +18,27 @@ export const SITE = {
   priceCurrency: "USD",
 } as const;
 
+/**
+ * Third-party profiles for `Organization.sameAs`.
+ *
+ * This is the main mechanism by which search and generative engines decide
+ * that two mentions of "Infinite Tic-Tac-Toe" refer to the same entity — which
+ * matters here because "infinite tic-tac-toe" already commonly refers to the
+ * unbounded-grid variant, a different game.
+ *
+ * Two hard rules for anything added here:
+ *   1. It must be publicly reachable. A private repo or a handle that 404s is
+ *      an unverifiable claim, and an unverifiable sameAs is worse for entity
+ *      resolution than an empty list.
+ *   2. It must link back to this site. Corroboration only counts when it goes
+ *      both ways.
+ *
+ * Verified 2026-09-26: github.com/tushrpal/infinite-tic-tac-toe returns 404
+ * (private), and x.com/InfiniteTTT returns 404. Neither qualifies yet, so this
+ * stays empty rather than publishing claims that don't resolve.
+ */
+export const SOCIAL_PROFILES: readonly string[] = [];
+
 /** Canonical production domain, used as a safety net if the env var is unset. */
 const PRODUCTION_SITE_URL = "https://www.infinitettt.com";
 
@@ -71,4 +92,47 @@ export const NOINDEX_ROUTES = [
   "/watch/",
   "/join/",
   "/rooms/",
+] as const;
+
+/**
+ * What every crawler is kept out of: the noindex routes plus the API surface.
+ * `app/robots.ts` builds its rules from this so the disallow list can't drift
+ * away from NOINDEX_ROUTES / the per-page `noIndex` metadata.
+ */
+export const CRAWLER_DISALLOW: readonly string[] = [...NOINDEX_ROUTES, "/api/"];
+
+/**
+ * Additionally allowed for AI/LLM crawlers. `/watch/`, `/join/` and `/rooms/`
+ * are ephemeral rather than private — a stale room code in a model's training
+ * set is harmless, whereas keeping them crawlable lets an engine resolve a
+ * shared invite link. They stay out of the index via per-page `noIndex`.
+ */
+export const AI_CRAWLER_DISALLOW: readonly string[] = [
+  "/profile",
+  "/match/",
+  "/replay/",
+  "/api/",
+];
+
+/**
+ * Full-screen game surfaces. These get no sitewide footer — a live match or a
+ * room lobby is an immersive screen, and they're all `noIndex` anyway, so the
+ * footer's internal-linking job doesn't apply to them.
+ */
+export const IMMERSIVE_ROUTES = [
+  "/match/",
+  "/watch/",
+  "/replay/",
+  "/rooms/",
+  "/join/",
+] as const;
+
+/**
+ * Discovery files that are not indexable HTML documents. They belong in
+ * robots.txt and in <link> relations, never in sitemap.xml.
+ */
+export const DISCOVERY_FILES = [
+  "/llms.txt",
+  "/feed.xml",
+  "/humans.txt",
 ] as const;

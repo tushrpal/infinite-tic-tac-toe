@@ -12,6 +12,9 @@ import { PlayerProvider } from "@/components/providers/PlayerProvider";
 import { FriendsProvider } from "@/components/providers/FriendsProvider";
 import { ChallengesProvider } from "@/components/providers/ChallengesProvider";
 import { Navigation } from "@/components/layout/Navigation";
+import { Footer } from "@/components/layout/Footer";
+import { FooterSlot } from "@/components/layout/FooterSlot";
+import { WebVitals } from "@/components/analytics/WebVitals";
 import { ErrorBoundary } from "@/components/errors/ErrorBoundary";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingModal";
 import { ChallengeNotificationWrapper } from "@/components/challenges/ChallengeNotificationWrapper";
@@ -78,6 +81,7 @@ export default function RootLayout({
           `}
         </Script>
         <JsonLd data={globalSchemas()} />
+        <WebVitals />
         <ServiceWorkerRegistration />
         <ErrorBoundary>
           <AuthProvider>
@@ -90,6 +94,9 @@ export default function RootLayout({
                         <Navigation />
                         <AccountLinkingBannerWrapper />
                         {children}
+                        <FooterSlot>
+                          <Footer />
+                        </FooterSlot>
                       </div>
                       {/* Challenge Notifications */}
                       <ChallengeNotificationWrapper />

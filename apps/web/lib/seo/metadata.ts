@@ -82,6 +82,26 @@ export function buildPageMetadata(options: PageSeoOptions): Metadata {
   return metadata;
 }
 
+/**
+ * Search engine ownership verification.
+ *
+ * DNS verification (a TXT record) is the primary method because it survives
+ * redeploys and domain moves; these meta tags are a second, independent signal
+ * so a DNS change can't silently un-verify the property. Both are omitted
+ * entirely when the env vars are unset, rather than emitting empty tags.
+ */
+function buildVerification(): Metadata["verification"] {
+  const google = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim();
+  const bing = process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION?.trim();
+
+  if (!google && !bing) return undefined;
+
+  return {
+    ...(google ? { google } : {}),
+    ...(bing ? { other: { "msvalidate.01": bing } } : {}),
+  };
+}
+
 /** Default site-wide metadata for root layout. */
 export function buildRootMetadata(): Metadata {
   return {
@@ -90,6 +110,7 @@ export function buildRootMetadata(): Metadata {
       description: SITE.description,
       path: "/",
     }),
+    verification: buildVerification(),
     applicationName: SITE.shortName,
     appleWebApp: {
       capable: true,

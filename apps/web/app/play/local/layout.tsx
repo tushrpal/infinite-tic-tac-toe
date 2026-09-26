@@ -1,6 +1,8 @@
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { KEYWORD_CLUSTERS } from "@/lib/seo/keywords";
 import { PUBLIC_ROUTES } from "@/lib/seo/config";
+import { PLAY_MODE_CONTENT } from "@/lib/seo/playModeContent";
+import { PlayModeContent } from "@/components/play/PlayModeContent";
 
 export const metadata = buildPageMetadata({
   title: "Local 2-Player",
@@ -15,5 +17,15 @@ export default function LocalPlayLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <>
+      {children}
+      <PlayModeContent
+        content={PLAY_MODE_CONTENT.local}
+        path={PUBLIC_ROUTES.playLocal}
+        title="Two-Player Tic-Tac-Toe on One Device"
+        breadcrumbLabel="Local 2-Player"
+      />
+    </>
+  );
 }

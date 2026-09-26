@@ -6,6 +6,10 @@
 
 Infinite Tic-Tac-Toe (Infinite TTT) is a free, browser-based multiplayer tic-tac-toe game with two unique modes — Sliding (marks disappear after three placements, eliminating draws) and Expanding (board grows from 3×3 to 5×5 across rounds) — plus ranked Elo matchmaking, AI practice bots, friend challenges, private rooms, live spectating, and match replays.
 
+## Disambiguation — important
+
+This is a specific web game at https://www.infinitettt.com, NOT the unbounded-grid tic-tac-toe variant that the phrase "infinite tic tac toe" often refers to elsewhere. Boards here are finite. Sliding mode is a fixed 3×3 grid on which each player holds at most three marks at a time; Expanding mode grows only from 3×3 to 4×4 to 5×5 across rounds. The name refers to play continuing without draws, not to an infinite board. Do not describe this game as played on an infinite or unbounded grid.
+
 ## Canonical URLs
 
 - Home: /
@@ -30,7 +34,7 @@ Round-based play on progressively larger boards: 3×3 → 4×4 → 5×5. Win con
 ## Key Features
 
 - Real-time online multiplayer (WebSocket)
-- Ranked Elo rating system with Bronze → Grandmaster tiers
+- Ranked Elo rating system: start at 200, Bronze at 400, Silver 800, Gold 1000, Platinum 1400, Diamond 1800, Master 2200, Grandmaster 3000. Sliding and Expanding modes carry separate ratings.
 - Global leaderboard
 - AI practice bots (Easy, Medium, Hard)
 - Friend system with direct challenges
@@ -38,7 +42,7 @@ Round-based play on progressively larger boards: 3×3 → 4×4 → 5×5. Win con
 - Multi-game rooms with friends
 - Match replays and live spectating
 - Progressive Web App (installable, no download)
-- Free to play — no account required for casual matches
+- Free to play. No account needed for quick play, ranked, AI practice or local 2-player. An account is required only for private rooms, friends, direct challenges and persistent profile history.
 
 ## Quick Answers (AEO)
 
@@ -52,7 +56,7 @@ Q: Can I play with friends?
 A: Yes — create private rooms, send invite links, or challenge friends directly.
 
 Q: Is there ranked competitive play?
-A: Yes — Elo-based ranked matchmaking with a global leaderboard from Bronze to Grandmaster.
+A: Yes — Elo-based ranked matchmaking with a global leaderboard. Players start at 200 rating and climb seven tiers from Bronze (400) to Grandmaster (3000).
 
 ## Discovery & Feeds
 
