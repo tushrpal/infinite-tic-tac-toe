@@ -61,13 +61,36 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7401169722110446"
+        {/*
+          Warm up the ad and analytics origins early. The scripts themselves
+          now load late (see below), but the DNS + TLS handshake can happen
+          during idle time rather than on the critical path.
+        */}
+        <link
+          rel="preconnect"
+          href="https://pagead2.googlesyndication.com"
           crossOrigin="anonymous"
         />
+        <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
       </head>
       <body className="min-h-screen bg-surface-base text-text-primary antialiased">
+        {/*
+          AdSense was a bare <script> in <head>, which gives ad code
+          document-blocking priority ahead of the LCP image. Measured on
+          2026-09-26 it was 219 KB of JS (149 KB of it never executed)
+          competing with a 39 KB hero image, on pages whose LCP was 5.7-8.5s.
+
+          `lazyOnload` defers it to after the window load event, so ads no
+          longer contend for bandwidth or main thread during the paint that
+          Core Web Vitals actually measures. Ads render slightly later as a
+          result — an accepted trade for LCP on pages this slow.
+        */}
+        <Script
+          id="adsbygoogle"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7401169722110446"
+          strategy="lazyOnload"
+          crossOrigin="anonymous"
+        />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-SEV1SDLYRN"
           strategy="afterInteractive"

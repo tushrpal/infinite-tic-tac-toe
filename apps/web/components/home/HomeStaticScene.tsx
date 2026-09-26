@@ -70,12 +70,23 @@ export function HomeStaticScene({
             className="absolute inset-[-8%] rounded-full bg-[radial-gradient(circle,rgba(168,85,247,0.45)_0%,rgba(168,85,247,0)_70%)]"
           />
           <div className={cn("relative", float && "motion-safe:animate-float")}>
+            {/*
+              `loading="eager"` rather than `priority`. Both are above the
+              fold, but `priority` emits fetchpriority="high" + a preload, and
+              having two high-priority images means the browser can't
+              prioritise either — they just split the connection.
+
+              The LCP element is the full-bleed backdrop (homeBg, `fill` at
+              100vw), so that one keeps `priority`. This board is a 600px
+              foreground element: it still loads immediately, it just no longer
+              competes with the image LCP is actually measured against.
+            */}
             <Image
               src="/assets/board.png"
               alt=""
               width={600}
               height={600}
-              priority
+              loading="eager"
               quality={80}
               sizes="(min-width: 1024px) 600px, (min-width: 640px) 360px, 64vw"
               className="relative h-auto w-full"
