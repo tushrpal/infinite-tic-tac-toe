@@ -55,6 +55,20 @@ async function LeaderboardContent({ searchParams }: LeaderboardPageProps) {
         initialPlayers={initialPlayers}
         initialHasMore={initialHasMore}
       />
+      {/*
+        Inside the Suspense boundary, not after it.
+        This section was previously rendered as a sibling of <Suspense> so that
+        it would be in the first HTML flush. That backfired: when the standings
+        resolved they were inserted *above* it and pushed it down 1487px,
+        measuring CLS 0.751 on a page that is otherwise perfectly stable.
+        Streaming SSR still server-renders this — just in the same chunk as the
+        standings — so the content is equally crawlable with no shift.
+      */}
+      <RankingExplainer
+        tiers={RANKS.TIERS}
+        defaultRating={RANKS.DEFAULT_RATING}
+        summary={ANSWER_SNIPPETS.rankedSystem}
+      />
     </>
   );
 }
@@ -68,9 +82,15 @@ export default function LeaderboardPage(props: LeaderboardPageProps) {
           { name: "Leaderboard", path: PUBLIC_ROUTES.leaderboard },
         ])}
       />
+      {/*
+        The fallback reserves roughly a viewport of height. Without it, the
+        swap from a one-line "Loading..." to the full standings jerks the
+        footer down the page — the same class of shift that made this route's
+        CLS 0.751 before the explainer moved inside the boundary.
+      */}
       <Suspense
         fallback={
-          <main className="space-scope flex-1 px-4 py-8">
+          <main className="space-scope min-h-screen flex-1 px-4 py-8">
             <div className="w-full max-w-3xl mx-auto">
               <div className="py-6 text-center text-text-secondary">Loading leaderboard...</div>
             </div>
@@ -79,19 +99,6 @@ export default function LeaderboardPage(props: LeaderboardPageProps) {
       >
         <LeaderboardContent {...props} />
       </Suspense>
-
-      {/*
-        Rendered outside Suspense so the explanatory content is in the initial
-        HTML regardless of whether the standings fetch resolves. This section
-        is what turns /leaderboard from an h1-plus-a-table into a page that can
-        answer "how does tic-tac-toe ranking work" — the page previously had
-        zero h2s and no prose at all.
-      */}
-      <RankingExplainer
-        tiers={RANKS.TIERS}
-        defaultRating={RANKS.DEFAULT_RATING}
-        summary={ANSWER_SNIPPETS.rankedSystem}
-      />
     </>
   );
 }
