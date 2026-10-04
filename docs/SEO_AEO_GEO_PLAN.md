@@ -1,6 +1,6 @@
 # SEO / AEO / GEO Plan — Infinite Tic-Tac-Toe
 
-**Status:** Phases 1, 2 and 4 complete. Phase 3 (content layer) is next — see §7
+**Status:** Phases 1, 2 and 4 complete. Phase 3 started: the two owned-term guides and the hub are built (2026-10-04). Remaining Phase 3 guides and the external listings are next — see §7
 **Audit date:** 2026-09-26
 **Last updated:** 2026-09-26
 **Audited against:** `main` @ 8d36ef7, plus live production at `https://www.infinitettt.com`
@@ -260,7 +260,7 @@ Do not add pages until the existing ones are worth ranking.
 | 2.5 | Add `ItemList` JSON-LD to `/leaderboard` (top 20 as `ListItem` → `Person`/`name` + `position`), plus an on-page `<h2>` section explaining the Elo system, tiers and reset cadence. | Unlocks P1-1 | `lib/seo/json-ld.ts`, `app/leaderboard/page.tsx` |
 | 2.6 | Add `app/not-found.tsx`: branded, with links to `/`, `/play`, `/how-to-play`, `/leaderboard`. | P1-3 | new `app/not-found.tsx` |
 | 2.7 | Extract the homepage footer into `components/layout/Footer.tsx` and mount it in the root layout. Include About, How to Play, Leaderboard, all five play modes, Privacy, Terms. | P1-4, and the cheapest internal-linking win available | new `components/layout/Footer.tsx`, `app/layout.tsx`, `app/page.tsx` |
-| 2.8 | Populate `sameAs` in `organizationSchema()` with every profile that actually exists and links back (X, GitHub repo, itch.io / Reddit if applicable). Verify `@InfiniteTTT` exists and has the site in its bio — if it does not, either create it or remove `twitterHandle` rather than claiming it. | P0-5 | `lib/seo/json-ld.ts`, `lib/seo/config.ts` |
+| 2.8 | **Done 2026-09-26 (commit 82c248c).** `sameAs` lists the public GitHub repo and `x.com/infinite_ttt`. The Twitter handle is corrected to `@infinite_ttt`. | P0-5 | `lib/seo/json-ld.ts`, `lib/seo/config.ts` |
 | 2.9 | Give `app/sitemap.ts` real per-route `lastModified` dates (a static map updated when a route's content changes, or git mtime at build). Remove `/llms.txt`, `/feed.xml`, `/humans.txt` from the sitemap. | P1-2 | `app/sitemap.ts` |
 | 2.10 | Make `app/robots.ts` import `NOINDEX_ROUTES` from `lib/seo/config.ts` instead of redeclaring it. | P2-1 | `app/robots.ts` |
 
@@ -618,3 +618,43 @@ locally: `tsc --noEmit` clean, `next build` clean, 60/60 tests passing
 5. Resubmit `sitemap.xml` (it dropped from 15 URLs to 12 and all `lastmod`
    values changed).
 6. Then **Phase 4**, prioritised by what 1.7 actually shows.
+
+### 2026-10-04 — Search Console and PSI check, Phase 3 started
+
+**Measured (screenshots, not reproducible from code):**
+
+| Source | Result |
+| --- | --- |
+| Search Console sitemap | `sitemap.xml` Success, 12 discovered, last read 2026-10-04 |
+| Search Console indexing | 11 indexed, 6 not indexed. Of the 6: `feed.xml`, `humans.txt`, `llms.txt` are non-HTML and expected to stay out of the index. `/play/online` is *Discovered – currently not indexed*. `http://` and `https://` apex URLs are the expected redirect. |
+| Search Console performance (9/13–9/29) | 12 clicks, about 150 impressions. Top query: "infinite tic tac toe online" (1 click, position 2.6). The mode terms ("sliding", "expanding") have **zero impressions**. |
+| GA4 new users (9/6–10/3) | Direct 126, Organic Search 12, Referral 6. Day-1 return about 3.5%. |
+| Bing Webmaster | Site verified. 0 clicks, 0 impressions so far. |
+| PSI mobile, homepage (2026-10-04) | Performance 88, Accessibility 95, Best Practices 100, SEO 100. Field data: no data yet. |
+| Vercel env | `NEXT_PUBLIC_SITE_URL` set (Production and Preview). `INDEXNOW_KEY` set for Production, flagged *Needs Attention* in Vercel. Verification env vars not set, which is fine because DNS already verifies Search Console. |
+
+**Built:**
+
+- `app/guides/sliding-tic-tac-toe-rules` and `app/guides/expanding-tic-tac-toe-rules`, with a `/guides` hub. Content lives in `lib/seo/guideContent.ts`. Each guide leads with the answer, uses question-shaped headings, has a FAQPage and BreadcrumbList, and links to the matching play mode.
+- Both guides are added to `PUBLIC_ROUTES`, to `app/sitemap.ts` (lastmod 2026-10-04), and to `public/llms.txt`.
+- `docs/SEO_LISTING_COPY.md`: drafts for itch.io, the GitHub repo description, Reddit, Show HN and Product Hunt. Nothing has been posted.
+- Removed `apps/web/lb.html` and `apps/web/s.html`. These were saved HTML snapshots that nothing referenced.
+- `lib/tutorialContent.ts`: the How to Play FAQ said ratings start at 1000. Corrected to 200, matching the verified `RANKS.DEFAULT_RATING`.
+
+**Verification:** `tsc --noEmit` clean. `vitest run lib/seo`: 20/20 passing.
+
+**Not verified, and needs checking before the guides are relied on:**
+
+- The sliding rule ("fourth placement removes the oldest mark, max three per player") is taken from the published copy: `llms.txt`, `ANSWER_SNIPPETS` and `gameModes`. It was **not** checked against the game engine in this pass.
+- `tutorialContent.ts` FAQ says sliding removes pieces "after 6 total moves (3 per player)". That contradicts the rule above. Decide which is correct, then fix that FAQ entry.
+- The `/play/online` "Discovered – not indexed" status has no code cause found. The page has copy from `PLAY_MODE_CONTENT.online`. This is most likely a crawl-priority or quality signal. Re-check in 4 weeks.
+
+**Next:** the remaining Phase 3 guides (`/guides/how-to-win-tic-tac-toe`, `/guides/tic-tac-toe-strategy` and the rest of §3), the feed entries, and the listings in `docs/SEO_LISTING_COPY.md` once you post them.
+
+### 2026-10-04 (later) — /tic-tac-toe page, and the classic-mode check
+
+- **Engine check, done with approval.** Classic is 3×3 with draws, confirmed in `apps/web/lib/gameModes.ts` (`LOCAL_CLASSIC`, `canModeDraw`). The engine README confirms the sliding rule: on a player's fourth move their oldest mark is removed. The guides and FAQ now match this.
+- **Fixed a wrong FAQ.** `lib/tutorialContent.ts` said sliding removes pieces "after 6 total moves". It now states the fourth-move rule.
+- **New page `/tic-tac-toe`.** Play-first: a client-side classic 3×3 board (`components/guides/ClassicBoard.tsx`) above the copy, which covers the rules, how to win, draws, and the two variants. Targets the plain "tic tac toe" intent. It is in `PUBLIC_ROUTES` (`ticTacToe`), the sitemap at priority 0.85, and `llms.txt`.
+- **Expectation for the plain term:** Google shows its own playable board for "tic tac toe", so this page competes with that and with long-established sites. Track the query for at least three months before judging it. Filter Search Console on "tic tac toe" monthly.
+- **Checks:** `tsc --noEmit` clean; `vitest run lib/seo` 20/20. The page has not been opened in a browser yet.

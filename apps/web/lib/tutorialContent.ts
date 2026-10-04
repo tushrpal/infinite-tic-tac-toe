@@ -222,7 +222,7 @@ export const faq = [
   },
   {
     question: "How does the ranking system work?",
-    answer: "Your rating starts at 1000. Win matches to gain rating points, lose to drop points. The amount you gain or lose depends on your opponent's rating. Beating higher-rated players gives more points!",
+    answer: "Your rating starts at 200. Win matches to gain rating points, lose to drop points. The amount you gain or lose depends on your opponent's rating. Beating higher-rated players gives more points!",
   },
   {
     question: "Can I play against bots?",
@@ -238,6 +238,6 @@ export const faq = [
   },
   {
     question: "How does sliding mode keep the game from being a draw?",
-    answer: "In sliding mode, pieces automatically disappear after 6 total moves (3 per player). This constant movement prevents board stalemates and keeps the game dynamic.",
+    answer: "In sliding mode, each player can have at most 3 marks on the board. On your fourth move, your oldest mark is removed automatically. Because the board never fills up, the game cannot end in a draw.",
   },
 ];

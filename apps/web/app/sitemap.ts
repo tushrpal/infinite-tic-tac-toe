@@ -81,6 +81,30 @@ const ENTRIES: SitemapEntry[] = [
     priority: 0.85,
   },
   {
+    path: PUBLIC_ROUTES.ticTacToe,
+    lastModified: "2026-10-04",
+    changeFrequency: "monthly",
+    priority: 0.85,
+  },
+  {
+    path: PUBLIC_ROUTES.guides,
+    lastModified: "2026-10-04",
+    changeFrequency: "monthly",
+    priority: 0.8,
+  },
+  {
+    path: PUBLIC_ROUTES.guideSliding,
+    lastModified: "2026-10-04",
+    changeFrequency: "monthly",
+    priority: 0.8,
+  },
+  {
+    path: PUBLIC_ROUTES.guideExpanding,
+    lastModified: "2026-10-04",
+    changeFrequency: "monthly",
+    priority: 0.8,
+  },
+  {
     path: PUBLIC_ROUTES.about,
     lastModified: "2026-09-08",
     changeFrequency: "yearly",

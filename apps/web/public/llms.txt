@@ -29,6 +29,9 @@ Ranked Elo system: players start at 200. Ranks are Bronze (400), Silver (800), G
 ## Guides
 
 - [How to play and FAQ](https://www.infinitettt.com/how-to-play): rules, modes and strategy.
+- [Tic-tac-toe, free online](https://www.infinitettt.com/tic-tac-toe): play the classic 3×3 game in the browser, with rules and how to win.
+- [Sliding tic-tac-toe rules](https://www.infinitettt.com/guides/sliding-tic-tac-toe-rules): fixed 3×3 board, at most three marks per player, oldest mark removed on the fourth placement, no draws.
+- [Expanding tic-tac-toe rules](https://www.infinitettt.com/guides/expanding-tic-tac-toe-rules): board grows 3×3 → 4×4 → 5×5 across rounds, N in a row on an N×N board.
 - [About](https://www.infinitettt.com/about): what the project is.
 
 ## Key Features
