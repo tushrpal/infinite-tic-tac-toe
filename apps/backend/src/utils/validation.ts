@@ -26,7 +26,9 @@ export function isValidUsername(username: string): boolean {
 
 /**
  * Validate display name format
+ * - Not empty after trimming
  * - 1-50 characters
+ * - At least 3 letters (Unicode letters; digits, spaces and emoji don't count)
  * - Can contain any printable characters
  */
 export function isValidDisplayName(displayName: string): boolean {
@@ -40,7 +42,9 @@ export function isValidDisplayName(displayName: string): boolean {
     return false;
   }
 
-  return true;
+  const letterCount = (trimmed.match(/\p{L}/gu) ?? []).length;
+
+  return letterCount >= 3;
 }
 
 /**

@@ -89,7 +89,7 @@ export function RankingExplainer({
         </h3>
         <p className="leading-relaxed text-text-secondary">
           Only ranked matches affect your rating. Practice games against AI
-          bots, local two-player games and private room matches are all
+          bots, two-player games on one device and private room matches are all
           unrated, so you can warm up without risk.{" "}
           <Link
             href={PUBLIC_ROUTES.playRanked as Route}

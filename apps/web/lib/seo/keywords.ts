@@ -111,7 +111,7 @@ export const ANSWER_SNIPPETS = {
   howToPlay:
     "Take turns placing X or O on the grid. In Sliding mode, after each player has 3 marks on the board, the oldest mark is removed on the next placement — first to three-in-a-row wins with no draws. In Expanding mode, rounds play on growing boards (3×3, then 4×4, then 5×5) where you need N-in-a-row on an N×N board.",
   isFree:
-    "Yes. Infinite Tic-Tac-Toe is completely free to play in your browser with no download. You can play quick matches, ranked matches, AI practice and local two-player games without an account. Signing in is only needed for features that have to persist across devices — private rooms, the friends list, direct challenges and profile history.",
+    "Yes. Infinite Tic-Tac-Toe is completely free to play in your browser with no download. You can play quick matches, ranked matches, AI practice and two-player games on one device without an account. Signing in is only needed for features that have to persist across devices — private rooms, the friends list, direct challenges and profile history.",
   gameModes:
     "Sliding Mode uses a fixed 3×3 board where marks slide off after three placements per player, preventing stalemates. Expanding Mode uses round-based play on progressively larger boards where the win condition scales with board size.",
   rankedSystem:

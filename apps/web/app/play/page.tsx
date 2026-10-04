@@ -11,7 +11,7 @@ import type { GameMode } from "@/ws/types";
 export const metadata = buildPageMetadata({
   title: "Play",
   description:
-    "Choose how to play Infinite Tic-Tac-Toe — ranked matchmaking, online quick play, practice vs AI bots, local 2-player, or private rooms with friends.",
+    "Choose how to play Infinite Tic-Tac-Toe — ranked matchmaking, online quick play, practice vs AI bots, 2-player on one device, or private rooms with friends.",
   path: PUBLIC_ROUTES.play,
   keywords: [
     ...KEYWORD_CLUSTERS.primary,
@@ -74,10 +74,10 @@ export default function PlayPage() {
             <PrivateMatchCard />
             <GameModeCard
               href={ROUTES.PLAY_LOCAL}
-              title="Local Play"
+              title="2 Players, One Device"
               description="Play on the same device with a friend."
               icon={<LocalIcon />}
-              cta="Play Locally"
+              cta="Play Now"
             />
           </div>
         </PlaySection>

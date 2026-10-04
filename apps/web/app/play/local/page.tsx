@@ -308,11 +308,11 @@ export default function LocalPlayPage() {
   const getModeDisplayName = (mode: LocalGameMode) => {
     switch (mode) {
       case "MODE_1":
-        return "Sliding Mode (Infinite)";
+        return "Sliding";
       case "MODE_2":
-        return "Classic Mode";
+        return "Classic";
       case "MODE_3":
-        return `Expanding Board (Round ${gameState?.roundNumber || 1})`;
+        return `Expanding Rounds (Round ${gameState?.roundNumber || 1})`;
     }
   };
 
@@ -332,7 +332,7 @@ export default function LocalPlayPage() {
         {!gameStarted ? (
           /* Mode Selection */
           <div className="text-center">
-            <h1 className="text-3xl font-display font-bold mb-6">Local Play</h1>
+            <h1 className="text-3xl font-display font-bold mb-6">2 Players, One Device</h1>
             <p className="text-text-secondary mb-8">
               Select a game mode to start
             </p>
@@ -340,18 +340,24 @@ export default function LocalPlayPage() {
             <div className="grid gap-4">
               <Button
                 size="lg"
-                onClick={() => startGame("MODE_1")}
+                onClick={() => startGame("MODE_2")}
                 className="w-full"
               >
-                Mode 1 - Sliding (Infinite)
+                Classic
+                <span className="block text-xs font-normal opacity-80">
+                  Standard 3-in-a-row
+                </span>
               </Button>
               <Button
                 size="lg"
                 variant="secondary"
-                onClick={() => startGame("MODE_2")}
+                onClick={() => startGame("MODE_1")}
                 className="w-full"
               >
-                Mode 2 - Classic
+                Sliding
+                <span className="block text-xs font-normal opacity-80">
+                  Your oldest mark disappears after 3
+                </span>
               </Button>
               <Button
                 size="lg"
@@ -359,30 +365,29 @@ export default function LocalPlayPage() {
                 onClick={() => startGame("MODE_3")}
                 className="w-full border-accent-warning text-accent-warning hover:bg-accent-warning/10"
               >
-                Mode 3 - Expanding Board
+                Expanding Rounds
+                <span className="block text-xs font-normal opacity-80">
+                  Best of 5, the board grows each round
+                </span>
               </Button>
             </div>
 
             <div className="mt-8 p-4 rounded-lg bg-surface-elevated border border-board-grid text-left">
-              <h3 className="font-semibold mb-2">Mode Descriptions</h3>
+              <h3 className="font-semibold mb-2">How each game works</h3>
               <p className="text-sm text-text-secondary mb-2">
-                <strong className="text-playerX-primary">
-                  Mode 1 (Sliding):
-                </strong>{" "}
-                After placing 3 marks, your oldest disappears. Never draws!
+                <strong className="text-playerO-primary">Classic:</strong>{" "}
+                Standard Tic-Tac-Toe on a 3×3 board. First to 3 in a row wins.
+                Draws are possible.
               </p>
               <p className="text-sm text-text-secondary mb-2">
-                <strong className="text-playerO-primary">
-                  Mode 2 (Classic):
-                </strong>{" "}
-                Standard Tic-Tac-Toe. First to 3 in a row wins.
+                <strong className="text-playerX-primary">Sliding:</strong>{" "}
+                After placing 3 marks, your oldest mark disappears on your next
+                move. Draws are not possible.
               </p>
               <p className="text-sm text-text-secondary">
-                <strong className="text-accent-warning">
-                  Mode 3 (Expanding):
-                </strong>{" "}
-                Round-based! Board grows each round (3×3 → 4×4 → 5×5...). Need
-                N-in-a-row on N×N board. Best of 5!
+                <strong className="text-accent-warning">Expanding Rounds:</strong>{" "}
+                Best of 5. The board grows each round (3×3 → 4×4 → 5×5...). Win
+                by getting N in a row on an N×N board.
               </p>
             </div>
           </div>

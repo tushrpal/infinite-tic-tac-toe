@@ -10,6 +10,7 @@ import { randomUUID } from 'crypto';
 import { getPrismaClient } from '../storage/prismaClient';
 import { getPlayerProfile } from '../profile/playerProfileService';
 import { getPlayerMatches } from '../profile/matchHistoryService';
+import { createPlayerWithAvailableUsername } from '../auth/authUtils';
 import { isValidUsername, isValidDisplayName, sanitizeUsername } from '../utils/validation';
 import { requireAuth } from '../middleware/requireAuth';
 import { defaultLimiter } from '../middleware/rateLimiter';
@@ -87,7 +88,7 @@ function parseMatchLimit(value: unknown): number {
  * Request body:
  * {
  *   username: string; // Required, unique, 3-20 chars, alphanumeric + underscore
- *   displayName?: string; // Optional, 1-50 chars
+ *   displayName: string; // Required, 1-50 chars, at least 3 letters. May repeat.
  * }
  */
 router.post('/', defaultLimiter, async (req, res) => {
@@ -95,53 +96,47 @@ router.post('/', defaultLimiter, async (req, res) => {
     const prisma = getPrismaClient();
     const { username, displayName } = (req.body ?? {}) as { username?: string; displayName?: string };
 
-    // Validate username (required)
-    if (!username) {
-      return res.status(400).json({ error: 'Username is required' });
-    }
-
-    const sanitized = sanitizeUsername(username);
-
-    if (!isValidUsername(sanitized)) {
+    // Display names may repeat, so they are never checked for uniqueness.
+    if (!displayName || !isValidDisplayName(displayName)) {
       return res.status(400).json({
-        error: 'Invalid username. Must be 3-20 characters, alphanumeric and underscore only, cannot start/end with underscore'
+        error: 'Invalid display name. Must be 1-50 characters with at least 3 letters'
       });
     }
 
-    // Validate displayName if provided
-    if (displayName && !isValidDisplayName(displayName)) {
-      return res.status(400).json({
-        error: 'Invalid display name. Must be 1-50 characters'
-      });
-    }
-
-    // Check if username already exists
-    const existing = await prisma.player.findUnique({
-      where: { username: sanitized },
-    });
-
-    if (existing) {
-      return res.status(409).json({ error: 'Username already taken' });
+    // Username is server-assigned. A client-supplied username is used as the
+    // seed (and must be valid); otherwise the display name seeds it.
+    let seed: string;
+    if (username) {
+      seed = sanitizeUsername(username);
+      if (!isValidUsername(seed)) {
+        return res.status(400).json({
+          error: 'Invalid username. Must be 3-20 characters, alphanumeric and underscore only, cannot start/end with underscore'
+        });
+      }
+    } else {
+      seed = displayName;
     }
 
     const playerId = safeRandomUUID();
 
-    const player = await prisma.player.create({
-      data: {
-        id: playerId,
-        username: sanitized,
-        displayName: displayName?.trim() || null,
-      },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        ratingMode1: true,
-        ratingMode2: true,
-        isAnonymous: true,
-        createdAt: true,
-      },
-    });
+    const player = await createPlayerWithAvailableUsername(seed, (assigned) =>
+      prisma.player.create({
+        data: {
+          id: playerId,
+          username: assigned,
+          displayName: displayName.trim(),
+        },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          ratingMode1: true,
+          ratingMode2: true,
+          isAnonymous: true,
+          createdAt: true,
+        },
+      }),
+    );
 
     res.status(201).json({
       playerId: player.id,

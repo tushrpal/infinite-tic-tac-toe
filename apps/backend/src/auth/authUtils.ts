@@ -3,7 +3,9 @@
  */
 
 import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import { getPrismaClient } from '../storage/prismaClient';
+import { isValidUsername, sanitizeUsername } from '../utils/validation';
 
 const SESSION_EXPIRY_DAYS = 30;
 const TOKEN_BYTE_LENGTH = 32;
@@ -148,18 +150,54 @@ export function generateUsernameSeed(email?: string | null, name?: string | null
   return generateUsernameFromEmail(`user_${oauthId || ''}`);
 }
 
+const USERNAME_MAX_LENGTH = 20;
+const USERNAME_SUFFIX_TRIES = 50;
+const CREATE_ATTEMPTS = 3;
+
 /**
- * Generate username suggestions if the preferred one is taken
+ * Pick a free username derived from `seed`: the seed itself, then `seed_2`,
+ * `seed_3`, ..., then a random-suffixed name as a last resort. Usernames are
+ * server-assigned and never edited by the user, so this always returns a name.
  */
-export function generateUsernameSuggestions(baseUsername: string, count: number = 3): string[] {
-  const suggestions: string[] = [];
-  const year = new Date().getFullYear();
+export async function findAvailableUsername(seed: string): Promise<string> {
+  const prisma = getPrismaClient();
 
-  suggestions.push(`${baseUsername}_${Math.floor(Math.random() * 99) + 1}`);
-  suggestions.push(`${baseUsername}${year}`);
-  suggestions.push(`${baseUsername}_pro`);
+  let base = sanitizeUsername(seed).replace(/[^a-z0-9_]/g, '').replace(/^_+|_+$/g, '');
+  if (base.length < 3) base = `player${base}`;
+  base = base.slice(0, USERNAME_MAX_LENGTH).replace(/_+$/, '');
 
-  return suggestions.slice(0, count);
+  for (let n = 1; n <= USERNAME_SUFFIX_TRIES; n++) {
+    const suffix = n === 1 ? '' : `_${n}`;
+    const candidate = `${base.slice(0, USERNAME_MAX_LENGTH - suffix.length).replace(/_+$/, '')}${suffix}`;
+    if (!isValidUsername(candidate)) continue;
+
+    const taken = await prisma.player.findUnique({
+      where: { username: candidate },
+      select: { id: true },
+    });
+    if (!taken) return candidate;
+  }
+
+  return `${base.slice(0, 13).replace(/_+$/, '')}_${crypto.randomBytes(3).toString('hex')}`;
+}
+
+/**
+ * Create a player with a server-assigned username. If a concurrent signup
+ * claims the chosen name first (Prisma P2002), pick again and retry.
+ */
+export async function createPlayerWithAvailableUsername<T>(
+  seed: string,
+  create: (username: string) => Promise<T>,
+): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    const username = await findAvailableUsername(seed);
+    try {
+      return await create(username);
+    } catch (error) {
+      const raced = error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+      if (!raced || attempt >= CREATE_ATTEMPTS) throw error;
+    }
+  }
 }
 
 /**

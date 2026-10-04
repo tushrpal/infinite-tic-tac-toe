@@ -150,7 +150,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       } else {
         // Regular anonymous registration with display name
         console.log('Creating anonymous player:', { displayName });
-        newPlayer = await ensurePlayer(displayName);
+        newPlayer = await ensurePlayer(undefined, displayName);
       }
 
       setPlayer(newPlayer);

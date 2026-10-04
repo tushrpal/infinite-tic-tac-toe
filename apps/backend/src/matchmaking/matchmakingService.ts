@@ -47,7 +47,6 @@ interface RankedQueueEntry {
   rating: number;
   joinedAt: number;
   username: string;
-  lastBotOfferAt?: number; // Track when we last offered a bot match
 }
 
 interface QueueJoinOptions {
@@ -85,7 +84,9 @@ const BASE_RATING_THRESHOLD = 100;
 const MAX_RATING_THRESHOLD = 700;
 const THRESHOLD_STEP = 50;
 const THRESHOLD_STEP_MS = 15_000;
-const BOT_FALLBACK_TIMEOUT_MS = 30_000; // 30 seconds
+// Shared with the casual (quick play) queue in websocket/index.ts so both
+// modes offer a bot on the same cadence.
+export const BOT_FALLBACK_TIMEOUT_MS = 8_000;
 const BOT_RATING_MULTIPLIER = 0.6;
 
 function queueModeSegment(mode: GameMode): string {
@@ -264,6 +265,9 @@ export class MatchmakingService {
   private readonly redis = getRedisClient();
   private onMatchFound: MatchFoundHandler | null = null;
   private onBotOffer: BotOfferHandler | null = null;
+  // One pending offer timer per waiting player. Offers are timed per player
+  // rather than read from the processQueue tick, which only runs every 30s.
+  private readonly botOfferTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   setMatchFoundHandler(handler: MatchFoundHandler): void {
     this.onMatchFound = handler;
@@ -297,6 +301,8 @@ export class MatchmakingService {
     const position = await this.redis.zrank(qKey, playerId);
     const queueLength = await this.redis.zcard(qKey);
 
+    this.scheduleBotOffer(playerId, mode);
+
     return {
       position: (position ?? queueLength) + 1,
       estimatedWait: queueLength > 1 ? 0 : 30_000,
@@ -304,6 +310,8 @@ export class MatchmakingService {
   }
 
   async leaveQueue(playerId: string): Promise<void> {
+    this.clearBotOffer(playerId);
+
     const indexedMode = await this.redis.get(playerIndexKey(playerId));
 
     if (indexedMode === 'MODE_1' || indexedMode === 'MODE_2') {
@@ -320,50 +328,10 @@ export class MatchmakingService {
   async processQueue(mode: GameMode): Promise<number> {
     let matchesCreated = 0;
 
-    // Check for bot offer opportunities first
-    const queue = await this.readQueue(mode);
-    const now = Date.now();
-
-    for (const entry of queue) {
-      const waitTime = now - entry.joinedAt;
-      const timeSinceLastOffer = entry.lastBotOfferAt ? now - entry.lastBotOfferAt : Number.POSITIVE_INFINITY;
-
-      // Send bot offer every 30s (first at 30s, then 60s, 90s, etc.)
-      if (waitTime >= BOT_FALLBACK_TIMEOUT_MS && timeSinceLastOffer >= BOT_FALLBACK_TIMEOUT_MS) {
-        // Verify player is still in queue before sending offer (prevents race condition on disconnect)
-        const qKey = queueKey(mode);
-        const stillInQueue = await this.redis.zscore(qKey, entry.playerId);
-
-        if (!stillInQueue) {
-          // Player left queue (disconnected) - skip offer
-          continue;
-        }
-
-        // Send bot offer to player
-        const botSelection = resolveForRank(entry.rating);
-        const offerCount = Math.floor(waitTime / BOT_FALLBACK_TIMEOUT_MS);
-
-        this.onBotOffer?.({
-          playerId: entry.playerId,
-          mode: entry.mode,
-          botDifficulty: botSelection.difficulty,
-          botType: botSelection.botType,
-          waitedMs: waitTime,
-          offerCount,
-        });
-
-        // Update lastBotOfferAt in queue entry
-        entry.lastBotOfferAt = now;
-        const qDataKey = queueDataKey(mode);
-        await this.redis.hset(qDataKey, entry.playerId, JSON.stringify(entry));
-      }
-    }
-
-    // Then try to match remaining players with each other.
     // Reuse the queue snapshot already in memory instead of re-reading from
     // Redis on every iteration - Redis usage is billed per command, and this
     // loop previously doubled idle-tick command volume for no benefit.
-    let pairingQueue = queue;
+    let pairingQueue = await this.readQueue(mode);
     for (let i = 0; i < 50; i++) {
       const pair = chooseClosestPair(pairingQueue);
       if (!pair) {
@@ -518,6 +486,9 @@ export class MatchmakingService {
       .del(playerIndexKey(playerId))
       .exec();
 
+    if (Array.isArray(result)) {
+      this.clearBotOffer(playerId);
+    }
     return Array.isArray(result);
   }
 
@@ -565,6 +536,52 @@ export class MatchmakingService {
       playerX,
       playerO,
     });
+  }
+
+  private scheduleBotOffer(playerId: string, mode: GameMode): void {
+    this.clearBotOffer(playerId);
+
+    const timer = setTimeout(() => {
+      this.fireBotOffer(playerId, mode).catch((error) => {
+        console.error('❌ Failed to send ranked bot offer', error);
+      });
+    }, BOT_FALLBACK_TIMEOUT_MS);
+    this.botOfferTimers.set(playerId, timer);
+  }
+
+  private clearBotOffer(playerId: string): void {
+    const timer = this.botOfferTimers.get(playerId);
+    if (timer) {
+      clearTimeout(timer);
+      this.botOfferTimers.delete(playerId);
+    }
+  }
+
+  private async fireBotOffer(playerId: string, mode: GameMode): Promise<void> {
+    this.botOfferTimers.delete(playerId);
+
+    // Entry is removed together with the queue membership, so its absence
+    // means the player was matched or left while the timer was pending.
+    const raw = await this.redis.hget(queueDataKey(mode), playerId);
+    if (!raw) {
+      return;
+    }
+
+    const entry = JSON.parse(raw) as RankedQueueEntry;
+    const waitedMs = Math.max(0, Date.now() - entry.joinedAt);
+    const botSelection = resolveForRank(entry.rating);
+
+    this.onBotOffer?.({
+      playerId,
+      mode,
+      botDifficulty: botSelection.difficulty,
+      botType: botSelection.botType,
+      waitedMs,
+      offerCount: Math.floor(waitedMs / BOT_FALLBACK_TIMEOUT_MS),
+    });
+
+    // Keep offering on the same cadence until the player is matched or leaves
+    this.scheduleBotOffer(playerId, mode);
   }
 
   private async readQueue(mode: GameMode): Promise<RankedQueueEntry[]> {
@@ -626,6 +643,10 @@ export class MatchmakingService {
       .del(playerIndexKey(playerA), playerIndexKey(playerB))
       .exec();
 
+    if (Array.isArray(result)) {
+      this.clearBotOffer(playerA);
+      this.clearBotOffer(playerB);
+    }
     return Array.isArray(result);
   }
 

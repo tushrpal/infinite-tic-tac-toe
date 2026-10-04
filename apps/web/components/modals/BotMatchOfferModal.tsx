@@ -2,7 +2,7 @@
 
 /**
  * BotMatchOfferModal Component
- * Shown when no human opponent found after 30s
+ * Shown when no human opponent found after BOT_OFFER_INTERVAL_SECONDS
  * Player can accept bot match or continue waiting
  */
 
@@ -11,12 +11,17 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/helpers";
 
+// Mirrors BOT_FALLBACK_TIMEOUT_MS in apps/backend/src/matchmaking/matchmakingService.ts
+const BOT_OFFER_INTERVAL_SECONDS = 8;
+
 export interface BotMatchOfferModalProps {
   isOpen: boolean;
   botDifficulty: 'easy' | 'medium' | 'hard';
   botType: 'random' | 'heuristic' | 'minimax';
   waitedSeconds: number;
   offerCount: number;
+  /** Quick play bot matches are unrated; ranked ones count at 0.6x. */
+  isRanked?: boolean;
   onAccept: () => void;
   onDecline: () => void;
 }
@@ -39,15 +44,16 @@ export const BotMatchOfferModal = memo(function BotMatchOfferModal({
   botType,
   waitedSeconds,
   offerCount,
+  isRanked = true,
   onAccept,
   onDecline,
 }: BotMatchOfferModalProps) {
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(BOT_OFFER_INTERVAL_SECONDS);
 
   // Auto-dismiss countdown (resets on re-open)
   useEffect(() => {
     if (!isOpen) {
-      setCountdown(30);
+      setCountdown(BOT_OFFER_INTERVAL_SECONDS);
       return;
     }
 
@@ -56,7 +62,7 @@ export const BotMatchOfferModal = memo(function BotMatchOfferModal({
         if (prev <= 1) {
           // Auto-decline when countdown reaches 0
           onDecline();
-          return 30;
+          return BOT_OFFER_INTERVAL_SECONDS;
         }
         return prev - 1;
       });
@@ -112,7 +118,9 @@ export const BotMatchOfferModal = memo(function BotMatchOfferModal({
           {/* Rating Info */}
           <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30 text-center">
             <p className="text-xs text-purple-400">
-              ⚡ Bot matches count for rating (0.6x multiplier)
+              {isRanked
+                ? "⚡ Bot matches count for rating (0.6x multiplier)"
+                : "⚡ Quick play bot matches are unrated"}
             </p>
           </div>
         </div>
@@ -143,8 +151,8 @@ export const BotMatchOfferModal = memo(function BotMatchOfferModal({
         {/* Help Text */}
         <p className="text-xs text-center text-text-muted">
           {offerCount === 1
-            ? "This offer will appear again in 30 seconds if you keep waiting"
-            : `Offer #${offerCount} • Will appear again in 30s`
+            ? `This offer will appear again in ${BOT_OFFER_INTERVAL_SECONDS} seconds if you keep waiting`
+            : `Offer #${offerCount} • Will appear again in ${BOT_OFFER_INTERVAL_SECONDS}s`
           }
         </p>
       </div>

@@ -20,6 +20,10 @@ type UsernameRegistrationModalProps = {
 
 const MAX_LENGTH = 30;
 const WARN_AT = 25;
+const MIN_LETTERS = 3;
+
+const LETTER_PATTERN = new RegExp("\\p{L}", "gu");
+const countLetters = (text: string) => (text.match(LETTER_PATTERN) ?? []).length;
 
 export function UsernameRegistrationModal({
   isOpen,
@@ -39,13 +43,16 @@ export function UsernameRegistrationModal({
 
   if (!isOpen || typeof document === "undefined") return null;
 
-  const canSubmit = displayName.trim().length > 0 && !isLoading;
+  const trimmedName = displayName.trim();
+  const letterCount = countLetters(trimmedName);
+  const isNameValid = trimmedName.length > 0 && letterCount >= MIN_LETTERS && trimmedName.length <= MAX_LENGTH;
+  const showNameHint = trimmedName.length > 0 && !isNameValid;
+  const canSubmit = isNameValid && !isLoading;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = displayName.trim();
-    if (trimmed) {
-      onSubmit(trimmed);
+    if (isNameValid) {
+      onSubmit(trimmedName);
     }
   };
 
@@ -135,8 +142,15 @@ export function UsernameRegistrationModal({
               aria-invalid={Boolean(error)}
               aria-describedby={error ? errorId : undefined}
             />
-            <p className="text-xs text-text-tertiary mt-1.5">
-              1-30 characters. Unicode, spaces, and emoji allowed.
+            <p
+              className={cn(
+                "text-xs mt-1.5",
+                showNameHint ? "text-critical" : "text-text-tertiary",
+              )}
+            >
+              {showNameHint && letterCount < MIN_LETTERS
+                ? `Needs at least ${MIN_LETTERS} letters.`
+                : "At least 3 letters, up to 30 characters. Unicode, spaces, and emoji allowed."}
             </p>
           </div>
 

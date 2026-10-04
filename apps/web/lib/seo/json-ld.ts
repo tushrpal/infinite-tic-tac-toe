@@ -149,7 +149,7 @@ export function howToPlaySchema(): JsonLd {
         "@type": "HowToStep",
         position: 2,
         name: "Find an opponent",
-        text: "Play ranked or casual online matches, challenge a friend, practice against AI bots, or play locally on the same device.",
+        text: "Play ranked or casual online matches, challenge a friend, practice against AI bots, or play with a friend on the same device.",
       },
       {
         "@type": "HowToStep",

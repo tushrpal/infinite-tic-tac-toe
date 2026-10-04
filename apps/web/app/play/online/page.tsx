@@ -15,6 +15,7 @@ import { ROUTES, RANKS } from "@/lib/constants";
 import { cn, getRankFromRating } from "@/lib/helpers";
 import { ScreenBackdrop } from "@/components/ui/ScreenBackdrop";
 import { MatchmakingView } from "@/components/matchmaking/MatchmakingView";
+import { BotMatchOfferModal } from "@/components/modals/BotMatchOfferModal";
 import { getOnlineModeInfo } from "@/lib/gameModes";
 import type { GameMode } from "@/ws/types";
 
@@ -31,6 +32,15 @@ export default function OnlinePlayPage() {
   const [estimatedWait, setEstimatedWait] = useState<number>(0);
   const [matchId, setMatchId] = useState<string | null>(null);
   const [queueTime, setQueueTime] = useState(0);
+
+  // Bot offer modal state (shown when no human opponent turns up)
+  const [showBotOffer, setShowBotOffer] = useState(false);
+  const [botOfferData, setBotOfferData] = useState<{
+    botDifficulty: "easy" | "medium" | "hard";
+    botType: "random" | "heuristic" | "minimax";
+    waitedSeconds: number;
+    offerCount: number;
+  } | null>(null);
 
   // Queue timer
   useEffect(() => {
@@ -68,6 +78,17 @@ export default function OnlinePlayPage() {
     "QUEUE_LEFT",
     () => {
       setQueueState("idle");
+      setShowBotOffer(false);
+    },
+    [],
+  );
+
+  // Handle bot match offer
+  useSocketEvent(
+    "BOT_MATCH_OFFER",
+    (payload) => {
+      setBotOfferData(payload);
+      setShowBotOffer(true);
     },
     [],
   );
@@ -78,6 +99,7 @@ export default function OnlinePlayPage() {
     (payload) => {
       setQueueState("match-found");
       setMatchId(payload.matchId);
+      setShowBotOffer(false);
       // Store match data for the match page to retrieve
       socket.setPendingMatch({
         matchId: payload.matchId,
@@ -108,6 +130,19 @@ export default function OnlinePlayPage() {
   const leaveQueue = useCallback(() => {
     socket.leaveQueue();
     setQueueState("idle");
+    setShowBotOffer(false);
+  }, [socket]);
+
+  const acceptBotMatch = useCallback(() => {
+    socket.send({ type: "ACCEPT_BOT_MATCH" });
+    setShowBotOffer(false);
+    // Match is created server-side, then MATCH_FOUND fires
+  }, [socket]);
+
+  const declineBotMatch = useCallback(() => {
+    // Player stays in queue and gets another offer shortly
+    socket.send({ type: "DECLINE_BOT_MATCH" });
+    setShowBotOffer(false);
   }, [socket]);
 
   // Cleanup on unmount
@@ -201,6 +236,20 @@ export default function OnlinePlayPage() {
           {queueState === "match-found" && <MatchFoundView />}
         </div>
       </div>
+
+      {/* Bot Match Offer Modal */}
+      {botOfferData && (
+        <BotMatchOfferModal
+          isOpen={showBotOffer}
+          botDifficulty={botOfferData.botDifficulty}
+          botType={botOfferData.botType}
+          waitedSeconds={botOfferData.waitedSeconds}
+          offerCount={botOfferData.offerCount}
+          isRanked={false}
+          onAccept={acceptBotMatch}
+          onDecline={declineBotMatch}
+        />
+      )}
     </main>
   );
 }

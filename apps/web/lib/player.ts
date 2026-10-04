@@ -137,7 +137,7 @@ async function loginWithSession(): Promise<PlayerProfile | null> {
   }
 }
 
-async function createPlayer(username: string, displayName?: string): Promise<PlayerProfile> {
+async function createPlayer(username: string | undefined, displayName?: string): Promise<PlayerProfile> {
   const body = { username, displayName: displayName || undefined };
   const player = await apiRequest<PlayerProfile>('/players', {
     method: 'POST',
@@ -175,9 +175,10 @@ export async function ensurePlayer(username?: string, displayName?: string): Pro
       }
     }
 
-    // Priority 3: Create new player (requires username)
-    if (!username) {
-      throw new Error('Username required for new player registration');
+    // Priority 3: Create new player. The server assigns the username, so a
+    // display name is enough (or a seed username when one is given).
+    if (!username && !displayName) {
+      throw new Error('Display name required for new player registration');
     }
 
     const created = await createPlayer(username, displayName);

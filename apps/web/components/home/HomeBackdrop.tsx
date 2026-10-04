@@ -60,7 +60,7 @@ export function HomeBackdrop({
             fill
             priority
             sizes="100vw"
-            quality={75}
+            quality={60}
             className="object-cover"
           />
         </motion.div>

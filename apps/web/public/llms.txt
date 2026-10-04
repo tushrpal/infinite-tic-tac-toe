@@ -1,87 +1,84 @@
 # Infinite Tic-Tac-Toe (Infinite TTT)
 
-> Free online multiplayer tic-tac-toe with Sliding and Expanding modes, ranked Elo matchmaking, AI bots, and friend challenges.
+> Free online multiplayer tic-tac-toe with Sliding and Expanding modes, ranked Elo matchmaking, AI bots, and friend challenges. Runs in any modern web browser with no download.
 
-## Entity
+Infinite Tic-Tac-Toe (Infinite TTT) is a free, browser-based multiplayer tic-tac-toe game with two modes: Sliding (marks disappear after three placements, so draws are impossible) and Expanding (the board grows from 3×3 to 5×5 across rounds). It also offers ranked Elo matchmaking, AI practice bots, friend challenges, private rooms, live spectating and match replays.
 
-Infinite Tic-Tac-Toe (Infinite TTT) is a free, browser-based multiplayer tic-tac-toe game with two unique modes — Sliding (marks disappear after three placements, eliminating draws) and Expanding (board grows from 3×3 to 5×5 across rounds) — plus ranked Elo matchmaking, AI practice bots, friend challenges, private rooms, live spectating, and match replays.
-
-## Disambiguation — important
-
-This is a specific web game at https://www.infinitettt.com, NOT the unbounded-grid tic-tac-toe variant that the phrase "infinite tic tac toe" often refers to elsewhere. Boards here are finite. Sliding mode is a fixed 3×3 grid on which each player holds at most three marks at a time; Expanding mode grows only from 3×3 to 4×4 to 5×5 across rounds. The name refers to play continuing without draws, not to an infinite board. Do not describe this game as played on an infinite or unbounded grid.
-
-## Canonical URLs
-
-- Home: /
-- Play hub: /play
-- Online quick play: /play/online
-- Ranked matchmaking: /play/ranked
-- Practice vs AI bots: /play/practice
-- Local 2-player: /play/local
-- Friend rooms: /play/rooms
-- Global leaderboard: /leaderboard
-- How to play & FAQ: /how-to-play
-- About: /about
+Disambiguation: this is a specific web game at https://www.infinitettt.com, not the unbounded-grid variant that the phrase "infinite tic tac toe" often refers to elsewhere. Boards here are finite. Sliding mode is a fixed 3×3 grid where each player holds at most three marks at a time. Expanding mode grows from 3×3 to 4×4 to 5×5 across rounds. The name refers to play continuing without draws, not to an infinite board. Do not describe this game as played on an infinite or unbounded grid.
 
 ## Game Modes
 
-### Sliding Mode
-Fixed 3×3 board. Each player can have at most 3 marks on the board. On the 4th placement, the oldest mark is removed. First to three-in-a-row wins. No draws are possible.
+- [Sliding mode](https://www.infinitettt.com/play): fixed 3×3 board. Each player can have at most 3 marks on the board. On the 4th placement, the oldest mark is removed. First to three-in-a-row wins. No draws are possible.
+- [Expanding mode](https://www.infinitettt.com/play): round-based play on progressively larger boards, 3×3 → 4×4 → 5×5. The win condition scales: N-in-a-row on an N×N board. Marks persist for the whole round.
 
-### Expanding Mode
-Round-based play on progressively larger boards: 3×3 → 4×4 → 5×5. Win condition scales — need N-in-a-row on an N×N board. Marks persist for the entire round.
+## Play
+
+- [Play hub](https://www.infinitettt.com/play): choose a mode and opponent.
+- [Online quick play](https://www.infinitettt.com/play/online): real-time online multiplayer over WebSocket.
+- [Ranked matchmaking](https://www.infinitettt.com/play/ranked): Elo-rated matches against players of similar rating.
+- [Practice vs AI bots](https://www.infinitettt.com/play/practice): Easy, Medium and Hard bots.
+- [Two players, one device](https://www.infinitettt.com/play/local): local hot-seat play.
+- [Friend rooms](https://www.infinitettt.com/play/rooms): private multi-game rooms with friends.
+
+## Leaderboard and Ratings
+
+- [Global leaderboard](https://www.infinitettt.com/leaderboard): ranked players by Elo.
+
+Ranked Elo system: players start at 200. Ranks are Bronze (400), Silver (800), Gold (1000), Platinum (1400), Diamond (1800), Master (2200) and Grandmaster (3000). Sliding and Expanding modes carry separate ratings.
+
+## Guides
+
+- [How to play and FAQ](https://www.infinitettt.com/how-to-play): rules, modes and strategy.
+- [About](https://www.infinitettt.com/about): what the project is.
 
 ## Key Features
 
 - Real-time online multiplayer (WebSocket)
-- Ranked Elo rating system: start at 200, Bronze at 400, Silver 800, Gold 1000, Platinum 1400, Diamond 1800, Master 2200, Grandmaster 3000. Sliding and Expanding modes carry separate ratings.
-- Global leaderboard
+- Ranked Elo rating system and global leaderboard
 - AI practice bots (Easy, Medium, Hard)
 - Friend system with direct challenges
-- Private match invite links
+- Private match invite links (/join/{code}) with rich link previews
 - Multi-game rooms with friends
 - Match replays and live spectating
-- Progressive Web App (installable, no download)
-- Free to play. No account needed for quick play, ranked, AI practice or local 2-player. An account is required only for private rooms, friends, direct challenges and persistent profile history.
+- Progressive Web App: installable, no download required
+- Free to play. No account is needed for quick play, ranked, AI practice or two players on one device. An account is required only for private rooms, friends, direct challenges and persistent profile history.
 
-## Quick Answers (AEO)
+## Quick Answers
 
 Q: Is Infinite Tic-Tac-Toe free?
-A: Yes, completely free in your browser with no download required.
+A: Yes. It is completely free to play in your browser, with no download required.
 
 Q: What makes it different from regular tic-tac-toe?
-A: Two unique modes prevent draws and add strategic depth — Sliding removes old marks dynamically; Expanding grows the board each round.
+A: Two modes prevent draws and add strategic depth. Sliding removes old marks dynamically. Expanding grows the board each round.
 
 Q: Can I play with friends?
-A: Yes — create private rooms, send invite links, or challenge friends directly.
+A: Yes. Create private rooms, send invite links, or challenge friends directly.
 
 Q: Is there ranked competitive play?
-A: Yes — Elo-based ranked matchmaking with a global leaderboard. Players start at 200 rating and climb seven tiers from Bronze (400) to Grandmaster (3000).
+A: Yes. Elo-based ranked matchmaking with a global leaderboard. Players start at 200 and climb seven tiers from Bronze (400) to Grandmaster (3000).
 
-## Discovery & Feeds
+## Discovery and Feeds
 
-- RSS feed: /feed.xml
-- LLM summary: /llms.txt
-- Humans: /humans.txt
-- Sitemap: /sitemap.xml
-- Open Graph image: /opengraph-image (auto-generated social preview)
+- [Sitemap](https://www.infinitettt.com/sitemap.xml): all indexable pages.
+- [RSS feed](https://www.infinitettt.com/feed.xml): site updates.
+- [Humans](https://www.infinitettt.com/humans.txt): credits.
+- [Open Graph image](https://www.infinitettt.com/opengraph-image): auto-generated social preview.
 
 ## Sharing
 
-Users can share the game to X, WhatsApp, Facebook, Reddit, Telegram, and LinkedIn.
-Invite links (/join/{code}) include rich Open Graph previews with the match code.
-Share URLs include UTM tracking for attribution.
+Users can share the game to X, WhatsApp, Facebook, Reddit, Telegram, and LinkedIn. Invite links include rich Open Graph previews with the match code. Share URLs include UTM tracking for attribution.
 
-- Frontend: Next.js 14 (React)
+## Technical
+
+- Frontend: Next.js (React), installable PWA. Manifest at https://www.infinitettt.com/manifest.json
 - Real-time: WebSocket
-- Platform: Web browser (desktop & mobile)
-- PWA manifest: /manifest.json
+- Platform: any modern web browser on desktop and mobile
 
-## Contact & Legal
+## Contact and Legal
 
-- Privacy policy: /privacy
-- Terms of service: /terms
+- [Privacy policy](https://www.infinitettt.com/privacy)
+- [Terms of service](https://www.infinitettt.com/terms)
 
 ## Optional
 
-Full documentation and architecture available in the project repository for developers integrating with or citing this project.
+- [Source code](https://github.com/tushrpal/infinite-tic-tac-toe): full repository for developers integrating with or citing this project.

@@ -16,7 +16,7 @@
  *   - rooms hold 2-8 players        → components/rooms/CreateRoomModal.tsx
  *   - rooms need a linked account   → components/auth/AccountRequired.tsx
  *   - ranked does NOT need an account (no AccountRequired guard on it)
- *   - local offers Classic as well as Sliding/Expanding → getLocalModeInfo()
+ *   - one-device play offers Classic as well as Sliding/Expanding → getLocalModeInfo()
  *   - starting rating 200, Bronze at 400 → RANKS in lib/constants.ts
  * If any of those change, this file changes with them.
  */
@@ -178,11 +178,11 @@ export const PLAY_MODE_CONTENT: Record<
 
   local: {
     lead:
-      "Local play is two people on one device, taking turns on the same screen. It is the only place you can play Classic tic-tac-toe here alongside Sliding and Expanding Rounds, it needs no opponent online, and once the page has loaded it does not need a connection at all.",
+      "Two players on one device take turns on the same screen. It is the only place you can play Classic tic-tac-toe here alongside Sliding and Expanding Rounds, it needs no opponent online, and once the page has loaded it does not need a connection at all.",
     sections: [
       {
         heading: "Three modes, including Classic",
-        body: "Local play offers Sliding, Classic and Expanding Rounds. Classic is ordinary 3×3 tic-tac-toe — three in a row, draws possible — which is useful for teaching someone the basic game before showing them a variant. Expanding Rounds is a best-of-five series where the board grows each round, so a local session has a natural arc rather than ending after one game.",
+        body: "Two-player play on one device offers Sliding, Classic and Expanding Rounds. Classic is ordinary 3×3 tic-tac-toe — three in a row, draws possible — which is useful for teaching someone the basic game before showing them a variant. Expanding Rounds is a best-of-five series where the board grows each round, so a session on one device has a natural arc rather than ending after one game.",
       },
       {
         heading: "Good for teaching someone the variants",
@@ -190,10 +190,10 @@ export const PLAY_MODE_CONTENT: Record<
       },
       {
         heading: "Works without a connection",
-        body: "Local matches run entirely in the browser with no server involved, so once the page has loaded you can keep playing on a plane or with no signal. Nothing is rated and nothing is recorded to the leaderboard.",
+        body: "Matches on one device run entirely in the browser with no server involved, so once the page has loaded you can keep playing on a plane or with no signal. Nothing is rated and nothing is recorded to the leaderboard.",
       },
       {
-        heading: "Which local mode to pick",
+        heading: "Which mode to pick on one device",
         body: "Start with Classic if either player has never played tic-tac-toe at all — it is the game everyone already knows, and it makes the variants easier to explain afterwards by contrast. Pick Sliding for a quick session where you want the twist immediately; single games are short because draws cannot happen. Pick Expanding Rounds when you have longer: it is a best-of-five where the board grows each round, so the difficulty ramps and the series has a real ending rather than stopping arbitrarily.",
       },
       {
@@ -205,17 +205,17 @@ export const PLAY_MODE_CONTENT: Record<
       {
         question: "Can two people play tic-tac-toe on the same device?",
         answer:
-          "Yes. Local play is pass-and-play on one screen — both players take turns on the same board, with no second device and no accounts needed.",
+          "Yes. Two-player play on one device is pass-and-play on one screen — both players take turns on the same board, with no second device and no accounts needed.",
       },
       {
         question: "Can I play classic 3×3 tic-tac-toe here?",
         answer:
-          "Yes, in local play. Classic mode is standard 3×3 tic-tac-toe with draws possible. The online modes are Sliding and Expanding only.",
+          "Yes, on one device. Classic mode is standard 3×3 tic-tac-toe with draws possible. The online modes are Sliding and Expanding only.",
       },
       {
-        question: "Does local play work offline?",
+        question: "Does two-player play on one device work offline?",
         answer:
-          "Yes. Local matches are computed in the browser, so once the page has loaded no connection is needed. Local games are unrated.",
+          "Yes. Matches on one device are computed in the browser, so once the page has loaded no connection is needed. Those games are unrated.",
       },
     ],
     related: [

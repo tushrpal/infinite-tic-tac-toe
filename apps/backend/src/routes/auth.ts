@@ -14,12 +14,12 @@ import {
   deleteAllPlayerSessions,
   generateUsernameFromEmail,
   generateUsernameSeed,
-  generateUsernameSuggestions,
+  createPlayerWithAvailableUsername,
   isValidOAuthProvider,
   updateLastLogin,
   type OAuthUserData,
 } from '../auth/authUtils';
-import { isValidUsername, sanitizeUsername } from '../utils/validation';
+import { isValidDisplayName, isValidUsername, sanitizeUsername } from '../utils/validation';
 import { randomUUID } from 'crypto';
 
 /** True when `error` is a Prisma unique-constraint violation (code P2002). */
@@ -263,42 +263,39 @@ router.post('/oauth/register', async (req, res) => {
       });
     }
 
-    const prisma = getPrismaClient();
-
-    // Check if username is taken
-    const existingUsername = await prisma.player.findUnique({
-      where: { username: sanitized },
-    });
-
-    if (existingUsername) {
-      const suggestions = generateUsernameSuggestions(sanitized);
-      return res.status(409).json({
-        error: 'Username already taken',
-        suggestions,
+    // Display names may repeat, so they are only checked for format.
+    if (!displayName || !isValidDisplayName(displayName)) {
+      return res.status(400).json({
+        error: 'Invalid display name. Must be 1-50 characters with at least 3 letters',
       });
     }
 
-    // Create new player with OAuth identity
+    const prisma = getPrismaClient();
+
+    // Create new player with OAuth identity. The username is server-assigned:
+    // if the seed is taken, a free variant is used instead of failing signup.
     const playerId = safeRandomUUID();
-    const player = await prisma.player.create({
-      data: {
-        id: playerId,
-        username: sanitized,
-        displayName: displayName?.trim() || null,
-        oauthProvider: provider,
-        oauthId,
-        oauthEmail: email || null,
-        isAnonymous: false,
-        lastLoginAt: new Date(),
-      },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        ratingMode1: true,
-        ratingMode2: true,
-      },
-    });
+    const player = await createPlayerWithAvailableUsername(sanitized, (username) =>
+      prisma.player.create({
+        data: {
+          id: playerId,
+          username,
+          displayName: displayName.trim(),
+          oauthProvider: provider,
+          oauthId,
+          oauthEmail: email || null,
+          isAnonymous: false,
+          lastLoginAt: new Date(),
+        },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          ratingMode1: true,
+          ratingMode2: true,
+        },
+      }),
+    );
 
     // Create session
     const sessionToken = await createSession(player.id);

@@ -91,11 +91,17 @@ export default function RootLayout({
           strategy="lazyOnload"
           crossOrigin="anonymous"
         />
+        {/*
+          GA follows AdSense to lazyOnload. Its loader is ~72 KB on the
+          homepage, and mostly unused on load. Page views still record after
+          window load; the dataLayer queue (see WebVitals) keeps earlier
+          events from being dropped.
+        */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-SEV1SDLYRN"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="google-analytics" strategy="lazyOnload">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}

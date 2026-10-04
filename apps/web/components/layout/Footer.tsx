@@ -25,7 +25,7 @@ const COLUMNS: Array<{ heading: string; links: readonly FooterLink[] }> = [
       { href: PUBLIC_ROUTES.playOnline, label: "Quick Play" },
       { href: PUBLIC_ROUTES.playPractice, label: "Practice vs AI" },
       { href: PUBLIC_ROUTES.playRooms, label: "Private Rooms" },
-      { href: PUBLIC_ROUTES.playLocal, label: "Local 2-Player" },
+      { href: PUBLIC_ROUTES.playLocal, label: "2 Players, One Device" },
     ],
   },
   {

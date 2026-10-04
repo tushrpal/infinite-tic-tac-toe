@@ -24,11 +24,12 @@ import { createMatchStorage } from '../storage/createMatchStorage';
 import { getPrismaClient } from '../storage/prismaClient';
 import {
   matchmakingService,
+  BOT_FALLBACK_TIMEOUT_MS,
   type RankedMatchFoundEvent,
 } from '../matchmaking/matchmakingService';
 import { calculateEloChange, resolveKFactorByExperience, type MatchOutcome } from '../rating/elo';
 import { botController } from '../bots/botController';
-import { positionToIndex, indexToPosition } from '@infinite-ttt/bots';
+import { positionToIndex, indexToPosition, resolveForRank } from '@infinite-ttt/bots';
 import { getRedisClient } from '../storage/redisClient';
 
 // ============================================
@@ -392,7 +393,10 @@ class WebSocketManager {
   private readonly MATCHMAKING_TICK_MS = 30000;
   private readonly DEFAULT_RATING = 200;
   private matchmakingTick: ReturnType<typeof setInterval> | null = null;
-  
+
+  // Pending bot-offer timers for casual (quick play) queue entries (playerId -> timer)
+  private casualBotOfferTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+
   // Match ID counter
   private matchCounter = 0;
 
@@ -678,6 +682,11 @@ class WebSocketManager {
       });
 
       this.tryMatch(queueKey);
+
+      // Still waiting (no human paired with them) - start the bot-offer clock
+      if (queue.some((e) => e.playerId === playerId)) {
+        this.scheduleCasualBotOffer(playerId, mode);
+      }
     } catch (error) {
       console.error('❌ Failed to join queue', error);
       this.send(ws, {
@@ -691,6 +700,8 @@ class WebSocketManager {
    * Handle LEAVE_QUEUE
    */
   private async handleLeaveQueue(playerId: string) {
+    this.clearCasualBotOffer(playerId);
+
     const client = this.clients.get(playerId);
     if (!client) {
       await this.matchmakingService.leaveQueue(playerId);
@@ -725,6 +736,13 @@ class WebSocketManager {
 
     try {
       console.log(`✅ Player ${playerId.slice(0, 8)} accepted bot match offer`);
+
+      const casual = this.findCasualQueueEntry(playerId);
+      if (casual) {
+        await this.acceptCasualBotOffer(client.ws, casual.mode, casual.queue, playerId);
+        return;
+      }
+
       await this.matchmakingService.acceptBotMatchOffer(playerId);
       // Match creation triggers the normal MATCH_FOUND flow
     } catch (error) {
@@ -796,85 +814,17 @@ class WebSocketManager {
         medium: 'heuristic',
         hard: 'minimax',
       };
-      const botType = botTypeMap[botDifficulty];
 
-      // Create instant unranked bot match
-      const matchId = `match_practice_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-      const initialEngineState = initEngineState(mode);
-
-      // Player is always X, bot is always O
-      const xInfo: PlayerInfo = {
-        id: playerId,
-        username: resolvedUsername,
-        rating: resolvedRating,
-        isConnected: true,
-      };
-
-      const botId = `bot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const botDisplayName = this.getBotDisplayName(botType, botDifficulty);
-
-      const oInfo: PlayerInfo = {
-        id: botId,
-        username: botDisplayName,
-        rating: resolvedRating, // Bot matches player rating
-        isConnected: true,
-        isBot: true,
-        botType: botType,
-        botDifficulty: botDifficulty,
-      };
-
-      const matchState: MatchState = {
-        matchId,
-        status: 'active',
+      await this.createUnrankedBotMatch(
+        ws,
+        playerId,
+        resolvedUsername,
+        resolvedRating,
         mode,
-        isRanked: false, // Practice matches are UNRANKED
-        players: {
-          X: xInfo,
-          O: oInfo,
-        },
-        gameState: engineToWireState(initialEngineState, mode),
-        spectators: [],
-        spectatorCount: 0,
-        startedAt: Date.now(),
-        isBotMatch: true,
-        botPlayer: 'O',
-        // No botMultiplier since it's unranked - ratings won't change anyway
-      };
-
-      this.matches.set(matchId, matchState);
-      this.engineStates.set(matchId, initialEngineState);
-      const snapshot = await this.matchManager.createMatch(matchState, initialEngineState);
-      this.matchCreatedAt.set(matchId, snapshot.createdAt);
-
-      // Register bot instance with bot controller
-      const botInstance = this.createBotInstance(botType, botDifficulty);
-      botController.registerBot(matchId, botInstance);
-
-      // Update client state
-      const client = this.clients.get(playerId);
-      if (client) {
-        client.matchId = matchId;
-        client.inQueue = false;
-      }
-
-      console.log(`🎮 Practice match created: ${matchId.slice(0, 16)} (${botDifficulty} bot)`);
-      console.log(`   X: ${resolvedUsername} vs O: ${botDisplayName}`);
-
-      // Send MATCH_FOUND to player
-      this.send(ws, {
-        type: 'MATCH_FOUND',
-        payload: {
-          matchId,
-          yourPlayer: 'X',
-          opponent: {
-            username: botDisplayName,
-            isBot: true,
-            botDifficulty: botDifficulty,
-          },
-          matchState,
-          isBotMatch: true,
-        },
-      });
+        botTypeMap[botDifficulty],
+        botDifficulty,
+        'Practice'
+      );
     } catch (error) {
       console.error('❌ Failed to create practice match', error);
       this.send(ws, {
@@ -882,6 +832,199 @@ class WebSocketManager {
         payload: { message: 'Failed to create practice match. Please try again.' },
       });
     }
+  }
+
+  /**
+   * Create an unranked bot match for a player and send MATCH_FOUND.
+   * Shared by practice mode and the quick play bot fallback.
+   */
+  private async createUnrankedBotMatch(
+    ws: WebSocket,
+    playerId: string,
+    username: string,
+    rating: number,
+    mode: GameMode,
+    botType: 'random' | 'heuristic' | 'minimax',
+    botDifficulty: 'easy' | 'medium' | 'hard',
+    label: string
+  ): Promise<void> {
+    const matchId = `match_${label.toLowerCase()}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    const initialEngineState = initEngineState(mode);
+
+    // Player is always X, bot is always O
+    const xInfo: PlayerInfo = {
+      id: playerId,
+      username,
+      rating,
+      isConnected: true,
+    };
+
+    const botId = `bot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const botDisplayName = this.getBotDisplayName(botType, botDifficulty);
+
+    const oInfo: PlayerInfo = {
+      id: botId,
+      username: botDisplayName,
+      rating, // Bot matches player rating
+      isConnected: true,
+      isBot: true,
+      botType: botType,
+      botDifficulty: botDifficulty,
+    };
+
+    const matchState: MatchState = {
+      matchId,
+      status: 'active',
+      mode,
+      isRanked: false, // Bot matches are UNRANKED
+      players: {
+        X: xInfo,
+        O: oInfo,
+      },
+      gameState: engineToWireState(initialEngineState, mode),
+      spectators: [],
+      spectatorCount: 0,
+      startedAt: Date.now(),
+      isBotMatch: true,
+      botPlayer: 'O',
+      // No botMultiplier since it's unranked - ratings won't change anyway
+    };
+
+    this.matches.set(matchId, matchState);
+    this.engineStates.set(matchId, initialEngineState);
+    const snapshot = await this.matchManager.createMatch(matchState, initialEngineState);
+    this.matchCreatedAt.set(matchId, snapshot.createdAt);
+
+    // Register bot instance with bot controller
+    const botInstance = this.createBotInstance(botType, botDifficulty);
+    botController.registerBot(matchId, botInstance);
+
+    // Update client state
+    const client = this.clients.get(playerId);
+    if (client) {
+      client.matchId = matchId;
+      client.inQueue = false;
+    }
+
+    console.log(`🎮 ${label} match created: ${matchId.slice(0, 16)} (${botDifficulty} bot)`);
+    console.log(`   X: ${username} vs O: ${botDisplayName}`);
+
+    // Send MATCH_FOUND to player
+    this.send(ws, {
+      type: 'MATCH_FOUND',
+      payload: {
+        matchId,
+        yourPlayer: 'X',
+        opponent: {
+          username: botDisplayName,
+          isBot: true,
+          botDifficulty: botDifficulty,
+        },
+        matchState,
+        isBotMatch: true,
+      },
+    });
+  }
+
+  /**
+   * Find a player's entry in the in-memory casual (quick play) queues
+   */
+  private findCasualQueueEntry(playerId: string): { mode: GameMode; queue: QueueEntry[]; entry: QueueEntry } | null {
+    for (const [queueKey, queue] of this.queues.entries()) {
+      if (!queueKey.endsWith('_casual')) continue;
+      const entry = queue.find((e) => e.playerId === playerId);
+      if (entry) {
+        return { mode: entry.mode, queue, entry };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Accept a bot offer made while waiting in quick play.
+   * Quick play is unrated, so the bot match is unrated too.
+   */
+  private async acceptCasualBotOffer(
+    ws: WebSocket,
+    mode: GameMode,
+    queue: QueueEntry[],
+    playerId: string
+  ): Promise<void> {
+    const index = queue.findIndex((e) => e.playerId === playerId);
+    if (index === -1) {
+      return;
+    }
+
+    const [entry] = queue.splice(index, 1);
+    this.clearCasualBotOffer(playerId);
+
+    const rating = entry.rating ?? this.DEFAULT_RATING;
+    const botSelection = resolveForRank(rating);
+    try {
+      await this.createUnrankedBotMatch(
+        ws,
+        playerId,
+        entry.username,
+        rating,
+        mode,
+        botSelection.botType,
+        botSelection.difficulty,
+        'Quick'
+      );
+    } catch (error) {
+      console.error('❌ Failed to create quick play bot match, re-queueing', error);
+      queue.push(entry);
+      this.send(ws, {
+        type: 'ERROR',
+        payload: { message: 'Failed to create bot match. Please try again.' },
+      });
+    }
+  }
+
+  /**
+   * Start (or restart) the bot-offer timer for a casual queue entry
+   */
+  private scheduleCasualBotOffer(playerId: string, mode: GameMode): void {
+    this.clearCasualBotOffer(playerId);
+
+    const timer = setTimeout(() => {
+      this.fireCasualBotOffer(playerId, mode);
+    }, BOT_FALLBACK_TIMEOUT_MS);
+    this.casualBotOfferTimers.set(playerId, timer);
+  }
+
+  private clearCasualBotOffer(playerId: string): void {
+    const timer = this.casualBotOfferTimers.get(playerId);
+    if (timer) {
+      clearTimeout(timer);
+      this.casualBotOfferTimers.delete(playerId);
+    }
+  }
+
+  private fireCasualBotOffer(playerId: string, mode: GameMode): void {
+    this.casualBotOfferTimers.delete(playerId);
+
+    // Not in the queue anymore means a human was found or the player left
+    const queue = this.queues.get(`${mode}_casual`) ?? [];
+    const entry = queue.find((e) => e.playerId === playerId);
+    if (!entry) {
+      return;
+    }
+
+    const waitedMs = Math.max(0, Date.now() - entry.joinedAt);
+    const botSelection = resolveForRank(entry.rating ?? this.DEFAULT_RATING);
+
+    this.handleBotMatchOffer({
+      playerId,
+      mode,
+      botDifficulty: botSelection.difficulty,
+      botType: botSelection.botType,
+      waitedMs,
+      offerCount: Math.floor(waitedMs / BOT_FALLBACK_TIMEOUT_MS),
+    });
+
+    // Keep offering on the same cadence until the player is matched or leaves
+    this.scheduleCasualBotOffer(playerId, mode);
   }
 
   /**
@@ -930,6 +1073,8 @@ class WebSocketManager {
     // Match first two players
     const player1 = queue.shift()!;
     const player2 = queue.shift()!;
+    this.clearCasualBotOffer(player1.playerId);
+    this.clearCasualBotOffer(player2.playerId);
 
     // Create match
     const matchId = `match_${++this.matchCounter}_${Date.now()}`;
@@ -1076,7 +1221,8 @@ class WebSocketManager {
 
   /**
    * Handle bot match offer event from matchmaking service
-   * Sends offer modal to player who's been waiting 30s+
+   * Sends offer modal to a ranked or quick play player who's been waiting
+   * BOT_FALLBACK_TIMEOUT_MS
    */
   private handleBotMatchOffer(event: {
     playerId: string;
@@ -1918,6 +2064,8 @@ class WebSocketManager {
 
     // Update online status
     await this.updateOnlineStatus(playerId, false);
+
+    this.clearCasualBotOffer(playerId);
 
     // Remove from queues
     for (const [, queue] of this.queues.entries()) {

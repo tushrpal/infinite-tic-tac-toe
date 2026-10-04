@@ -142,7 +142,7 @@ export default function RankedPlayPage() {
     console.log("⏳ Player declined bot match, continuing to wait");
     socket.send({ type: "DECLINE_BOT_MATCH" });
     setShowBotOffer(false);
-    // Player stays in queue, will get another offer in 30s
+    // Player stays in queue, will get another offer shortly
   }, [socket]);
 
   // Get mode-specific rating based on selected mode
