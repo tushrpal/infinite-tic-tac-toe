@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infinite Tic-Tac-Toe (Offline Test)</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --fg: #1d1d1f;
+    --muted: #6b6b70;
+    --panel: #fffdf8;
+    --line: #cfcac0;
+    --x: #e0465b;
+    --o: #2f6fdb;
+    --accent: #1d1d1f;
+    --accent-fg: #fffdf8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15161a;
+      --fg: #f2f2f4;
+      --muted: #9a9aa3;
+      --panel: #1e2026;
+      --line: #3a3c44;
+      --x: #ff6b7f;
+      --o: #6fa2ff;
+      --accent: #f2f2f4;
+      --accent-fg: #15161a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15161a;
+    --fg: #f2f2f4;
+    --muted: #9a9aa3;
+    --panel: #1e2026;
+    --line: #3a3c44;
+    --x: #ff6b7f;
+    --o: #6fa2ff;
+    --accent: #f2f2f4;
+    --accent-fg: #15161a;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+  }
+  header { text-align: center; margin: 8px 0 12px; }
+  h1 { font-size: 1.6rem; margin: 0; }
+  .sub { color: var(--muted); margin: 4px 0 0; font-size: 0.95rem; }
+  .test-tag {
+    display: inline-block; margin-top: 6px; font-size: 0.75rem;
+    color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px;
+  }
+
+  button {
+    font: inherit;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--fg);
+    border-radius: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--fg); }
+  button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  #menu { width: min(92vw, 420px); display: grid; gap: 12px; margin-top: 12px; }
+  #menu h2 { font-size: 1rem; margin: 8px 0 0; color: var(--muted); font-weight: 600; }
+  .mode-card {
+    text-align: left; padding: 14px 16px; display: grid; gap: 4px;
+  }
+  .mode-card strong { font-size: 1.05rem; }
+  .mode-card span { color: var(--muted); font-size: 0.9rem; }
+  .how { color: var(--muted); font-size: 0.9rem; line-height: 1.5; margin-top: 8px; }
+
+  #game { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 8px; }
+  #status { font-size: 1.05rem; min-height: 1.4em; text-align: center; }
+  #info { color: var(--muted); font-size: 0.9rem; text-align: center; min-height: 1.2em; }
+
+  .board {
+    --n: 3;
+    width: min(92vw, 420px);
+    aspect-ratio: 1;
+    display: grid;
+    grid-template-columns: repeat(var(--n), 1fr);
+    grid-template-rows: repeat(var(--n), 1fr);
+    gap: 6px;
+  }
+  .cell {
+    aspect-ratio: 1;
+    width: 100%; height: 100%;
+    padding: 0;
+    border-radius: 8px;
+    font-weight: 700;
+    line-height: 1;
+    font-size: calc(min(92vw, 420px) / var(--n) * 0.6);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cell.X { color: var(--x); }
+  .cell.O { color: var(--o); }
+  .cell.next { opacity: 0.35; }
+  .cell.win { border-color: var(--fg); box-shadow: inset 0 0 0 2px var(--fg); }
+  .cell:disabled { cursor: default; }
+  .cell:disabled:hover { border-color: var(--line); }
+
+  .actions { display: flex; gap: 10px; }
+
+  footer { margin-top: auto; padding-top: 24px; color: var(--muted); font-size: 0.85rem; text-align: center; }
+  footer a { color: inherit; }
+
+  #overlay {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45);
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  #overlay[hidden], [hidden] { display: none !important; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 22px; width: min(92vw, 380px); text-align: center;
+  }
+  .card h2 { margin: 0 0 8px; font-size: 1.3rem; }
+  .card p { margin: 6px 0; color: var(--muted); line-height: 1.45; }
+  .card .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+  .card a.btn {
+    display: inline-block; text-decoration: none; padding: 10px 16px; border-radius: 10px;
+    background: var(--accent); color: var(--accent-fg); border: 1px solid var(--accent);
+  }
+  #countdown { color: var(--fg); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Infinite Tic-Tac-Toe</h1>
+  <p class="sub" id="modeLabel">Pick a mode to start</p>
+  <span class="test-tag">Offline test build</span>
+</header>
+
+<section id="menu">
+  <button class="mode-card" data-mode="sliding" data-vs="bot">
+    <strong>Sliding · vs Bot</strong>
+    <span>Each side holds three marks. The fourth mark removes your oldest one. No draws.</span>
+  </button>
+  <button class="mode-card" data-mode="sliding" data-vs="local">
+    <strong>Sliding · 2 players</strong>
+    <span>Pass-and-play on this device.</span>
+  </button>
+  <button class="mode-card" data-mode="expanding" data-vs="bot">
+    <strong>Expanding · vs Bot</strong>
+    <span>Best of five rounds. The board grows from 3×3 each round. First to 3 round wins.</span>
+  </button>
+  <button class="mode-card" data-mode="expanding" data-vs="local">
+    <strong>Expanding · 2 players</strong>
+    <span>Pass-and-play on this device. Same match format.</span>
+  </button>
+  <p class="how">You are X. The bot plays O. Get N in a row on the board to win a round.</p>
+</section>
+
+<section id="game" hidden>
+  <div id="status"></div>
+  <div id="info"></div>
+  <div class="board" id="board"></div>
+  <div class="actions">
+    <button id="restartBtn">Restart</button>
+    <button id="menuBtn">Menu</button>
+  </div>
+</section>
+
+<footer>
+  Play the full game with ranked matchmaking and online multiplayer at
+  <a href="https://www.infinitettt.com/?utm_source=itch.io&utm_medium=offline-build" target="_blank" rel="noopener">infinitettt.com</a>
+</footer>
+
+<div id="overlay" hidden>
+  <div class="card">
+    <h2 id="endTitle"></h2>
+    <p id="endText"></p>
+    <p id="countdown" hidden></p>
+    <div class="row">
+      <button class="primary" id="nextBtn" hidden>Next round</button>
+      <button id="endMatchBtn" hidden>End match</button>
+      <a class="btn" id="siteLink" href="https://www.infinitettt.com/?utm_source=itch.io&utm_medium=offline-build" target="_blank" rel="noopener">Play online at infinitettt.com</a>
+      <button id="stayBtn" hidden>Stay here</button>
+      <button id="againBtn">Play again</button>
+      <button id="overlayMenuBtn">Menu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- Config -------------------------------------------------------------
+  const SITE_URL = 'https://www.infinitettt.com/?utm_source=itch.io&utm_medium=offline-build';
+  const COUNTDOWN_SECONDS = 8;     // time before the redirect opens
+  const ROUNDS_TO_WIN = 3;         // Expanding match: first to 3 round wins
+  const SLIDING_MAX_MARKS = 3;     // Sliding: a 4th mark removes the oldest
+  const BOT_DELAY_MS = 450;        // pause so the bot's move is visible
+
+  const $ = (id) => document.getElementById(id);
+
+  let game = null;
+  let botTimer = null;
+  let countdownTimer = null;
+
+  // ---- Helpers ------------------------------------------------------------
+  const other = (p) => (p === 'X' ? 'O' : 'X');
+
+  function emptyBoard(n) {
+    return Array.from({ length: n }, () => Array(n).fill(null));
+  }
+
+  const lineCache = {};
+  // All rows, columns and both diagonals for an n×n board.
+  function linesFor(n) {
+    if (!lineCache[n]) {
+      const idx = [...Array(n).keys()];
+      const lines = [];
+      idx.forEach((i) => {
+        lines.push(idx.map((j) => [i, j]));
+        lines.push(idx.map((j) => [j, i]));
+      });
+      lines.push(idx.map((i) => [i, i]));
+      lines.push(idx.map((i) => [i, n - 1 - i]));
+      lineCache[n] = lines;
+    }
+    return lineCache[n];
+  }
+
+  function findLine(board, p) {
+    return linesFor(board.length).find((line) => line.every(([r, c]) => board[r][c] === p)) || null;
+  }
+
+  function playerToMove(g) {
+    if (g.mode === 'sliding') return g.turn % 2 === 0 ? 'X' : 'O';
+    return g.turn % 2 === 0 ? g.roundStarter : other(g.roundStarter);
+  }
+
+  function oldestMarkOf(g, p) {
+    const mine = g.marks[p];
+    if (mine.length < SLIDING_MAX_MARKS) return null;
+    return mine.reduce((a, b) => (b.turn < a.turn ? b : a));
+  }
+
+  function emptyCells(g) {
+    const cells = [];
+    g.board.forEach((row, r) => row.forEach((v, c) => { if (v === null) cells.push([r, c]); }));
+    return cells;
+  }
+
+  function cloneGame(g) {
+    return {
+      ...g,
+      board: g.board.map((row) => row.slice()),
+      marks: { X: g.marks.X.slice(), O: g.marks.O.slice() },
+      roundWins: { ...g.roundWins },
+    };
+  }
+
+  // ---- Rules --------------------------------------------------------------
+  // Applies a move for the player whose turn it is. Returns false if illegal.
+  function play(g, r, c) {
+    if (g.roundOver || g.matchOver || g.board[r][c] !== null) return false;
+    const p = playerToMove(g);
+
+    if (g.mode === 'sliding') {
+      const oldest = oldestMarkOf(g, p);
+      if (oldest) {
+        g.board[oldest.row][oldest.col] = null;
+        g.marks[p] = g.marks[p].filter((m) => m !== oldest);
+      }
+      g.marks[p].push({ row: r, col: c, turn: g.turn });
+    }
+
+    g.board[r][c] = p;
+    g.turn++;
+
+    const line = findLine(g.board, p);
+    if (line) {
+      g.winner = p;
+      g.winLine = line;
+      g.roundOver = true;
+      g.roundWins[p]++;
+      if (g.mode === 'sliding' || g.roundWins[p] >= ROUNDS_TO_WIN) {
+        g.matchOver = true;
+        g.matchWinner = p;
+      }
+    } else if (g.board.every((row) => row.every((cell) => cell !== null))) {
+      g.roundOver = true; // full board, no winner: a drawn round
+    }
+    return true;
+  }
+
+  function startNextRound(g) {
+    g.size += 1;
+    g.roundNumber += 1;
+    g.board = emptyBoard(g.size);
+    g.turn = 0;
+    g.marks = { X: [], O: [] };
+    // Starter alternates each round: round 1 X, round 2 O, round 3 X...
+    g.roundStarter = g.roundNumber % 2 === 1 ? 'X' : 'O';
+    g.roundOver = false;
+    g.winner = null;
+    g.winLine = null;
+  }
+
+  function newGame(mode, vsBot) {
+    game = {
+      mode,
+      vsBot,
+      size: 3,
+      board: emptyBoard(3),
+      turn: 0,
+      marks: { X: [], O: [] },
+      roundNumber: 1,
+      roundStarter: 'X',
+      roundWins: { X: 0, O: 0 },
+      roundOver: false,
+      winner: null,
+      winLine: null,
+      matchOver: false,
+      matchWinner: null,
+    };
+    stopBot();
+    hideOverlay();
+    $('menu').hidden = true;
+    $('game').hidden = false;
+    render();
+    maybeBotMove();
+  }
+
+  // ---- Bot ----------------------------------------------------------------
+  // Simple heuristic: take a win, block the opponent's immediate win,
+  // avoid moves that hand the opponent a win, prefer the centre.
+  function foeCanWin(g, foe) {
+    return emptyCells(g).some(([r, c]) => {
+      const t = cloneGame(g);
+      play(t, r, c);
+      return t.winner === foe;
+    });
+  }
+
+  function chooseBotMove(g) {
+    const me = playerToMove(g);
+    const foe = other(me);
+    const mid = (g.size - 1) / 2;
+    let best = null;
+    let bestScore = -Infinity;
+
+    for (const [r, c] of emptyCells(g)) {
+      const after = cloneGame(g);
+      play(after, r, c);
+      let score = Math.random() * 0.1;
+      if (after.winner === me) {
+        score += 100;
+      } else if (!after.roundOver && foeCanWin(after, foe)) {
+        score -= 50;
+      }
+      if (r === mid && c === mid) score += 0.3;
+      if (score > bestScore) {
+        bestScore = score;
+        best = [r, c];
+      }
+    }
+    return best;
+  }
+
+  function stopBot() {
+    clearTimeout(botTimer);
+    botTimer = null;
+  }
+
+  function maybeBotMove() {
+    stopBot();
+    if (!game || !game.vsBot || game.roundOver || game.matchOver) return;
+    if (playerToMove(game) !== 'O') return;
+    botTimer = setTimeout(() => {
+      botTimer = null;
+      if (!game) return;
+      const move = chooseBotMove(game);
+      if (move) play(game, move[0], move[1]);
+      afterMove();
+    }, BOT_DELAY_MS);
+  }
+
+  // ---- Flow ---------------------------------------------------------------
+  function onCellClick(r, c) {
+    if (!game || game.roundOver || game.matchOver) return;
+    if (game.vsBot && playerToMove(game) === 'O') return;
+    if (play(game, r, c)) afterMove();
+  }
+
+  function afterMove() {
+    render();
+    if (game.matchOver) {
+      showMatchEnd();
+    } else if (game.roundOver) {
+      showRoundEnd();
+    } else {
+      maybeBotMove();
+    }
+  }
+
+  function render() {
+    if (!game) return;
+
+    const boardEl = $('board');
+    boardEl.style.setProperty('--n', game.size);
+    boardEl.innerHTML = '';
+
+    const toMove = game.roundOver || game.matchOver ? null : playerToMove(game);
+    const nextOut = game.mode === 'sliding' && toMove ? oldestMarkOf(game, toMove) : null;
+    const winCells = new Set((game.winLine || []).map(([r, c]) => r + ',' + c));
+    const locked = !!game.roundOver || !!game.matchOver || (game.vsBot && toMove === 'O');
+
+    game.board.forEach((row, r) => row.forEach((v, c) => {
+      const btn = document.createElement('button');
+      let cls = 'cell';
+      if (v) cls += ' ' + v;
+      if (nextOut && nextOut.row === r && nextOut.col === c) cls += ' next';
+      if (winCells.has(r + ',' + c)) cls += ' win';
+      btn.className = cls;
+      btn.textContent = v || '';
+      btn.disabled = locked || v !== null;
+      btn.setAttribute('aria-label', 'row ' + (r + 1) + ', column ' + (c + 1));
+      btn.addEventListener('click', () => onCellClick(r, c));
+      boardEl.appendChild(btn);
+    }));
+
+    $('modeLabel').textContent = game.mode === 'sliding' ? 'Sliding' : 'Expanding · first to 3 rounds';
+
+    if (game.matchOver) {
+      $('status').textContent = game.mode === 'sliding'
+        ? game.matchWinner + ' wins!'
+        : 'Match over: ' + (game.matchWinner ? game.matchWinner + ' wins' : 'ended early');
+    } else if (game.roundOver) {
+      $('status').textContent = game.winner ? game.winner + ' wins the round' : 'Round is a draw';
+    } else if (game.vsBot) {
+      $('status').textContent = toMove === 'X' ? 'Your turn (X)' : 'Bot is thinking…';
+    } else {
+      $('status').textContent = toMove + ' to move';
+    }
+
+    if (game.mode === 'sliding') {
+      $('info').textContent = toMove
+        ? 'Marks on board: X ' + game.marks.X.length + ' · O ' + game.marks.O.length + '. Faded mark is removed on your 4th placement.'
+        : '';
+    } else {
+      $('info').textContent = 'Round ' + game.roundNumber + ' · ' + game.size + '×' + game.size +
+        ' · X ' + game.roundWins.X + ' – ' + game.roundWins.O + ' O';
+    }
+  }
+
+  // ---- Overlay and redirect ----------------------------------------------
+  function setVisible(id, show) { $(id).hidden = !show; }
+
+  function showRoundEnd() {
+    const draw = !game.winner;
+    $('endTitle').textContent = draw ? 'Round is a draw' : game.winner + ' wins the round';
+    $('endText').textContent = 'Next round: ' + (game.size + 1) + '×' + (game.size + 1) +
+      '. Score ' + game.roundWins.X + ' – ' + game.roundWins.O + '.';
+    setVisible('nextBtn', true);
+    setVisible('endMatchBtn', true);
+    setVisible('siteLink', true);
+    setVisible('stayBtn', false);
+    setVisible('againBtn', false);
+    setVisible('overlayMenuBtn', false);
+    stopCountdown();
+    $('overlay').hidden = false;
+  }
+
+  function showMatchEnd() {
+    const winner = game.matchWinner;
+    if (game.mode === 'sliding') {
+      $('endTitle').textContent = winner + ' wins!';
+      $('endText').textContent = 'Nice game. Thanks for testing the offline build.';
+    } else {
+      $('endTitle').textContent = winner ? winner + ' wins the match' : 'Match ended';
+      $('endText').textContent = 'Final score ' + game.roundWins.X + ' – ' + game.roundWins.O +
+        '. Thanks for testing the offline build.';
+    }
+    setVisible('nextBtn', false);
+    setVisible('endMatchBtn', false);
+    setVisible('siteLink', true);
+    setVisible('stayBtn', true);
+    setVisible('againBtn', true);
+    setVisible('overlayMenuBtn', true);
+    $('overlay').hidden = false;
+    startCountdown();
+  }
+
+  function hideOverlay() {
+    stopCountdown();
+    $('overlay').hidden = true;
+  }
+
+  function startCountdown() {
+    stopCountdown();
+    setVisible('countdown', true);
+    let left = COUNTDOWN_SECONDS;
+    const tick = () => {
+      $('countdown').textContent = 'Opening infinitettt.com in ' + left + 's…';
+      if (left <= 0) {
+        countdownTimer = null;
+        setVisible('countdown', false);
+        // Opens a new tab. Browsers can block this if the player didn't click,
+        // so the "Play online" button stays available.
+        window.open(SITE_URL, '_blank', 'noopener');
+        return;
+      }
+      left--;
+      countdownTimer = setTimeout(tick, 1000);
+    };
+    tick();
+  }
+
+  function stopCountdown() {
+    clearTimeout(countdownTimer);
+    countdownTimer = null;
+    setVisible('countdown', false);
+  }
+
+  function showMenu() {
+    stopBot();
+    hideOverlay();
+    game = null;
+    $('game').hidden = true;
+    $('menu').hidden = false;
+    $('modeLabel').textContent = 'Pick a mode to start';
+  }
+
+  // ---- Wiring -------------------------------------------------------------
+  document.querySelectorAll('.mode-card').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      newGame(btn.dataset.mode, btn.dataset.vs === 'bot');
+    });
+  });
+
+  $('restartBtn').addEventListener('click', () => {
+    if (game) newGame(game.mode, game.vsBot);
+  });
+  $('menuBtn').addEventListener('click', showMenu);
+  $('overlayMenuBtn').addEventListener('click', showMenu);
+  $('againBtn').addEventListener('click', () => {
+    if (game) newGame(game.mode, game.vsBot);
+  });
+  $('nextBtn').addEventListener('click', () => {
+    startNextRound(game);
+    hideOverlay();
+    render();
+    maybeBotMove();
+  });
+  $('endMatchBtn').addEventListener('click', () => {
+    game.matchOver = true;
+    render();
+    showMatchEnd();
+  });
+  $('stayBtn').addEventListener('click', stopCountdown);
+
+  // Exposed for testing only.
+  window.__itchTest = { emptyBoard, findLine, play, playerToMove, chooseBotMove, startNextRound, newGame, getGame: () => game };
+})();
+</script>
+</body>
+</html>
