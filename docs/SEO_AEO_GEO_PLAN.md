@@ -658,3 +658,73 @@ locally: `tsc --noEmit` clean, `next build` clean, 60/60 tests passing
 - **New page `/tic-tac-toe`.** Play-first: a client-side classic 3×3 board (`components/guides/ClassicBoard.tsx`) above the copy, which covers the rules, how to win, draws, and the two variants. Targets the plain "tic tac toe" intent. It is in `PUBLIC_ROUTES` (`ticTacToe`), the sitemap at priority 0.85, and `llms.txt`.
 - **Expectation for the plain term:** Google shows its own playable board for "tic tac toe", so this page competes with that and with long-established sites. Track the query for at least three months before judging it. Filter Search Console on "tic tac toe" monthly.
 - **Checks:** `tsc --noEmit` clean; `vitest run lib/seo` 20/20. The page has not been opened in a browser yet.
+
+### 2026-11-06 — Phase 3 shipped (it had been sitting unmerged for a month)
+
+**The finding that triggered this:** the Phase 3 pages built on 2026-10-04 were
+committed to `seo/phase-3-guides` and never merged. Production served `404` for
+`/tic-tac-toe`, `/guides`, and both mode guides the entire time, and the live
+sitemap stayed at 12 URLs. This is the direct cause of the Search Console result
+recorded below: **zero impressions for "sliding tic tac toe" and "expanding tic
+tac toe"** — the two terms this site can own outright. The pages that target them
+did not exist publicly.
+
+**Blocker hit on the way, and how it was cleared.** `.claude/worktrees/auto-generated-usernames`
+and `.claude/worktrees/friend-rooms-ui` had been committed as mode-`160000`
+gitlinks in `693cda1` with no `.gitmodules`. After the repo moved from
+`D:/infinite-ttt` to `D:/Projects/infinite-ttt` their gitdir pointers dangled and
+every `git status`, `git rm`, `checkout` and `merge` aborted with
+`fatal: not a git repository`. Cleared in `8331baf` by removing them from the
+index only (`git update-index --force-remove`) and adding `.claude/worktrees/`
+to `.gitignore`. The on-disk directories were left alone, and `git worktree prune`
+preserved both `worktree-*` branches. **Those two branches are local-only and
+hold unmerged work (OAuth username generation, rooms UI) — push them somewhere.**
+
+**Shipped:** `main` fast-forwarded `1edfc96..8331baf` and deployed. Verified in
+production, not just locally:
+
+| Check | Result |
+| --- | --- |
+| `/tic-tac-toe`, `/guides`, both mode guides | `200` (were `404`) |
+| `sitemap.xml` | 12 → **16** URLs |
+| Canonicals on new pages | absolute, `www`, no preview-URL leak |
+| Schema on new pages | `BreadcrumbList` + `FAQPage` + the shared entity graph |
+| `tsc --noEmit` / `vitest run` / `next build` | clean / **63/63** / clean, 4 routes prerendered |
+| IndexNow | `{"ok":true,"submitted":5}` |
+
+**Correction to the 2026-10-04 entry.** `INDEXNOW_KEY` is *not* misconfigured.
+The key file serves `200` and `POST /api/indexnow` returns `400` (bad body), not
+`503` (missing key), so the env var is set in Production. Vercel's
+*Needs Attention* flag was stale. No action needed.
+
+**Search Console, 3 months to 2026-11-03 — read this before planning Phase 5:**
+
+- 13 clicks / 254 impressions in the last 28 days (+8% / +29%).
+- **Indexing is not the problem.** 11 of 12 then-live URLs indexed. The 3
+  "Page with redirect / Failed" rows are the apex `http`+`https` → `www` 308s,
+  which are correct and can never pass validation. Stop treating them as errors.
+- **Ranking is the problem.** "infinite tic tac toe" sits at position 20.66.
+- **Mobile converts at half the rate it should:** desktop 231 impr @ pos 15.1 →
+  6.93% CTR; mobile 209 impr @ pos **6.38** → **3.35%**. Mobile ranks twice as
+  well and converts half as often. Likely app-pack crowding above the fold.
+- 28 of 33 queries got zero clicks, several from good positions
+  (`ttt online` pos 2, `never ending tic tac toe` pos 3,
+  `infinite tic tac toe online` pos 3.3 at 5% CTR).
+- US is the weak market: 132 impr @ pos 19, 3.79% CTR. India: 49 impr @ pos 5.57,
+  10.2% CTR.
+- The late-October step-change (impressions 3–11/day → 12–17/day from 10-26) lands
+  about 30 days after the 2026-09-26 perf commits, which matches one full CrUX
+  28-day window. Correlation, not proof — confirm by checking whether PSI now
+  shows *field* data for the homepage.
+
+**Still blocked on account access, not code:**
+
+1. **Nothing has been posted from `SEO_LISTING_COPY.md`.** This is now the
+   binding constraint. The SERP for "infinite tic tac toe" is owned by itch.io,
+   Poki, Product Hunt and App Store listings; `sameAs` still holds only two
+   self-owned URLs. Post the itch.io, Reddit, Show HN and Product Hunt drafts,
+   then add the itch.io URL to `SOCIAL_PROFILES` as the first non-self anchor.
+2. `apps/itch-offline/index.html` is titled "Infinite Tic-Tac-Toe (Offline Test)"
+   — an 18 KB test build, untracked and **not** a releasable itch.io upload.
+   Decide whether to ship a real build or list the project as a web link.
+3. Resubmit `sitemap.xml` in Search Console (12 → 16 URLs).
