@@ -43,6 +43,14 @@ export const SITE = {
 export const SOCIAL_PROFILES: readonly string[] = [
   "https://github.com/tushrpal/infinite-tic-tac-toe",
   "https://x.com/infinite_ttt",
+  // Verified reachable 2026-11-06 (full page fetched; itch.io rate-limits
+  // repeat requests with 429, which is throttling, not absence). It links
+  // back to www.infinitettt.com twice, so corroboration goes both ways.
+  //
+  // Note for anyone counting on this for authority: itch.io marks every
+  // outbound link `rel="nofollow noopener"`, so this passes no PageRank.
+  // Its value here is entity resolution and referral traffic only.
+  "https://tushrpal.itch.io/infinite-tic-tac-toe",
 ];
 
 /** Canonical production domain, used as a safety net if the env var is unset. */
