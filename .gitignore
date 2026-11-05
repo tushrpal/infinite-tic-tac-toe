@@ -78,3 +78,6 @@ apps/mobile/android/
 
 # Local Netlify folder
 .netlify/
+
+# Claude Code worktree checkouts (never belong in the index)
+.claude/worktrees/
