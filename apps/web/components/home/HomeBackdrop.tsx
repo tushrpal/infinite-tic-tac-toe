@@ -54,13 +54,21 @@ export function HomeBackdrop({
         className="absolute -inset-x-[5%] -inset-y-[5%]"
       >
         <motion.div style={{ opacity: scrollOpacity }} className="relative h-full w-full">
+          {/*
+            `quality={40}`, down from 60. This is the LCP candidate on `/`, and
+            it renders at 0.4 opacity beneath the two gradient overlays below —
+            it reads as atmosphere, so compression artefacts that would be
+            obvious in a foreground image are not perceivable here. Cheapest
+            remaining lever on mobile LCP, the only metric still outside "good"
+            (desktop LCP is already green; PSI 2026-11-07).
+          */}
           <Image
             src="/assets/homeBg.jpg"
             alt=""
             fill
             priority
             sizes="100vw"
-            quality={60}
+            quality={40}
             className="object-cover"
           />
         </motion.div>

@@ -11,7 +11,13 @@
   /* Font tokens */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-display: 'Space Grotesk', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* System mono stack rather than a webfont. JetBrains Mono was a third
+     downloaded family serving ~12 usages (leaderboard ratings, match timers,
+     join codes, cell indices) — none above the fold, none on a landing page,
+     and all of them short runs of tabular digits that a system mono renders
+     identically. Dropping it removes a family from the render-blocking font
+     CSS, which costs most on throttled mobile where LCP is still amber. */
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
   /* Default theme: Dark Neon */
   --board-bg: #0a0a0f;

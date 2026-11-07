@@ -1,6 +1,6 @@
 import type { Viewport } from "next";
 import Script from "next/script";
-import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "@/styles/globals.css";
 import { buildRootMetadata } from "@/lib/seo/metadata";
 import { globalSchemas } from "@/lib/seo/json-ld";
@@ -34,11 +34,9 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  display: "swap",
-});
+// No mono webfont is loaded: `--font-mono` resolves to a system mono stack in
+// globals.css. See the note there for why the third family was not worth its
+// place on the critical path.
 
 export const metadata = buildRootMetadata();
 
@@ -57,7 +55,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${spaceGrotesk.variable}`}
       suppressHydrationWarning
     >
       <head>
