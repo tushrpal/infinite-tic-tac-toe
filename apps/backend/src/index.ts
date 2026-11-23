@@ -12,6 +12,7 @@ import { pruneReplaysForAllPlayers } from './jobs/replayRetention';
 import { REPLAYS_PER_PLAYER } from './config/replayRetention';
 
 const DEFAULT_PORT = 3000;
+const REDIS_PING_TIMEOUT_MS = 5000;
 
 function resolvePort(value: string | undefined): number {
   const parsed = Number(value ?? DEFAULT_PORT);
@@ -45,7 +46,20 @@ async function bootstrapDependencies(): Promise<void> {
   }
 
   try {
-    await redis.ping();
+    // ioredis is configured with maxRetriesPerRequest: null, so a command to an
+    // unreachable/misconfigured host (e.g. a stale REDIS_URL) queues indefinitely
+    // instead of rejecting. Without a timeout, this ping would hang forever and the
+    // server would never reach httpServer.listen() — which makes the platform report
+    // "No open ports detected" and fail the deploy. Bound it so Redis stays optional.
+    await Promise.race([
+      redis.ping(),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Redis ping timed out after ${REDIS_PING_TIMEOUT_MS}ms`)),
+          REDIS_PING_TIMEOUT_MS,
+        ).unref(),
+      ),
+    ]);
     console.log('Redis connected');
   } catch (error) {
     console.error('Redis error (check REDIS_URL and network):', error);
