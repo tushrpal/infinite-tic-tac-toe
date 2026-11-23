@@ -24,9 +24,11 @@ async function asDataUri(url: URL, mime: string) {
 // Mirrors the homepage hero: space backdrop, glowing board on the right,
 // headline on the left. Satori supports flexbox only (no CSS grid).
 export default async function OpenGraphImage() {
+  // Use OG-optimized copies (resized + compressed) so the bundled, base64-inlined
+  // artwork keeps the Edge Function under the 1 MB Hobby-plan limit.
   const [bg, board] = await Promise.all([
-    asDataUri(new URL("../public/assets/homeBg.jpg", import.meta.url), "image/jpeg"),
-    asDataUri(new URL("../public/assets/board.png", import.meta.url), "image/png"),
+    asDataUri(new URL("../public/assets/og-bg.jpg", import.meta.url), "image/jpeg"),
+    asDataUri(new URL("../public/assets/og-board.png", import.meta.url), "image/png"),
   ]);
 
   return new ImageResponse(
